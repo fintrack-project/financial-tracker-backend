@@ -7,9 +7,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
+
 @RestController
 @RequestMapping("/api")
-// @CrossOrigin(origins = "http://localhost:3000") // Allow requests from the frontend
 public class UserController {
 
     @Autowired
@@ -17,6 +18,17 @@ public class UserController {
 
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
+
+    @PostMapping("/login")
+    public ResponseEntity<?> loginUser(@RequestBody User loginRequest) {
+        Optional<User> user = userRepository.findByUserId(loginRequest.getUserId());
+
+        if (user.isPresent() && passwordEncoder.matches(loginRequest.getPassword(), user.get().getPassword())) {
+            return ResponseEntity.ok("Login successful!");
+        } else {
+            return ResponseEntity.status(401).body("Invalid user ID or password.");
+        }
+    }
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
