@@ -1,7 +1,7 @@
-package com.example.fintrack.controller;
+package com.fintrack.controller;
 
-import com.example.fintrack.model.User;
-import com.example.fintrack.repository.UserRepository;
+import com.fintrack.model.User;
+import com.fintrack.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api")
+// @CrossOrigin(origins = "http://localhost:3000") // Allow requests from the frontend
 public class UserController {
 
     @Autowired
