@@ -1,13 +1,16 @@
 package com.fintrack.model;
 
+import java.util.UUID;
+
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "users")
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue
+    @Column(name = "account_id", nullable = false, unique = true, updatable = false)
+    private UUID accountId; // Primary key
 
     @Column(nullable = false, unique = true)
     private String userId;
@@ -22,14 +25,14 @@ public class User {
     private String address;
 
     // Getters and Setters
-    public Long getId() {
-        return id;
+    public UUID getAccountId() {
+        return accountId;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setAccountId(UUID accountId) {
+        this.accountId = accountId;
     }
-
+    
     public String getUserId() {
         return userId;
     }
