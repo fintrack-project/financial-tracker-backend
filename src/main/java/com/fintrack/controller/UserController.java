@@ -26,11 +26,6 @@ public class UserController {
     public ResponseEntity<?> loginUser(@RequestBody User loginRequest, HttpServletRequest request) {
         Optional<User> user = userRepository.findByUserId(loginRequest.getUserId());
 
-        // if (user.isPresent() && passwordEncoder.matches(loginRequest.getPassword(), user.get().getPassword())) {
-        //     return ResponseEntity.ok("Login successful!");
-        // } else {
-        //     return ResponseEntity.status(401).body("Invalid user ID or password.");
-        // }
         if (user.isPresent() && passwordEncoder.matches(loginRequest.getPassword(), user.get().getPassword())) {
             // Store userId in the session
             request.getSession().setAttribute("userId", loginRequest.getUserId());
