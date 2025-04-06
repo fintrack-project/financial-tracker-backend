@@ -1,7 +1,10 @@
-package com.financialtracker.service;
+package com.fintrack.service;
 
-import com.financialtracker.repository.AccountRepository;
+import com.fintrack.repository.AccountRepository;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class AccountService {
@@ -12,8 +15,9 @@ public class AccountService {
         this.accountRepository = accountRepository;
     }
 
-    public String getAccountIdByUserId(String userId) {
+    public UUID getAccountIdByUserId(String userId) {
         // Fetch the accountId from the database using the userId
-        return accountRepository.findAccountIdByUserId(userId);
+        Optional<UUID> accountId = accountRepository.findAccountIdByUserId(userId);
+        return accountId.orElse(null);
     }
 }

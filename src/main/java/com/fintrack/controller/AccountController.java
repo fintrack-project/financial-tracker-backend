@@ -4,9 +4,10 @@ import com.fintrack.service.AccountService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/accounts")
@@ -19,17 +20,14 @@ public class AccountController {
     }
 
     @GetMapping("/current")
-    public ResponseEntity<Map<String, String>> getCurrentAccountId() {
-        // Simulate fetching the logged-in user's ID (replace with actual authentication logic)
-        String userId = "loggedInUser123"; // Replace with logic to get the logged-in user's ID
-
+    public ResponseEntity<Map<String, UUID>> getCurrentAccountId(@RequestParam String userId) {
         // Fetch the accountId associated with the userId
-        String accountId = accountService.getAccountIdByUserId(userId);
+        UUID accountId = accountService.getAccountIdByUserId(userId);
 
         if (accountId == null) {
-            return ResponseEntity.status(404).body(Map.of("error", "Account ID not found"));
-        }
+          return ResponseEntity.status(404).body(Collections.singletonMap("error", null));
+      }
 
-        return ResponseEntity.ok(Map.of("accountId", accountId));
+      return ResponseEntity.ok(Collections.singletonMap("accountId", accountId));
     }
 }
