@@ -23,4 +23,8 @@ public class TransactionService {
     public void saveTransaction(Transaction transaction) {
         transactionRepository.save(transaction);
     }
+
+    public void saveTransactions(List<Transaction> transactions) {
+        transactionRepository.saveAll(transactions);
+    }
 }

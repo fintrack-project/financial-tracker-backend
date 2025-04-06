@@ -28,16 +28,16 @@ public class TransactionController {
 
     @PostMapping("/api/accounts/{accountId}/transactions")
     public ResponseEntity<String> uploadTransactions(
-          @PathVariable UUID accountId,
-          @RequestBody List<Transaction> transactions) {
-      try {
-          for (Transaction transaction : transactions) {
-              transaction.setAccountId(accountId);
-              transactionService.saveTransaction(transaction);
-          }
-          return ResponseEntity.ok("Transactions uploaded successfully.");
-      } catch (Exception e) {
-          return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload transactions.");
-      }
-  }
+        @PathVariable UUID accountId,
+        @RequestBody List<Transaction> transactions) {
+        try {
+            for (Transaction transaction : transactions) {
+                transaction.setAccountId(accountId);
+                transactionService.saveTransaction(transaction);
+            }
+            return ResponseEntity.ok("Transactions uploaded successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload transactions.");
+        }
+    }
 }
