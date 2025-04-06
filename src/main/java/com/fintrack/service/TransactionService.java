@@ -4,6 +4,7 @@ import com.fintrack.model.Transaction;
 import com.fintrack.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
 import java.util.List;
 
 @Service
@@ -15,7 +16,7 @@ public class TransactionService {
         this.transactionRepository = transactionRepository;
     }
 
-    public List<Transaction> getTransactionsByAccountId(String accountId) {
+    public List<Transaction> getTransactionsByAccountId(UUID accountId) {
         return transactionRepository.findByAccountIdOrderByDateAsc(accountId);
     }
 

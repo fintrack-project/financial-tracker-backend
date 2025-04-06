@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import java.util.UUID;
+
 @Entity
 @Table(name = "transactions")
 public class Transaction {
@@ -13,7 +15,7 @@ public class Transaction {
     private Long transactionId;
 
     @Column(nullable = false)
-    private String accountId;
+    private UUID accountId;
 
     @Column(nullable = false)
     private LocalDate date;
@@ -45,11 +47,11 @@ public class Transaction {
         this.transactionId = transactionId;
     }
 
-    public String getAccountId() {
+    public UUID getAccountId() {
         return accountId;
     }
 
-    public void setAccountId(String accountId) {
+    public void setAccountId(UUID accountId) {
         this.accountId = accountId;
     }
 

@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
 import java.util.List;
 
 @RestController
@@ -20,14 +21,14 @@ public class TransactionController {
     }
 
     @GetMapping("/{accountId}/transactions")
-    public ResponseEntity<List<Transaction>> getTransactionsByAccountId(@PathVariable String accountId) {
+    public ResponseEntity<List<Transaction>> getTransactionsByAccountId(@PathVariable UUID accountId) {
         List<Transaction> transactions = transactionService.getTransactionsByAccountId(accountId);
         return ResponseEntity.ok(transactions);
     }
 
     @PostMapping("/api/accounts/{accountId}/transactions")
     public ResponseEntity<String> uploadTransactions(
-          @PathVariable String accountId,
+          @PathVariable UUID accountId,
           @RequestBody List<Transaction> transactions) {
       try {
           for (Transaction transaction : transactions) {

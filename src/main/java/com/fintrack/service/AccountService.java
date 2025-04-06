@@ -15,9 +15,9 @@ public class AccountService {
         this.accountRepository = accountRepository;
     }
 
-    public UUID getAccountIdByUserId(String userId) {
+    public String getAccountIdByUserId(String userId) {
         // Fetch the accountId from the database using the userId
         Optional<UUID> accountId = accountRepository.findAccountIdByUserId(userId);
-        return accountId.orElse(null);
+        return accountId.map(UUID::toString).orElse(null);
     }
 }
