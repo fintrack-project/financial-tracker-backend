@@ -11,7 +11,11 @@ public class MarketAverageData {
 
     private String symbol;
     private String price;
+    
+    @Column(name = "percent_change")
     private String percentChange;
+
+    @Column(name = "timestamp")
     private LocalDateTime time;
 
     // Getters and setters

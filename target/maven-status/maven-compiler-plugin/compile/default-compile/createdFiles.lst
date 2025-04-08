@@ -5,9 +5,13 @@ com/fintrack/config/WebConfig.class
 com/fintrack/repository/UserRepository.class
 com/fintrack/repository/AccountRepository.class
 com/fintrack/service/AccountService.class
+com/fintrack/repository/MarketAverageDataRepository.class
+com/fintrack/service/MarketAverageDataService.class
 com/fintrack/controller/TransactionController.class
 com/fintrack/service/TransactionService.class
 com/fintrack/repository/TransactionRepository.class
+com/fintrack/controller/MarketAverageDataController.class
+com/fintrack/model/MarketAverageData.class
 com/fintrack/FinTrackApplication.class
 com/fintrack/config/SecurityConfig.class
 com/fintrack/model/Account.class
