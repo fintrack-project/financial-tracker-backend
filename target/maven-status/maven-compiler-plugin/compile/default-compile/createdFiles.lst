@@ -11,6 +11,7 @@ com/fintrack/controller/TransactionController.class
 com/fintrack/service/TransactionService.class
 com/fintrack/repository/TransactionRepository.class
 com/fintrack/controller/MarketAverageDataController.class
+com/fintrack/model/PreviewTransaction.class
 com/fintrack/model/MarketAverageData.class
 com/fintrack/FinTrackApplication.class
 com/fintrack/config/SecurityConfig.class

@@ -17,5 +17,5 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     @Modifying
     @Query(value = "DELETE FROM transactions WHERE transaction_id = :transactionId", nativeQuery = true)
-    void deleteByTransactionId(Long transactionId);
+    void deleteByTransactionId(@Param("transactionId") Long transactionId);
 }

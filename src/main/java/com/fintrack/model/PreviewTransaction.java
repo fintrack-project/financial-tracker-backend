@@ -1,3 +1,5 @@
+package com.fintrack.model;
+
 public class PreviewTransaction extends Transaction {
   private boolean markDelete;
 
