@@ -9,8 +9,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface MarketAverageDataRepository extends JpaRepository<MarketAverageData, Long> {
     @Query(value = 
-    "SELECT id, symbol, price, percent_change, timestamp \n" + //
-    "FROM market_data\n" + //
+    "SELECT id, symbol, price, price_change, percent_change, price_low, price_high, timestamp \n" + //
+    "FROM market_average_data\n" + //
     "WHERE symbol = :symbol\n" + //
     "ORDER BY timestamp DESC\n" + //
     "LIMIT 1;", nativeQuery = true)

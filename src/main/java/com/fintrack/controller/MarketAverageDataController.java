@@ -25,7 +25,7 @@ public class MarketAverageDataController {
           return ResponseEntity.ok(marketData);
       } catch (Exception e) {
           e.printStackTrace(); // Log the error for debugging
-          return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to fetch market data"));
+          return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to fetch market average data"));
       }
     }
 }

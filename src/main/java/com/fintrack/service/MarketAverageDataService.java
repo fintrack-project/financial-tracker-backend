@@ -26,7 +26,10 @@ public class MarketAverageDataService {
             if (mostRecentData != null) {
                 result.put(symbol, Map.of(
                     "price", mostRecentData.getPrice(),
-                    "percent_change", mostRecentData.getPercentChange()
+                    "price_change", mostRecentData.getPriceChange(),
+                    "percent_change", mostRecentData.getPercentChange(),
+                    "price_low", mostRecentData.getPriceLow(),
+                    "price_high", mostRecentData.getPriceHigh()
                 ));
             }
         }
