@@ -88,7 +88,7 @@ public class TransactionController {
         // Update the session with only the transactions not marked for deletion
         session.setAttribute("previewTransactions_" + accountId, transactionsToSave);
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(transactionsToSave);
     }
 
     // Helper method to convert PreviewTransaction to Transaction
