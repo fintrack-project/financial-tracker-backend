@@ -44,7 +44,7 @@ public class TransactionController {
         }
     }
 
-    @PostMapping("/api/accounts/{accountId}/upload-preview-transactions")
+    @PostMapping("/{accountId}/upload-preview-transactions")
     public ResponseEntity<List<Transaction>> uploadPreviewTransactions(
             @RequestBody List<Transaction> transactions,
             HttpSession session) {
@@ -52,7 +52,7 @@ public class TransactionController {
         return ResponseEntity.ok(transactions); // Return the stored transactions
     }
 
-        @GetMapping("/api/accounts/{accountId}/preview-transactions")
+    @GetMapping("/{accountId}/upload-preview-transactions")
     public ResponseEntity<List<Transaction>> getPreviewTransactions(HttpSession session) {
         List<Transaction> previewTransactions = (List<Transaction>) session.getAttribute("previewTransactions");
         if (previewTransactions == null) {
