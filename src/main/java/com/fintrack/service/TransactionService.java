@@ -20,11 +20,19 @@ public class TransactionService {
         return transactionRepository.findByAccountIdOrderByDateDesc(accountId);
     }
 
-    public void saveTransaction(Transaction transaction) {
+    public void saveTransaction(UUID accountId, Transaction transaction) {
+        transaction.setAccountId(accountId);
         transactionRepository.save(transaction);
     }
 
-    public void saveAllTransactions(List<Transaction> transactions) {
-        transactionRepository.saveAll(transactions);
+    public void saveAllTransactions(UUID accountId, List<Transaction> transactions) {
+        for (Transaction transaction : transactions) {
+            transaction.setAccountId(accountId); // Associate the account ID
+            transactionRepository.save(transaction);
+        }
+    }
+
+    public void deleteByTransactionId(Long transactionId) {
+        transactionRepository.deleteByTransactionId(transactionId);
     }
 }
