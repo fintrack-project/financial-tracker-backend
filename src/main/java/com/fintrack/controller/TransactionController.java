@@ -52,7 +52,7 @@ public class TransactionController {
         return ResponseEntity.ok(transactions); // Return the stored transactions
     }
 
-    @GetMapping("/{accountId}/upload-preview-transactions")
+    @GetMapping("/{accountId}/preview-transactions")
     public ResponseEntity<List<Transaction>> getPreviewTransactions(HttpSession session) {
         List<Transaction> previewTransactions = (List<Transaction>) session.getAttribute("previewTransactions");
         if (previewTransactions == null) {
@@ -61,14 +61,21 @@ public class TransactionController {
         return ResponseEntity.ok(previewTransactions);
     }
 
-    @PostMapping("/api/accounts/{accountId}/confirm-transactions")
-    public ResponseEntity<Void> confirmTransactions(HttpSession session) {
+    @PostMapping("{accountId}/confirm-transactions")
+    public ResponseEntity<List<Transaction>> confirmTransactions(@PathVariable UUID accountId, HttpSession session) {
         List<Transaction> previewTransactions = (List<Transaction>) session.getAttribute("previewTransactions");
+        for (Transaction transaction : previewTransactions) {
+            transaction.setAccountId(accountId);
+        }
+
+        // Save the transactions to the database
+        transactionService.saveAllTransactions(previewTransactions);
+
         if (previewTransactions != null) {
             // Save the transactions to the database (implement your save logic here)
             // transactionService.saveAll(previewTransactions);
             session.removeAttribute("previewTransactions"); // Clear the session
         }
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(previewTransactions);
     }
 }
