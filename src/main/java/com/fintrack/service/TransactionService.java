@@ -17,7 +17,7 @@ public class TransactionService {
     }
 
     public List<Transaction> getTransactionsByAccountId(UUID accountId) {
-        return transactionRepository.findByAccountIdOrderByDateAsc(accountId);
+        return transactionRepository.findByAccountIdOrderByDateDesc(accountId);
     }
 
     public void saveTransaction(Transaction transaction) {
