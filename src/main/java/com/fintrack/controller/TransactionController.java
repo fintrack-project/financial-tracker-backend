@@ -1,5 +1,6 @@
 package com.fintrack.controller;
 
+import com.fintrack.model.PreviewTransaction;
 import com.fintrack.model.Transaction;
 import com.fintrack.service.TransactionService;
 
@@ -35,8 +36,7 @@ public class TransactionController {
         @RequestBody List<Transaction> transactions) {
         try {
             for (Transaction transaction : transactions) {
-                transaction.setAccountId(accountId);
-                transactionService.saveTransaction(transaction);
+                transactionService.saveTransaction(accountId, transaction);
             }
             return ResponseEntity.ok("Transactions uploaded successfully.");
         } catch (Exception e) {
@@ -62,20 +62,47 @@ public class TransactionController {
     }
 
     @PostMapping("{accountId}/confirm-transactions")
-    public ResponseEntity<List<Transaction>> confirmTransactions(@PathVariable UUID accountId, HttpSession session) {
-        List<Transaction> previewTransactions = (List<Transaction>) session.getAttribute("previewTransactions");
-        for (Transaction transaction : previewTransactions) {
-            transaction.setAccountId(accountId);
-        }
+    public ResponseEntity<List<Transaction>> confirmTransactions(@PathVariable UUID accountId, 
+    @RequestBody List<PreviewTransaction> previewTransactions,
+    HttpSession session) {
+        // Separate transactions to save and delete
+        List<Transaction> transactionsToSave = previewTransactions.stream()
+                .filter(transaction -> !transaction.isMarkDelete()) // Keep only transactions not marked for deletion
+                .map(this::convertToTransaction) // Convert PreviewTransaction to Transaction
+                .toList();
 
-        // Save the transactions to the database
-        transactionService.saveAllTransactions(previewTransactions);
+        List<Transaction> transactionsToDelete = previewTransactions.stream()
+                .filter(transaction -> transaction.getTransactionId() != null) // exclude transactions by upload
+                .filter(transaction -> transaction.isMarkDelete()) // Keep only transactions marked for deletion
+                .map(this::convertToTransaction) // Convert PreviewTransaction to Transaction
+                .toList();
 
-        if (previewTransactions != null) {
-            // Save the transactions to the database (implement your save logic here)
-            // transactionService.saveAll(previewTransactions);
-            session.removeAttribute("previewTransactions"); // Clear the session
+        // Save transactions to the database
+        transactionService.saveAllTransactions(accountId, transactionsToSave);
+
+        // Delete transactions from the database
+        for(Transaction transactionToDelete : transactionsToDelete){
+            transactionService.deleteByTransactionId(transactionToDelete.getTransactionId());
         }
-        return ResponseEntity.ok(previewTransactions);
+        
+        // Update the session with only the transactions not marked for deletion
+        session.setAttribute("previewTransactions_" + accountId, transactionsToSave);
+
+        return ResponseEntity.ok(transactionsToSave);
+    }
+
+    // Helper method to convert PreviewTransaction to Transaction
+    private Transaction convertToTransaction(PreviewTransaction previewTransaction) {
+        Transaction transaction = new Transaction();
+        transaction.setTransactionId(previewTransaction.getTransactionId());
+        transaction.setAccountId(previewTransaction.getAccountId());
+        transaction.setDate(previewTransaction.getDate());
+        transaction.setAssetName(previewTransaction.getAssetName());
+        transaction.setCredit(previewTransaction.getCredit());
+        transaction.setDebit(previewTransaction.getDebit());
+        transaction.setTotalBalanceBefore(previewTransaction.getTotalBalanceBefore());
+        transaction.setTotalBalanceAfter(previewTransaction.getTotalBalanceAfter());
+        transaction.setUnit(previewTransaction.getUnit());
+        return transaction;
     }
 }

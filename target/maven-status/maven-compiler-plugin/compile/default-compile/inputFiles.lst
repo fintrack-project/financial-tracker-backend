@@ -1,6 +1,7 @@
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/TransactionRepository.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/model/Account.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/controller/AccountController.java
+/Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/model/PreviewTransaction.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/MarketAverageDataRepository.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/AccountRepository.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/config/SecurityConfig.java
