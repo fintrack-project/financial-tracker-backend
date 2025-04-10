@@ -4,6 +4,7 @@ com/fintrack/repository/AccountRepository.class
 com/fintrack/repository/HoldingsRepository.class
 com/fintrack/service/AccountService.class
 com/fintrack/repository/MarketAverageDataRepository.class
+com/fintrack/config/KafkaConfig.class
 com/fintrack/service/MarketAverageDataService.class
 com/fintrack/controller/TransactionController.class
 com/fintrack/service/TransactionService.class
@@ -20,5 +21,6 @@ com/fintrack/FinTrackApplication.class
 com/fintrack/config/SecurityConfig.class
 com/fintrack/service/HoldingsService.class
 com/fintrack/model/Account.class
+com/fintrack/service/KafkaProducerService.class
 com/fintrack/controller/UserController.class
 com/fintrack/config/WebConfig$1.class
