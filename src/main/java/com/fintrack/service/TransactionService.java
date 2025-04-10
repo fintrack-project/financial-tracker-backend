@@ -4,6 +4,8 @@ import com.fintrack.model.PreviewTransaction;
 import com.fintrack.model.Transaction;
 import com.fintrack.repository.TransactionRepository;
 
+import com.fintrack.constants.KafkaTopics;
+
 import jakarta.transaction.Transactional;
 
 import org.springframework.stereotype.Service;
@@ -67,7 +69,7 @@ public class TransactionService {
             transactionIdsToDelete,
             Instant.now().toString()
         );
-        kafkaProducerService.publishEvent("TRANSACTIONS_CONFIRMED", transactionsConfirmedPayload);
+        kafkaProducerService.publishEvent(KafkaTopics.TRANSACTIONS_CONFIRMED.getTopicName(), transactionsConfirmedPayload);
     }
 
     // Helper method to convert PreviewTransaction to Transaction
