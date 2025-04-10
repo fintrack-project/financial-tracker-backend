@@ -30,20 +30,6 @@ public class TransactionController {
         return ResponseEntity.ok(transactions);
     }
 
-    @PostMapping("/api/accounts/{accountId}/transactions")
-    public ResponseEntity<String> uploadTransactions(
-        @PathVariable UUID accountId,
-        @RequestBody List<Transaction> transactions) {
-        try {
-            for (Transaction transaction : transactions) {
-                transactionService.saveTransaction(accountId, transaction);
-            }
-            return ResponseEntity.ok("Transactions uploaded successfully.");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload transactions.");
-        }
-    }
-
     @PostMapping("/{accountId}/upload-preview-transactions")
     public ResponseEntity<List<Transaction>> uploadPreviewTransactions(
             @RequestBody List<Transaction> transactions,
