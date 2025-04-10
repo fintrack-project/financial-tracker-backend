@@ -2,6 +2,7 @@ com/fintrack/model/User.class
 com/fintrack/config/WebConfig.class
 com/fintrack/repository/AccountRepository.class
 com/fintrack/repository/HoldingsRepository.class
+com/fintrack/service/UserService.class
 com/fintrack/service/AccountService.class
 com/fintrack/repository/MarketAverageDataRepository.class
 com/fintrack/config/KafkaConfig.class

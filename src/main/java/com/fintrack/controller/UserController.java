@@ -2,6 +2,7 @@ package com.fintrack.controller;
 
 import com.fintrack.model.Account;
 import com.fintrack.model.User;
+import com.fintrack.service.UserService;
 import com.fintrack.repository.UserRepository;
 import com.fintrack.repository.AccountRepository;
 
@@ -20,15 +21,15 @@ public class UserController {
 
     private UserRepository userRepository;
     private BCryptPasswordEncoder passwordEncoder;
-    private AccountRepository accountRepository;
+    private final UserService userService;
 
     public UserController(
         UserRepository userRepository, 
         BCryptPasswordEncoder passwordEncoder, 
-        AccountRepository accountRepository) {
+        UserService userService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.accountRepository = accountRepository;
+        this.userService = userService;
     }
 
     @PostMapping("/login")
@@ -44,34 +45,40 @@ public class UserController {
         }
     }
 
+    // @PostMapping("/register")
+    // public ResponseEntity<?> registerUser(@RequestBody User user) {
+    //     // Check if user ID already exists
+    //     if (userRepository.findByUserId(user.getUserId()).isPresent()) {
+    //         return ResponseEntity.badRequest().body("User ID already exists.");
+    //     }
+
+    //     // Check if user email already exists
+    //     if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+    //         return ResponseEntity.badRequest().body("Email already exists.");
+    //     }
+
+    //     // Generate a random account_id
+    //     UUID accountId = UUID.randomUUID();
+
+    //     saveAccount(accountId);
+
+    //     // Set the generated account_id in the user object
+    //     user.setAccountId(accountId);
+
+    //     // Hash the password before saving
+    //     user.setPassword(passwordEncoder.encode(user.getPassword()));
+    //     userRepository.save(user);
+
+    //     return ResponseEntity.ok("User registered successfully.");
+    // }
     @PostMapping("/register")
-    @Transactional
     public ResponseEntity<?> registerUser(@RequestBody User user) {
-        // Check if user ID already exists
-        if (userRepository.findByUserId(user.getUserId()).isPresent()) {
-            return ResponseEntity.badRequest().body("User ID already exists.");
+        String result = userService.registerUser(user);
+
+        if (result.equals("User registered successfully.")) {
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.badRequest().body(result);
         }
-
-        // Check if user email already exists
-        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
-            return ResponseEntity.badRequest().body("Email already exists.");
-        }
-
-        // Generate a random account_id
-        UUID accountId = UUID.randomUUID();
-
-        // Create and save the account
-        Account newAccount = new Account();
-        newAccount.setAccountId(accountId);
-        accountRepository.saveAndFlush(newAccount);
-
-        // Set the generated account_id in the user object
-        user.setAccountId(accountId);
-
-        // Hash the password before saving
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        userRepository.save(user);
-
-        return ResponseEntity.ok("User registered successfully.");
     }
 }
