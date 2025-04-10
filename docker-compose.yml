@@ -19,6 +19,13 @@ services:
 
   etl:
     build:
-      context: ./financial-tracker-etl
+      context: ../financial-tracker-etl
     depends_on:
       - kafka
+    environment:
+      KAFKA_BROKER: kafka:9092
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
