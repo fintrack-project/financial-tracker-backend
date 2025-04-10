@@ -59,7 +59,7 @@ public class TransactionService {
         // Delete old transactions
         deleteByTransactionIds(transactionIdsToDelete);
         
-        // Publish a single TRANSACTIONS_CONFIRMED event
+        // Publish TRANSACTIONS_CONFIRMED message
         String transactionsConfirmedPayload = String.format(
             "{\"account_id\": \"%s\", \"transactions_added\": %s, \"transactions_deleted\": %s, \"timestamp\": \"%s\"}",
             accountId,
@@ -67,20 +67,7 @@ public class TransactionService {
             transactionIdsToDelete,
             Instant.now().toString()
         );
-        String processTransactionsToHoldingsPayload = String.format(
-            "{\"account_id\": \"%s\", \"timestamp\": \"%s\"}",
-            accountId,
-            Instant.now().toString()
-        );
-        List<Map.Entry<String, String>> events = List.of(
-            Map.entry("TRANSACTIONS_CONFIRMED", transactionsConfirmedPayload),
-            Map.entry("PROCESS_TRANSACTIONS_TO_HOLDINGS", processTransactionsToHoldingsPayload)
-        );
-
-        // Publish events atomically
-        // kafkaProducerService.publishEventsAtomically(events);
-        kafkaProducerService.publishEvent(events.get(0).getKey(), events.get(0).getValue());
-        kafkaProducerService.publishEvent(events.get(1).getKey(), events.get(1).getValue());
+        kafkaProducerService.publishEvent("TRANSACTIONS_CONFIRMED", transactionsConfirmedPayload);
     }
 
     // Helper method to convert PreviewTransaction to Transaction

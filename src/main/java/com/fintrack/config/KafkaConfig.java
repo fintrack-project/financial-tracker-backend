@@ -19,7 +19,6 @@ public class KafkaConfig {
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092"); // Kafka broker address
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        // configProps.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "transactional-id"); // Enable transactions
         return new DefaultKafkaProducerFactory<>(configProps);
     }
 
@@ -27,11 +26,4 @@ public class KafkaConfig {
     public KafkaTemplate<String, String> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
     }
-
-    // @Bean
-    // public KafkaTemplate<String, String> transactionalKafkaTemplate() {
-    //     KafkaTemplate<String, String> kafkaTemplate = new KafkaTemplate<>(producerFactory());
-    //     kafkaTemplate.setTransactionIdPrefix("txn-"); // Optional: Set a transaction ID prefix
-    //     return kafkaTemplate;
-    // }
 }
