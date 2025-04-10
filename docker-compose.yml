@@ -36,3 +36,7 @@ services:
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
     networks:
       - fintrack-network
+
+networks:
+  fintrack-network:
+    external: true
