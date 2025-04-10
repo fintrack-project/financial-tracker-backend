@@ -16,6 +16,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByAccountIdOrderByDateDesc(@Param("accountId") UUID accountId);
 
     @Modifying
-    @Query(value = "DELETE FROM transactions WHERE transaction_id = :transactionId", nativeQuery = true)
-    void deleteByTransactionId(@Param("transactionId") Long transactionId);
+    @Query(value = "DELETE FROM transactions WHERE transaction_id IN (:transactionIds)", nativeQuery = true)
+    void deleteByTransactionIds(@Param("transactionIds") List<Long> transactionIds);
 }
