@@ -14,6 +14,15 @@ public class KafkaProducerService {
         this.kafkaTemplate = kafkaTemplate;
     }
 
+    public void publishEvent(String topic, String message) {
+        kafkaTemplate.send(topic, message)
+            .thenAccept(result -> System.out.println("Message sent successfully to topic: " + topic))
+            .exceptionally(ex -> {
+                System.err.println("Failed to send message to topic: " + topic + " - " + ex.getMessage());
+                return null;
+            });
+    }
+
     /**
      * Publishes multiple events atomically to Kafka.
      *

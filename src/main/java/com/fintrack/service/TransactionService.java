@@ -78,7 +78,9 @@ public class TransactionService {
         );
 
         // Publish events atomically
-        kafkaProducerService.publishEventsAtomically(events);
+        // kafkaProducerService.publishEventsAtomically(events);
+        kafkaProducerService.publishEvent(events.get(0).getKey(), events.get(0).getValue());
+        kafkaProducerService.publishEvent(events.get(1).getKey(), events.get(1).getValue());
     }
 
     // Helper method to convert PreviewTransaction to Transaction

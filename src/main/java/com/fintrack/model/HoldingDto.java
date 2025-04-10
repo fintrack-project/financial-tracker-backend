@@ -1,7 +1,5 @@
 package com.fintrack.model;
 
-import java.util.UUID;
-
 import jakarta.persistence.*;
 
 @Entity
