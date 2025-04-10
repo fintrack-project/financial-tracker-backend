@@ -7,10 +7,14 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "users")
 public class User {
+
     @Id
-    @GeneratedValue
-    @Column(name = "account_id", nullable = false, unique = true, updatable = false)
+    @Column(name = "account_id", nullable = false)
     private UUID accountId; // Primary key
+
+    @OneToOne
+    @JoinColumn(name = "account_id", referencedColumnName = "account_id", nullable = false, insertable = false, updatable = false)
+    private Account account; // Foreign key relationship to Account
 
     @Column(nullable = false, unique = true)
     private String userId;
@@ -31,6 +35,15 @@ public class User {
 
     public void setAccountId(UUID accountId) {
         this.accountId = accountId;
+    }
+
+    public Account getAccount() {
+        return account;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
+        this.accountId = account.getAccountId(); // Ensure accountId is set when account is set
     }
     
     public String getUserId() {
