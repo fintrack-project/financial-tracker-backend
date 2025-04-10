@@ -14,10 +14,6 @@ public class KafkaProducerService {
         this.kafkaTemplate = kafkaTemplate;
     }
 
-    public void publishEvent(String topic, String message) {
-        kafkaTemplate.send(topic, message);
-    }
-
     /**
      * Publishes multiple events atomically to Kafka.
      *
