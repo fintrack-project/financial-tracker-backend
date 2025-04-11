@@ -48,18 +48,15 @@ public class MarketAverageDataService {
         try {
             // Parse the JSON message
             ObjectMapper objectMapper = new ObjectMapper();
-            Map<String, Object> payload = objectMapper.readValue(message, Map.class);
-
-            // Extract the index data
-            List<Map<String, Object>> indexDataList = (List<Map<String, Object>>) payload.get("index_data");
+            List<Map<String, Object>> indexDataList = objectMapper.readValue(message, List.class);
 
             // Save the updated data to the database
             for (Map<String, Object> indexData : indexDataList) {
                 MarketAverageData marketAverageData = new MarketAverageData();
                 marketAverageData.setSymbol((String) indexData.get("symbol"));
-                marketAverageData.setPrice((String) indexData.get("price"));
+                marketAverageData.setPrice(indexData.get("price").toString());
                 marketAverageData.setPriceChange((Double) indexData.get("price_change"));
-                marketAverageData.setPercentChange((String) indexData.get("percent_change"));
+                marketAverageData.setPercentChange(indexData.get("percent_change").toString());
                 marketAverageData.setPriceHigh((Double) indexData.get("price_high"));
                 marketAverageData.setPriceLow((Double) indexData.get("price_low"));
                 marketAverageData.setTime(LocalDateTime.now()); // Set the current timestamp
