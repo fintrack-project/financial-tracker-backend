@@ -1,8 +1,6 @@
-com/fintrack/config/WebSocketConfig.class
 com/fintrack/model/User.class
 com/fintrack/model/MarketData.class
 com/fintrack/repository/MarketDataRepository.class
-com/fintrack/service/MarketDataUpdateListener.class
 com/fintrack/config/WebConfig.class
 com/fintrack/repository/AccountRepository.class
 com/fintrack/controller/MarketDataController.class
@@ -23,8 +21,6 @@ com/fintrack/repository/UserRepository.class
 com/fintrack/controller/HoldingsController.class
 com/fintrack/constants/KafkaTopics.class
 com/fintrack/model/HoldingDto.class
-com/fintrack/service/MarketDataUpdateService.class
-com/fintrack/controller/MarketDataWebSocketController.class
 com/fintrack/controller/MarketAverageDataController.class
 com/fintrack/model/PreviewTransaction.class
 com/fintrack/FinTrackApplication.class
