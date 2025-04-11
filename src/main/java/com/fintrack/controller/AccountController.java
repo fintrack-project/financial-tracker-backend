@@ -6,7 +6,9 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.*;
@@ -42,5 +44,27 @@ public class AccountController {
 
         return ResponseEntity.ok()
         .body(Map.of("accountId", accountId));
+    }
+
+    @PostMapping("/create")
+    public ResponseEntity<Map<String, String>> createAccountForUser(@RequestParam String userId) {
+        // Fetch the accountId associated with the userId from the users table
+        String accountId = accountService.getAccountIdByUserId(userId);
+
+        if (accountId == null) {
+            return ResponseEntity.status(404)
+            .body(Map.of("error", "User not found or account ID not associated with the user"));
+        }
+
+        // Create the account in the accounts table
+        boolean accountCreated = accountService.createAccount(UUID.fromString(accountId));
+
+        if (!accountCreated) {
+            return ResponseEntity.status(400)
+            .body(Map.of("error", "Account already exists or could not be created"));
+        }
+
+        return ResponseEntity.ok()
+        .body(Map.of("message", "Account created successfully", "accountId", accountId));
     }
 }

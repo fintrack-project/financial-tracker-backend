@@ -8,8 +8,7 @@ import java.util.UUID;
 @Table(name = "accounts")
 public class Account {
     @Id
-    @GeneratedValue
-    @Column(name = "account_id", nullable = false, unique = true, updatable = false)
+    @Column(name = "account_id", nullable = false, unique = true)
     private UUID accountId; // Primary key
 
     @Column(name = "created_at", nullable = false, updatable = false)
