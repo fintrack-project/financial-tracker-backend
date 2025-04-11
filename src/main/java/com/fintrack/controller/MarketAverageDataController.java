@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/market-average-data")
 public class MarketAverageDataController {
 
     private MarketAverageDataService marketAverageDataService;
@@ -18,10 +18,16 @@ public class MarketAverageDataController {
         this.marketAverageDataService = marketAverageDataService;
     }
 
-    @GetMapping("/market-average-data")
-    public ResponseEntity<Map<String, Object>> getMarketData(@RequestParam List<String> symbols) {
+    @PostMapping("/update")
+    public ResponseEntity<Map<String, String>> updateMarketAverageData(@RequestBody List<String> indexNames) {
+        marketAverageDataService.sendMarketAverageDataUpdateRequest(indexNames);
+        return ResponseEntity.ok(Map.of("message", "Market average data update request sent."));
+    }
+
+    @GetMapping("/fetch")
+    public ResponseEntity<Map<String, Object>> fetchMarketData(@RequestParam List<String> indexNames) {
         try {
-            Map<String, Object> marketData = marketAverageDataService.getMostRecentMarketData(symbols);
+            Map<String, Object> marketData = marketAverageDataService.getMostRecentMarketData(indexNames);
             return ResponseEntity.ok(marketData);
         } catch (Exception e) {
             e.printStackTrace(); // Log the error for debugging
