@@ -1,6 +1,9 @@
 com/fintrack/model/User.class
+com/fintrack/model/MarketData.class
+com/fintrack/repository/MarketDataRepository.class
 com/fintrack/config/WebConfig.class
 com/fintrack/repository/AccountRepository.class
+com/fintrack/controller/MarketDataController.class
 com/fintrack/repository/HoldingsRepository.class
 com/fintrack/service/UserService.class
 com/fintrack/service/AccountService.class
@@ -10,6 +13,7 @@ com/fintrack/service/MarketAverageDataService.class
 com/fintrack/controller/TransactionController.class
 com/fintrack/service/TransactionService.class
 com/fintrack/repository/TransactionRepository.class
+com/fintrack/service/MarketDataService.class
 com/fintrack/model/MarketAverageData.class
 com/fintrack/controller/AccountController.class
 com/fintrack/model/Transaction.class
