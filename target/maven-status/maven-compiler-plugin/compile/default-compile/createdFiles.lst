@@ -15,6 +15,7 @@ com/fintrack/controller/AccountController.class
 com/fintrack/model/Transaction.class
 com/fintrack/repository/UserRepository.class
 com/fintrack/controller/HoldingsController.class
+com/fintrack/constants/KafkaTopics.class
 com/fintrack/model/HoldingDto.class
 com/fintrack/controller/MarketAverageDataController.class
 com/fintrack/model/PreviewTransaction.class

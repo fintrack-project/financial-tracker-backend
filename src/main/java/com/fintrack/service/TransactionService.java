@@ -4,13 +4,14 @@ import com.fintrack.model.PreviewTransaction;
 import com.fintrack.model.Transaction;
 import com.fintrack.repository.TransactionRepository;
 
+import com.fintrack.constants.KafkaTopics;
+
 import jakarta.transaction.Transactional;
 
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+import java.util.*;
 import java.time.Instant;
-import java.util.List;
 
 @Service
 public class TransactionService {
@@ -60,15 +61,15 @@ public class TransactionService {
         // Delete old transactions
         deleteByTransactionIds(transactionIdsToDelete);
         
-        // Publish a single TRANSACTIONS_CONFIRMED event
-        String eventPayload = String.format(
+        // Publish TRANSACTIONS_CONFIRMED message
+        String transactionsConfirmedPayload = String.format(
             "{\"account_id\": \"%s\", \"transactions_added\": %s, \"transactions_deleted\": %s, \"timestamp\": \"%s\"}",
             accountId,
             transactionsToSave,
             transactionIdsToDelete,
             Instant.now().toString()
         );
-        kafkaProducerService.publishEvent("TRANSACTIONS_CONFIRMED", eventPayload);
+        kafkaProducerService.publishEvent(KafkaTopics.TRANSACTIONS_CONFIRMED.getTopicName(), transactionsConfirmedPayload);
     }
 
     // Helper method to convert PreviewTransaction to Transaction
