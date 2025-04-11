@@ -8,8 +8,8 @@ import jakarta.persistence.*;
 @Table(name = "users")
 public class User {
     @Id
-    @GeneratedValue
-    @Column(name = "account_id", nullable = false, unique = true, updatable = false)
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "account_id", nullable = false, updatable = false)
     private UUID accountId; // Primary key
 
     @Column(nullable = false, unique = true)
