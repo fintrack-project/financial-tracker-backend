@@ -1,13 +1,10 @@
 package com.fintrack.controller;
 
-import com.fintrack.model.Account;
 import com.fintrack.model.User;
 import com.fintrack.service.UserService;
 import com.fintrack.repository.UserRepository;
-import com.fintrack.repository.AccountRepository;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.transaction.Transactional;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -45,32 +42,6 @@ public class UserController {
         }
     }
 
-    // @PostMapping("/register")
-    // public ResponseEntity<?> registerUser(@RequestBody User user) {
-    //     // Check if user ID already exists
-    //     if (userRepository.findByUserId(user.getUserId()).isPresent()) {
-    //         return ResponseEntity.badRequest().body("User ID already exists.");
-    //     }
-
-    //     // Check if user email already exists
-    //     if (userRepository.findByEmail(user.getEmail()).isPresent()) {
-    //         return ResponseEntity.badRequest().body("Email already exists.");
-    //     }
-
-    //     // Generate a random account_id
-    //     UUID accountId = UUID.randomUUID();
-
-    //     saveAccount(accountId);
-
-    //     // Set the generated account_id in the user object
-    //     user.setAccountId(accountId);
-
-    //     // Hash the password before saving
-    //     user.setPassword(passwordEncoder.encode(user.getPassword()));
-    //     userRepository.save(user);
-
-    //     return ResponseEntity.ok("User registered successfully.");
-    // }
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         String result = userService.registerUser(user);

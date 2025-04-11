@@ -25,10 +25,18 @@ public class AccountService {
     }
 
     @Transactional
-    public void createAccount(UUID accountId) {
+    public boolean createAccount(UUID accountId) {
+
+        // Check if the account already exists
+        if (accountRepository.existsById(accountId)) {
+            return false; // Account already exists
+        }
+
         // Create a new account and save it to the database
         Account account = new Account();
         account.setAccountId(accountId);
         accountRepository.save(account);
+
+        return true; // Account creation successful
     }
 }
