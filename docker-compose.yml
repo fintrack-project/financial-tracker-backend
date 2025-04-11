@@ -21,6 +21,8 @@ services:
 
       # Required for a single-node cluster
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - fintrack-network
 
   etl:
     build:
