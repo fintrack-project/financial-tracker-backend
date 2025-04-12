@@ -20,6 +20,7 @@ public interface HoldingsRepository extends JpaRepository<HoldingDto, Long> {
             FROM holdings h2
             WHERE h2.account_id = :accountId AND h2.asset_name = h.asset_name
         )
+        AND h.total_balance > 0
         """, nativeQuery = true)
     List<HoldingDto> findLatestHoldingsByAccount(@Param("accountId") UUID accountId);
 }
