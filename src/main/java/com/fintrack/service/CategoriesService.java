@@ -94,34 +94,6 @@ public class CategoriesService {
         }
     }
 
-    @Transactional
-    public void deleteSubcategory(UUID accountId, String subcategoryName, Integer parentId) {
-        // Validate input
-        if (subcategoryName == null || subcategoryName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Subcategory name cannot be null or empty.");
-        }
-        if (parentId == null) {
-            throw new IllegalArgumentException("Parent ID cannot be null.");
-        }
-
-        // Find the subcategory to delete
-        Integer subcategoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, subcategoryName);
-        if (subcategoryId == null) {
-            throw new IllegalArgumentException("Subcategory with name '" + subcategoryName + "' does not exist.");
-        }
-
-        // Delete the subcategory
-        categoriesRepository.deleteById(subcategoryId);
-
-        // Reorder the remaining subcategories
-        List<Category> remainingSubcategories = categoriesRepository.findSubcategoriesByParentId(accountId, parentId);
-        int priority = 1;
-        for (Category subcategory : remainingSubcategories) {
-            categoriesRepository.updateSubcategoryPriority(subcategory.getCategoryId(), priority);
-            priority++;
-        }
-    }
-
     @Transactional(readOnly = true)
     public Map<String, Object> getCategoriesAndSubcategories(UUID accountId) {
         // Fetch all top-level categories (parent_id is NULL)
