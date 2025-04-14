@@ -74,14 +74,16 @@ public class CategoriesService {
         if (categoryName == null || categoryName.trim().isEmpty()) {
             throw new IllegalArgumentException("Category name cannot be null or empty.");
         }
-        if (subcategories == null || subcategories.isEmpty()) {
-            throw new IllegalArgumentException("Subcategories cannot be null or empty.");
-        }
     
         // Find the categoryId for the given category_name
         Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
         if (categoryId == null) {
             throw new IllegalArgumentException("Category with name '" + categoryName + "' does not exist.");
+        }
+
+        if (subcategories == null || subcategories.isEmpty()) {
+            categoriesRepository.deleteByParentId(accountId, categoryId);
+            return;
         }
     
         // Delete existing subcategories for the parent category
