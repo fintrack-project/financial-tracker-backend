@@ -3,6 +3,7 @@ package com.fintrack.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import com.fintrack.model.HoldingsCategory;
 
@@ -18,5 +19,8 @@ public interface HoldingsCategoriesRepository extends JpaRepository<HoldingsCate
         ON CONFLICT (account_id, asset_name)
         DO UPDATE SET category_id = EXCLUDED.category_id, updated_at = CURRENT_TIMESTAMP
         """, nativeQuery = true)
-    void upsertHoldingCategory(UUID accountId, String assetName, Integer categoryId);
+    void upsertHoldingCategory(
+      @Param("accountId")UUID accountId, 
+      @Param("assetName")String assetName, 
+      @Param("categoryId")Integer categoryId);
 }

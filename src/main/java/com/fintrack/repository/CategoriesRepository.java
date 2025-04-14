@@ -3,6 +3,7 @@ package com.fintrack.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import com.fintrack.model.Category;
 
@@ -13,7 +14,7 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
 
     @Modifying
     @Query(value = "DELETE FROM categories WHERE account_id = :accountId", nativeQuery = true)
-    void deleteByAccountId(UUID accountId);
+    void deleteByAccountId(@Param("accountId") UUID accountId);
 
     @Modifying
     @Query(value = """
@@ -21,5 +22,10 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
         VALUES (:accountId, :categoryName, :parentId, :level, :priority, CURRENT_TIMESTAMP)
         RETURNING category_id
         """, nativeQuery = true)
-    Integer insertCategory(UUID accountId, String categoryName, Integer parentId, int level, int priority);
+    Integer insertCategory(
+      @Param("accountId") UUID accountId, 
+      @Param("categoryName") String categoryName, 
+      @Param("parentId") Integer parentId, 
+      @Param("level") int level, 
+      @Param("priority") int priority);
 }
