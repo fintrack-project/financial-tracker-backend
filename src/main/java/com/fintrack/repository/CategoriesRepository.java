@@ -11,7 +11,6 @@ import java.util.*;
 
 @Repository
 public interface CategoriesRepository extends JpaRepository<Category, Integer> {
-
     @Query(value = "SELECT category_id FROM categories WHERE account_id = :accountId AND category_name = :categoryName", nativeQuery = true)
     Integer findCategoryIdByAccountIdAndCategoryName(@Param("accountId") UUID accountId, @Param("categoryName") String categoryName);
 
@@ -34,6 +33,9 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
       @Param("parentId") Integer parentId, 
       @Param("level") int level, 
       @Param("priority") int priority);
+
+    @Query(value = "SELECT * FROM categories WHERE account_id = :accountId AND parent_id IS NULL ORDER BY priority", nativeQuery = true)
+    List<Category> findCategoriesByAccountId(@Param("accountId") UUID accountId);
 
     @Query(value = "SELECT * FROM categories WHERE account_id = :accountId AND parent_id = :parentId ORDER BY priority", nativeQuery = true)
     List<Category> findSubcategoriesByParentId(@Param("accountId") UUID accountId, @Param("parentId") Integer parentId);

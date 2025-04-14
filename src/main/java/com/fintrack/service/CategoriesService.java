@@ -2,14 +2,13 @@ package com.fintrack.service;
 
 import com.fintrack.repository.CategoriesRepository;
 import com.fintrack.repository.HoldingsCategoriesRepository;
-
-import jakarta.transaction.Transactional;
+import com.fintrack.model.Category;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class CategoriesService {
@@ -121,5 +120,38 @@ public class CategoriesService {
             categoriesRepository.updateSubcategoryPriority(subcategory.getCategoryId(), priority);
             priority++;
         }
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getCategoriesAndSubcategories(UUID accountId) {
+        // Fetch all top-level categories (parent_id is NULL)
+        List<Category> categories = categoriesRepository.findCategoriesByAccountId(accountId);
+    
+        // Prepare the response
+        Map<String, List<String>> subcategoriesMap = new HashMap<>();
+    
+        for (Category category : categories) {
+            // Fetch subcategories for each category
+            List<Category> subcategories = categoriesRepository.findSubcategoriesByParentId(accountId, category.getCategoryId());
+    
+            // Format subcategories as a list of names
+            List<String> subcategoryNames = subcategories.stream()
+                    .map(Category::getCategoryName)
+                    .collect(Collectors.toList());
+    
+            // Add to the subcategories map
+            subcategoriesMap.put(category.getCategoryName(), subcategoryNames);
+        }
+
+        // Format the top-level categories as a list of names
+        List<String> categoryNames = categories.stream()
+        .map(Category::getCategoryName)
+        .collect(Collectors.toList());
+    
+        // Return the response
+        Map<String, Object> response = new HashMap<>();
+        response.put("categories", categoryNames);
+        response.put("subcategories", subcategoriesMap);
+        return response;
     }
 }

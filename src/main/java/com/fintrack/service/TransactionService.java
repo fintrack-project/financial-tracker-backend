@@ -6,9 +6,8 @@ import com.fintrack.repository.TransactionRepository;
 
 import com.fintrack.constants.KafkaTopics;
 
-import jakarta.transaction.Transactional;
-
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.time.Instant;

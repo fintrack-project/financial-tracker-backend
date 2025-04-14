@@ -50,4 +50,10 @@ public class CategoriesController {
         categoriesService.deleteSubcategory(accountId, subcategoryName, parentId);
         return ResponseEntity.ok("Subcategory deleted and priorities updated successfully.");
     }
+
+    @GetMapping("/fetch")
+    public ResponseEntity<Map<String, Object>> getCategoriesAndSubcategories(@RequestParam UUID accountId) {
+        Map<String, Object> response = categoriesService.getCategoriesAndSubcategories(accountId);
+        return ResponseEntity.ok(response);
+    }
 }
