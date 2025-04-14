@@ -7,7 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import com.fintrack.model.Category;
 
-import java.util.UUID;
+import java.util.*;
 
 @Repository
 public interface CategoriesRepository extends JpaRepository<Category, Integer> {
@@ -34,4 +34,11 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
       @Param("parentId") Integer parentId, 
       @Param("level") int level, 
       @Param("priority") int priority);
+
+    @Query(value = "SELECT * FROM categories WHERE account_id = :accountId AND parent_id = :parentId ORDER BY priority", nativeQuery = true)
+    List<Category> findSubcategoriesByParentId(@Param("accountId") UUID accountId, @Param("parentId") Integer parentId);
+    
+    @Modifying
+    @Query(value = "UPDATE categories SET priority = :priority WHERE category_id = :categoryId", nativeQuery = true)
+    void updateSubcategoryPriority(@Param("categoryId") Integer categoryId, @Param("priority") int priority);
 }
