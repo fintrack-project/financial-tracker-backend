@@ -43,4 +43,17 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
     @Modifying
     @Query(value = "UPDATE categories SET priority = :priority WHERE category_id = :categoryId", nativeQuery = true)
     void updateSubcategoryPriority(@Param("categoryId") Integer categoryId, @Param("priority") int priority);
+
+    @Modifying
+    @Query(value = """
+        INSERT INTO holdings_categories (account_id, asset_name, category_id, updated_at)
+        VALUES (:accountId, :assetName, :categoryId, CURRENT_TIMESTAMP)
+        ON CONFLICT (account_id, asset_name)
+        DO UPDATE SET category_id = EXCLUDED.category_id, updated_at = CURRENT_TIMESTAMP
+        """, nativeQuery = true)
+    void upsertHoldingCategory(
+        @Param("accountId") UUID accountId,
+        @Param("assetName") String assetName,
+        @Param("categoryId") Integer categoryId
+    );
 }

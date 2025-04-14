@@ -38,13 +38,17 @@ public class CategoriesService {
             if (categoryId == null) {
                 // Insert the category if it doesn't exist
                 categoryId = categoriesRepository.insertCategory(accountId, categoryName, null, 1, 1);
+            }
+
+            // Handle subcategories
+            if (subcategories == null || subcategories.isEmpty()) {
+                // If subcategories is empty, delete all subcategories for the category but keep the category
+                categoriesRepository.deleteByParentId(accountId, categoryId);
             } else {
                 // Delete existing subcategories for the category
                 categoriesRepository.deleteByParentId(accountId, categoryId);
-            }
-    
-            // Insert the new subcategories
-            if (subcategories != null && !subcategories.isEmpty()) {
+
+                // Insert the new subcategories
                 for (int priority = 1; priority <= subcategories.size(); priority++) {
                     String subcategoryName = subcategories.get(priority - 1);
                     categoriesRepository.insertCategory(accountId, subcategoryName, categoryId, 2, priority);
@@ -54,13 +58,43 @@ public class CategoriesService {
     }
 
     @Transactional
-    public void updateHoldingsCategories(UUID accountId, List<Map<String, Object>> holdingsCategories) {
-        // Update holdings categories
-        for (Map<String, Object> holdingCategory : holdingsCategories) {
-            String assetName = (String) holdingCategory.get("asset_name");
-            Integer categoryId = (Integer) holdingCategory.get("category_id");
+    public void updateHoldingsCategories(UUID accountId, List<Map<String, Object>> holdingsData) {
 
-            holdingsCategoriesRepository.upsertHoldingCategory(accountId, assetName, categoryId);
+        System.out.println("Received holdingsData: " + holdingsData);
+
+        for (Map<String, Object> holding : holdingsData) {
+            // Extract asset_name, category, and subcategory
+            String assetName = (String) holding.get("asset_name");
+            String categoryName = (String) holding.get("category");
+            String subcategoryName = (String) holding.get("subcategory");
+
+            System.out.println("Processing holding: " + holding);
+    
+            // Validate asset_name and category
+            if (assetName == null || assetName.trim().isEmpty()) {
+                throw new IllegalArgumentException("Asset name cannot be null or empty.");
+            }
+            if (categoryName == null || categoryName.trim().isEmpty()) {
+                throw new IllegalArgumentException("Category name cannot be null or empty.");
+            }
+    
+            // Find or create the category
+            Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
+            if (categoryId == null) {
+                categoryId = categoriesRepository.insertCategory(accountId, categoryName, null, 1, 1);
+            }
+    
+            // Find or create the subcategory (if provided)
+            Integer subcategoryId = null;
+            if (subcategoryName != null && !subcategoryName.trim().isEmpty()) {
+                subcategoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, subcategoryName);
+                if (subcategoryId == null) {
+                    subcategoryId = categoriesRepository.insertCategory(accountId, subcategoryName, categoryId, 2, 1);
+                }
+            }
+    
+            // Update the holdings_categories table
+            holdingsCategoriesRepository.upsertHoldingCategory(accountId, assetName, subcategoryId != null ? subcategoryId : categoryId);
         }
     }
 
