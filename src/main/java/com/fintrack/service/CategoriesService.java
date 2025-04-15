@@ -162,6 +162,43 @@ public class CategoriesService {
     }
 
     @Transactional
+    public void updateSubcategoryName(UUID accountId, String categoryName, String oldSubcategoryName, String newSubcategoryName) {
+        // Validate input
+        if (newSubcategoryName == null || newSubcategoryName.trim().isEmpty()) {
+            throw new IllegalArgumentException("New subcategory name cannot be null or empty.");
+        }
+    
+        // Trim the subcategory names
+        String trimmedOldSubcategoryName = oldSubcategoryName.trim();
+        String trimmedNewSubcategoryName = newSubcategoryName.trim();
+    
+        // Find the parent category ID
+        Integer parentCategoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
+        if (parentCategoryId == null) {
+            throw new IllegalArgumentException("Category with name '" + categoryName + "' does not exist.");
+        }
+    
+        // Find the subcategory ID for the old subcategory name
+        Integer subcategoryId = categoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
+            accountId, categoryName, trimmedOldSubcategoryName
+        );
+        if (subcategoryId == null) {
+            throw new IllegalArgumentException("Subcategory with name '" + trimmedOldSubcategoryName + "' does not exist in category '" + categoryName + "'.");
+        }
+    
+        // Check if the new subcategory name already exists
+        Integer duplicateSubcategoryId = categoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
+            accountId, categoryName, trimmedNewSubcategoryName
+        );
+        if (duplicateSubcategoryId != null) {
+            throw new IllegalArgumentException("Subcategory with name '" + trimmedNewSubcategoryName + "' already exists in category '" + categoryName + "'.");
+        }
+    
+        // Update the subcategory name
+        categoriesRepository.updateSubcategoryName(accountId, categoryName, trimmedOldSubcategoryName, trimmedNewSubcategoryName);
+    }
+
+    @Transactional
     public void updateSubcategoriesByCategoryName(UUID accountId, Map<String, Object> subcategoryData) {
         // Extract category_name and subcategories from the request
         String categoryName = (String) subcategoryData.get("category_name");

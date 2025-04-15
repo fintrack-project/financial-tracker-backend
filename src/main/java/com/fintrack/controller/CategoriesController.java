@@ -67,6 +67,17 @@ public class CategoriesController {
         return ResponseEntity.ok("Subcategory updated successfully.");
     }
 
+    @PostMapping("/subcategories/name/update")
+    public ResponseEntity<String> updateSubcategoryName(@RequestBody Map<String, Object> subcategoryData) {
+        UUID accountId = UUID.fromString((String) subcategoryData.get("accountId"));
+        String categoryName = (String) subcategoryData.get("category_name");
+        String oldSubcategoryName = (String) subcategoryData.get("old_subcategory_name");
+        String newSubcategoryName = (String) subcategoryData.get("new_subcategory_name");
+    
+        categoriesService.updateSubcategoryName(accountId, categoryName, oldSubcategoryName, newSubcategoryName);
+        return ResponseEntity.ok("Subcategory name updated successfully.");
+    }
+
     @DeleteMapping("/remove")
     public ResponseEntity<String> removeCategory(
             @RequestParam UUID accountId,

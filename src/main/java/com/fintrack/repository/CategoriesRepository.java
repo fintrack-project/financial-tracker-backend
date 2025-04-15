@@ -41,18 +41,18 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
 
     @Query(value = "SELECT MAX(priority) FROM categories WHERE account_id = :accountId AND parent_id IS NULL", nativeQuery = true)
     Integer findMaxPriorityByAccountId(@Param("accountId") UUID accountId);
-  
+
     @Query(value = """
         SELECT MAX(priority) 
         FROM categories 
         WHERE account_id = :accountId 
-          AND parent_id = (
-              SELECT category_id 
-              FROM categories 
-              WHERE account_id = :accountId 
-                AND LOWER(category_name) = LOWER(:categoryName) 
-                AND parent_id IS NULL
-          )
+            AND parent_id = (
+                SELECT category_id 
+                FROM categories 
+                WHERE account_id = :accountId 
+                    AND LOWER(category_name) = LOWER(:categoryName) 
+                    AND parent_id IS NULL
+        )
         """, nativeQuery = true)
     Integer findMaxSubcategoryPriorityByAccountIdAndCategoryName(
         @Param("accountId") UUID accountId,
@@ -75,14 +75,14 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
         UPDATE categories 
         SET category_name = :newSubcategoryName, updated_at = CURRENT_TIMESTAMP 
         WHERE account_id = :accountId 
-          AND parent_id = (
-              SELECT category_id 
-              FROM categories 
-              WHERE account_id = :accountId 
-                AND LOWER(category_name) = LOWER(:categoryName) 
-                AND parent_id IS NULL
-          ) 
-          AND LOWER(category_name) = LOWER(:oldSubcategoryName)
+            AND parent_id = (
+                SELECT category_id 
+                FROM categories 
+                WHERE account_id = :accountId 
+                    AND LOWER(category_name) = LOWER(:categoryName) 
+                    AND parent_id IS NULL
+        ) 
+        AND LOWER(category_name) = LOWER(:oldSubcategoryName)
         """, nativeQuery = true)
     void updateSubcategoryName(
         @Param("accountId") UUID accountId,
@@ -97,11 +97,11 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
         RETURNING category_id
         """, nativeQuery = true)
     Integer insertCategory(
-      @Param("accountId") UUID accountId, 
-      @Param("categoryName") String categoryName, 
-      @Param("parentId") Integer parentId, 
-      @Param("level") int level, 
-      @Param("priority") int priority);
+    @Param("accountId") UUID accountId, 
+    @Param("categoryName") String categoryName, 
+    @Param("parentId") Integer parentId, 
+    @Param("level") int level, 
+    @Param("priority") int priority);
 
     @Modifying
     @Query(value = """
@@ -113,8 +113,8 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
                 SELECT category_id 
                 FROM categories 
                 WHERE account_id = :accountId 
-                  AND LOWER(category_name) = LOWER(:categoryName) 
-                  AND parent_id IS NULL
+                    AND LOWER(category_name) = LOWER(:categoryName) 
+                    AND parent_id IS NULL
             ), 
             2, 
             :priority, 
@@ -144,13 +144,13 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
     @Query(value = """
         DELETE FROM categories 
         WHERE account_id = :accountId 
-          AND parent_id = (
-              SELECT category_id 
-              FROM categories 
-              WHERE account_id = :accountId 
-                AND LOWER(category_name) = LOWER(:categoryName) 
-                AND parent_id IS NULL
-          )
+            AND parent_id = (
+                SELECT category_id 
+                FROM categories 
+                WHERE account_id = :accountId 
+                    AND LOWER(category_name) = LOWER(:categoryName) 
+                    AND parent_id IS NULL
+        )
         """, nativeQuery = true)
     void deleteSubcategoriesByCategoryName(
         @Param("accountId") UUID accountId,
