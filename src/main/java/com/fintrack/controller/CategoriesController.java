@@ -46,13 +46,6 @@ public class CategoriesController {
         return ResponseEntity.ok("Subcategory added successfully.");
     }
 
-    // @PostMapping("/subcategories/update")
-    // public ResponseEntity<String> updateSubcategoriesByCategoryName(
-    //   @RequestBody Map<String, Object> subcategoryData,
-    //   @RequestParam UUID accountId) {
-    //     categoriesService.updateSubcategoriesByCategoryName(accountId, subcategoryData);
-    //     return ResponseEntity.ok("Subcategories updated successfully.");
-    // }
     @PutMapping("/subcategories/update")
     public ResponseEntity<String> updateSubcategory(@RequestBody Map<String, Object> subcategoryData) {
         UUID accountId = UUID.fromString((String) subcategoryData.get("accountId"));
