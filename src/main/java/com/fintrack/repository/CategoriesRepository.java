@@ -14,13 +14,15 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
     @Query(value = "SELECT category_id FROM categories WHERE account_id = :accountId AND category_name = :categoryName", nativeQuery = true)
     Integer findCategoryIdByAccountIdAndCategoryName(@Param("accountId") UUID accountId, @Param("categoryName") String categoryName);
 
-    @Modifying
-    @Query(value = "DELETE FROM categories WHERE account_id = :accountId AND parent_id = :parentId", nativeQuery = true)
-    void deleteByParentId(@Param("accountId") UUID accountId, @Param("parentId") Integer parentId);
+    @Query(value = "SELECT * FROM categories WHERE account_id = :accountId AND parent_id IS NULL ORDER BY priority", nativeQuery = true)
+    List<Category> findCategoriesByAccountId(@Param("accountId") UUID accountId);
+
+    @Query(value = "SELECT * FROM categories WHERE account_id = :accountId AND parent_id = :parentId ORDER BY priority", nativeQuery = true)
+    List<Category> findSubcategoriesByParentId(@Param("accountId") UUID accountId, @Param("parentId") Integer parentId);
 
     @Modifying
-    @Query(value = "DELETE FROM categories WHERE account_id = :accountId", nativeQuery = true)
-    void deleteByAccountId(@Param("accountId") UUID accountId);
+    @Query(value = "UPDATE categories SET priority = :priority WHERE category_id = :categoryId", nativeQuery = true)
+    void updateSubcategoryPriority(@Param("categoryId") Integer categoryId, @Param("priority") int priority);
 
     @Query(value = """
         INSERT INTO categories (account_id, category_name, parent_id, level, priority, updated_at)
@@ -34,15 +36,17 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
       @Param("level") int level, 
       @Param("priority") int priority);
 
-    @Query(value = "SELECT * FROM categories WHERE account_id = :accountId AND parent_id IS NULL ORDER BY priority", nativeQuery = true)
-    List<Category> findCategoriesByAccountId(@Param("accountId") UUID accountId);
-
-    @Query(value = "SELECT * FROM categories WHERE account_id = :accountId AND parent_id = :parentId ORDER BY priority", nativeQuery = true)
-    List<Category> findSubcategoriesByParentId(@Param("accountId") UUID accountId, @Param("parentId") Integer parentId);
-    
     @Modifying
-    @Query(value = "UPDATE categories SET priority = :priority WHERE category_id = :categoryId", nativeQuery = true)
-    void updateSubcategoryPriority(@Param("categoryId") Integer categoryId, @Param("priority") int priority);
+    @Query(value = "DELETE FROM categories WHERE account_id = :accountId AND parent_id = :parentId", nativeQuery = true)
+    void deleteByParentId(@Param("accountId") UUID accountId, @Param("parentId") Integer parentId);
+
+    @Modifying
+    @Query(value = "DELETE FROM categories WHERE category_id = :categoryId", nativeQuery = true)
+    void deleteByCategoryId(@Param("categoryId") Integer categoryId);
+
+    @Modifying
+    @Query(value = "DELETE FROM categories WHERE account_id = :accountId", nativeQuery = true)
+    void deleteByAccountId(@Param("accountId") UUID accountId);
 
     @Modifying
     @Query(value = """

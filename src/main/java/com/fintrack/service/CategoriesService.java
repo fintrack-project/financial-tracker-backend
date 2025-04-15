@@ -58,47 +58,6 @@ public class CategoriesService {
     }
 
     @Transactional
-    public void updateHoldingsCategories(UUID accountId, List<Map<String, Object>> holdingsData) {
-
-        System.out.println("Received holdingsData: " + holdingsData);
-
-        for (Map<String, Object> holding : holdingsData) {
-            // Extract asset_name, category, and subcategory
-            String assetName = (String) holding.get("asset_name");
-            String categoryName = (String) holding.get("category");
-            String subcategoryName = (String) holding.get("subcategory");
-
-            System.out.println("Processing holding: " + holding);
-    
-            // Validate asset_name and category
-            if (assetName == null || assetName.trim().isEmpty()) {
-                throw new IllegalArgumentException("Asset name cannot be null or empty.");
-            }
-            if (categoryName == null || categoryName.trim().isEmpty()) {
-                throw new IllegalArgumentException("Category name cannot be null or empty.");
-            }
-    
-            // Find or create the category
-            Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
-            if (categoryId == null) {
-                categoryId = categoriesRepository.insertCategory(accountId, categoryName, null, 1, 1);
-            }
-    
-            // Find or create the subcategory (if provided)
-            Integer subcategoryId = null;
-            if (subcategoryName != null && !subcategoryName.trim().isEmpty()) {
-                subcategoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, subcategoryName);
-                if (subcategoryId == null) {
-                    subcategoryId = categoriesRepository.insertCategory(accountId, subcategoryName, categoryId, 2, 1);
-                }
-            }
-    
-            // Update the holdings_categories table
-            holdingsCategoriesRepository.upsertHoldingCategory(accountId, assetName, subcategoryId != null ? subcategoryId : categoryId);
-        }
-    }
-
-    @Transactional
     public void updateSubcategoriesByCategoryName(UUID accountId, Map<String, Object> subcategoryData) {
         // Extract category_name and subcategories from the request
         String categoryName = (String) subcategoryData.get("category_name");
@@ -161,5 +120,86 @@ public class CategoriesService {
         response.put("categories", categoryNames);
         response.put("subcategories", subcategoriesMap);
         return response;
+    }
+
+    @Transactional
+    public void removeCategory(UUID accountId, String categoryName) {
+        // Find the category ID for the given category name
+        Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
+        if (categoryId == null) {
+            throw new IllegalArgumentException("Category with name '" + categoryName + "' does not exist.");
+        }
+    
+        // Delete all subcategories for the category
+        categoriesRepository.deleteByParentId(accountId, categoryId);
+    
+        // Delete the category itself
+        categoriesRepository.deleteByCategoryId(categoryId);
+    }
+
+    @Transactional
+    public void removeSubcategory(UUID accountId, String categoryName, String subcategoryName) {
+        // Find the category ID for the given category name
+        Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
+        if (categoryId == null) {
+            throw new IllegalArgumentException("Category with name '" + categoryName + "' does not exist.");
+        }
+    
+        // Find the subcategory ID for the given subcategory name
+        Integer subcategoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, subcategoryName);
+        if (subcategoryId == null) {
+            throw new IllegalArgumentException("Subcategory with name '" + subcategoryName + "' does not exist.");
+        }
+    
+        // Delete the subcategory
+        categoriesRepository.deleteByCategoryId(subcategoryId);
+    
+        // Fetch remaining subcategories and update their priorities
+        List<Category> remainingSubcategories = categoriesRepository.findSubcategoriesByParentId(accountId, categoryId);
+        for (int priority = 1; priority <= remainingSubcategories.size(); priority++) {
+            Category subcategory = remainingSubcategories.get(priority - 1);
+            categoriesRepository.updateSubcategoryPriority(subcategory.getCategoryId(), priority);
+        }
+    }
+
+    @Transactional
+    public void updateHoldingsCategories(UUID accountId, List<Map<String, Object>> holdingsData) {
+
+        System.out.println("Received holdingsData: " + holdingsData);
+
+        for (Map<String, Object> holding : holdingsData) {
+            // Extract asset_name, category, and subcategory
+            String assetName = (String) holding.get("asset_name");
+            String categoryName = (String) holding.get("category");
+            String subcategoryName = (String) holding.get("subcategory");
+
+            System.out.println("Processing holding: " + holding);
+    
+            // Validate asset_name and category
+            if (assetName == null || assetName.trim().isEmpty()) {
+                throw new IllegalArgumentException("Asset name cannot be null or empty.");
+            }
+            if (categoryName == null || categoryName.trim().isEmpty()) {
+                throw new IllegalArgumentException("Category name cannot be null or empty.");
+            }
+    
+            // Find or create the category
+            Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
+            if (categoryId == null) {
+                categoryId = categoriesRepository.insertCategory(accountId, categoryName, null, 1, 1);
+            }
+    
+            // Find or create the subcategory (if provided)
+            Integer subcategoryId = null;
+            if (subcategoryName != null && !subcategoryName.trim().isEmpty()) {
+                subcategoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, subcategoryName);
+                if (subcategoryId == null) {
+                    subcategoryId = categoriesRepository.insertCategory(accountId, subcategoryName, categoryId, 2, 1);
+                }
+            }
+    
+            // Update the holdings_categories table
+            holdingsCategoriesRepository.upsertHoldingCategory(accountId, assetName, subcategoryId != null ? subcategoryId : categoryId);
+        }
     }
 }
