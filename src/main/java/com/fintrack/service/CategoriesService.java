@@ -44,28 +44,67 @@ public class CategoriesService {
         try {
             categoriesRepository.insertCategory(accountId, categoryName, null, 1, priority);
         } catch (DataIntegrityViolationException e) {
-            throw new IllegalArgumentException("Category with name '" + categoryName + "' already exists.");
+            throw new IllegalArgumentException("Failed to insert category. Possible data integrity violation.", e);
         }
     }
 
     @Transactional
-    public void updateCategory(UUID accountId, String oldCategoryName, String newCategoryName) {
+    public void addSubcategory(UUID accountId, String categoryName, String subcategoryName) {
         // Validate input
-        if (oldCategoryName == null || oldCategoryName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Old category name cannot be null or empty.");
-        }
-        if (newCategoryName == null || newCategoryName.trim().isEmpty()) {
-            throw new IllegalArgumentException("New category name cannot be null or empty.");
+        if (subcategoryName == null || subcategoryName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Subcategory name cannot be null or empty.");
         }
     
-        // Find the category ID for the old category name
-        Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, oldCategoryName);
-        if (categoryId == null) {
-            throw new IllegalArgumentException("Category with name '" + oldCategoryName + "' does not exist.");
+        // Trim the subcategory name
+        String trimmedSubcategoryName = subcategoryName.trim();
+    
+        // Check if the subcategory already exists
+        Integer existingSubcategoryId = categoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
+            accountId, categoryName, trimmedSubcategoryName
+        );
+        if (existingSubcategoryId != null) {
+            throw new IllegalArgumentException("Subcategory with name '" + trimmedSubcategoryName + "' already exists in category '" + categoryName + "'.");
         }
     
-        // Update the category name
-        categoriesRepository.updateCategoryName(accountId, categoryId, newCategoryName);
+        // Dynamically calculate the priority for the subcategory
+        Integer maxPriority = categoriesRepository.findMaxSubcategoryPriorityByAccountIdAndCategoryName(accountId, categoryName);
+        Integer priority = (maxPriority != null ? maxPriority : 0) + 1;
+    
+        // Insert the new subcategory
+        categoriesRepository.insertSubcategory(accountId, categoryName, trimmedSubcategoryName, priority);
+    }
+
+    @Transactional
+    public void updateCategory(UUID accountId, String oldCategoryName, String newCategoryName) {
+    // Validate input
+    if (oldCategoryName == null || oldCategoryName.trim().isEmpty()) {
+        throw new IllegalArgumentException("Old category name cannot be null or empty.");
+    }
+    if (newCategoryName == null || newCategoryName.trim().isEmpty()) {
+        throw new IllegalArgumentException("New category name cannot be null or empty.");
+    }
+    // Trim the subcategory names
+    String trimmedOldSubcategoryName = oldSubcategoryName.trim();
+    String trimmedNewSubcategoryName = newSubcategoryName.trim();
+
+    // Check if the old subcategory exists
+    Integer existingSubcategoryId = categoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
+        accountId, categoryName, trimmedOldSubcategoryName
+    );
+    if (existingSubcategoryId == null) {
+        throw new IllegalArgumentException("Subcategory with name '" + trimmedOldSubcategoryName + "' does not exist in category '" + categoryName + "'.");
+    }
+
+        // Check if the new subcategory name already exists
+        Integer duplicateSubcategoryId = categoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
+            accountId, categoryName, trimmedNewSubcategoryName
+        );
+        if (duplicateSubcategoryId != null) {
+            throw new IllegalArgumentException("Subcategory with name '" + trimmedNewSubcategoryName + "' already exists in category '" + categoryName + "'.");
+        }
+
+        // Update the subcategory name
+        categoriesRepository.updateSubcategoryName(accountId, categoryName, trimmedOldSubcategoryName, trimmedNewSubcategoryName);
     }
 
     @Transactional
@@ -102,6 +141,37 @@ public class CategoriesService {
                 }
             }
         }
+    }
+
+    @Transactional
+    public void updateSubcategory(UUID accountId, String categoryName, String oldSubcategoryName, String newSubcategoryName) {
+        // Validate input
+        if (newSubcategoryName == null || newSubcategoryName.trim().isEmpty()) {
+            throw new IllegalArgumentException("New subcategory name cannot be null or empty.");
+        }
+    
+        // Trim the subcategory names
+        String trimmedOldSubcategoryName = oldSubcategoryName.trim();
+        String trimmedNewSubcategoryName = newSubcategoryName.trim();
+    
+        // Check if the old subcategory exists
+        Integer existingSubcategoryId = categoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
+            accountId, categoryName, trimmedOldSubcategoryName
+        );
+        if (existingSubcategoryId == null) {
+            throw new IllegalArgumentException("Subcategory with name '" + trimmedOldSubcategoryName + "' does not exist in category '" + categoryName + "'.");
+        }
+    
+        // Check if the new subcategory name already exists
+        Integer duplicateSubcategoryId = categoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
+            accountId, categoryName, trimmedNewSubcategoryName
+        );
+        if (duplicateSubcategoryId != null) {
+            throw new IllegalArgumentException("Subcategory with name '" + trimmedNewSubcategoryName + "' already exists in category '" + categoryName + "'.");
+        }
+    
+        // Update the subcategory name
+        categoriesRepository.updateSubcategoryName(accountId, categoryName, trimmedOldSubcategoryName, trimmedNewSubcategoryName);
     }
 
     @Transactional

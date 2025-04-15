@@ -36,12 +36,32 @@ public class CategoriesController {
         return ResponseEntity.ok("Categories updated successfully.");
     }
 
-    @PostMapping("/subcategories/update")
-    public ResponseEntity<String> updateSubcategoriesByCategoryName(
-      @RequestBody Map<String, Object> subcategoryData,
-      @RequestParam UUID accountId) {
-        categoriesService.updateSubcategoriesByCategoryName(accountId, subcategoryData);
-        return ResponseEntity.ok("Subcategories updated successfully.");
+    @PostMapping("/subcategories/add")
+    public ResponseEntity<String> addSubcategory(@RequestBody Map<String, Object> subcategoryData) {
+        UUID accountId = UUID.fromString((String) subcategoryData.get("accountId"));
+        String categoryName = (String) subcategoryData.get("category_name");
+        String subcategoryName = (String) subcategoryData.get("subcategory_name");
+    
+        categoriesService.addSubcategory(accountId, categoryName, subcategoryName);
+        return ResponseEntity.ok("Subcategory added successfully.");
+    }
+
+    // @PostMapping("/subcategories/update")
+    // public ResponseEntity<String> updateSubcategoriesByCategoryName(
+    //   @RequestBody Map<String, Object> subcategoryData,
+    //   @RequestParam UUID accountId) {
+    //     categoriesService.updateSubcategoriesByCategoryName(accountId, subcategoryData);
+    //     return ResponseEntity.ok("Subcategories updated successfully.");
+    // }
+    @PutMapping("/subcategories/update")
+    public ResponseEntity<String> updateSubcategory(@RequestBody Map<String, Object> subcategoryData) {
+        UUID accountId = UUID.fromString((String) subcategoryData.get("accountId"));
+        String categoryName = (String) subcategoryData.get("category_name");
+        String oldSubcategoryName = (String) subcategoryData.get("old_subcategory_name");
+        String newSubcategoryName = (String) subcategoryData.get("new_subcategory_name");
+
+        categoriesService.updateSubcategory(accountId, categoryName, oldSubcategoryName, newSubcategoryName);
+        return ResponseEntity.ok("Subcategory updated successfully.");
     }
 
     @DeleteMapping("/remove")
