@@ -76,35 +76,22 @@ public class CategoriesService {
 
     @Transactional
     public void updateCategory(UUID accountId, String oldCategoryName, String newCategoryName) {
-    // Validate input
-    if (oldCategoryName == null || oldCategoryName.trim().isEmpty()) {
-        throw new IllegalArgumentException("Old category name cannot be null or empty.");
-    }
-    if (newCategoryName == null || newCategoryName.trim().isEmpty()) {
-        throw new IllegalArgumentException("New category name cannot be null or empty.");
-    }
-    // Trim the subcategory names
-    String trimmedOldSubcategoryName = oldSubcategoryName.trim();
-    String trimmedNewSubcategoryName = newSubcategoryName.trim();
-
-    // Check if the old subcategory exists
-    Integer existingSubcategoryId = categoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
-        accountId, categoryName, trimmedOldSubcategoryName
-    );
-    if (existingSubcategoryId == null) {
-        throw new IllegalArgumentException("Subcategory with name '" + trimmedOldSubcategoryName + "' does not exist in category '" + categoryName + "'.");
-    }
-
-        // Check if the new subcategory name already exists
-        Integer duplicateSubcategoryId = categoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
-            accountId, categoryName, trimmedNewSubcategoryName
-        );
-        if (duplicateSubcategoryId != null) {
-            throw new IllegalArgumentException("Subcategory with name '" + trimmedNewSubcategoryName + "' already exists in category '" + categoryName + "'.");
+        // Validate input
+        if (oldCategoryName == null || oldCategoryName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Old category name cannot be null or empty.");
         }
-
-        // Update the subcategory name
-        categoriesRepository.updateSubcategoryName(accountId, categoryName, trimmedOldSubcategoryName, trimmedNewSubcategoryName);
+        if (newCategoryName == null || newCategoryName.trim().isEmpty()) {
+            throw new IllegalArgumentException("New category name cannot be null or empty.");
+        }
+    
+        // Find the category ID for the old category name
+        Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, oldCategoryName);
+        if (categoryId == null) {
+            throw new IllegalArgumentException("Category with name '" + oldCategoryName + "' does not exist.");
+        }
+    
+        // Update the category name
+        categoriesRepository.updateCategoryName(accountId, categoryId, newCategoryName);
     }
 
     @Transactional
