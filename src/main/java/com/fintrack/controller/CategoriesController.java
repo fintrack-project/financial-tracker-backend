@@ -28,14 +28,6 @@ public class CategoriesController {
         return ResponseEntity.ok("Category added successfully.");
     }
 
-    @PostMapping("/update")
-    public ResponseEntity<String> updateCategoriesWithSubcategories(
-        @RequestBody List<Map<String, Object>> categories, 
-        @RequestParam UUID accountId) {
-        categoriesService.updateCategoriesWithSubcategories(accountId, categories);
-        return ResponseEntity.ok("Categories updated successfully.");
-    }
-
     @PostMapping("/name/update")
     public ResponseEntity<String> updateCategoryName(@RequestBody Map<String, Object> categoryData) {
         UUID accountId = UUID.fromString((String) categoryData.get("accountId"));
@@ -54,17 +46,6 @@ public class CategoriesController {
     
         categoriesService.addSubcategory(accountId, categoryName, subcategoryName);
         return ResponseEntity.ok("Subcategory added successfully.");
-    }
-
-    @PutMapping("/subcategories/update")
-    public ResponseEntity<String> updateSubcategory(@RequestBody Map<String, Object> subcategoryData) {
-        UUID accountId = UUID.fromString((String) subcategoryData.get("accountId"));
-        String categoryName = (String) subcategoryData.get("category_name");
-        String oldSubcategoryName = (String) subcategoryData.get("old_subcategory_name");
-        String newSubcategoryName = (String) subcategoryData.get("new_subcategory_name");
-
-        categoriesService.updateSubcategory(accountId, categoryName, oldSubcategoryName, newSubcategoryName);
-        return ResponseEntity.ok("Subcategory updated successfully.");
     }
 
     @PostMapping("/subcategories/name/update")

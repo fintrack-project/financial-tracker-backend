@@ -18,14 +18,14 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
         SELECT category_id 
         FROM categories 
         WHERE account_id = :accountId 
-          AND parent_id = (
-              SELECT category_id 
-              FROM categories 
-              WHERE account_id = :accountId 
-                AND LOWER(category_name) = LOWER(:categoryName) 
-                AND parent_id IS NULL
-          ) 
-          AND LOWER(category_name) = LOWER(:subcategoryName)
+            AND parent_id = (
+                SELECT category_id 
+                FROM categories 
+                WHERE account_id = :accountId 
+                    AND LOWER(category_name) = LOWER(:categoryName) 
+                    AND parent_id IS NULL
+        ) 
+        AND LOWER(category_name) = LOWER(:subcategoryName)
         """, nativeQuery = true)
     Integer findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
         @Param("accountId") UUID accountId,
