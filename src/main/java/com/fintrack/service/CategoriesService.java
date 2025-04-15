@@ -164,6 +164,9 @@ public class CategoriesService {
     @Transactional
     public void updateSubcategoryName(UUID accountId, String categoryName, String oldSubcategoryName, String newSubcategoryName) {
         // Validate input
+        if (oldSubcategoryName == null || oldSubcategoryName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Old subcategory name cannot be null or empty.");
+        }
         if (newSubcategoryName == null || newSubcategoryName.trim().isEmpty()) {
             throw new IllegalArgumentException("New subcategory name cannot be null or empty.");
         }
