@@ -38,42 +38,12 @@ public class CategoriesController {
         return ResponseEntity.ok("Category name updated successfully.");
     }
 
-    @PostMapping("/subcategories/add")
-    public ResponseEntity<String> addSubcategory(@RequestBody Map<String, Object> subcategoryData) {
-        UUID accountId = UUID.fromString((String) subcategoryData.get("accountId"));
-        String categoryName = (String) subcategoryData.get("category_name");
-        String subcategoryName = (String) subcategoryData.get("subcategory_name");
-    
-        categoriesService.addSubcategory(accountId, categoryName, subcategoryName);
-        return ResponseEntity.ok("Subcategory added successfully.");
-    }
-
-    @PostMapping("/subcategories/name/update")
-    public ResponseEntity<String> updateSubcategoryName(@RequestBody Map<String, Object> subcategoryData) {
-        UUID accountId = UUID.fromString((String) subcategoryData.get("accountId"));
-        String categoryName = (String) subcategoryData.get("category_name");
-        String oldSubcategoryName = (String) subcategoryData.get("old_subcategory_name");
-        String newSubcategoryName = (String) subcategoryData.get("new_subcategory_name");
-    
-        categoriesService.updateSubcategoryName(accountId, categoryName, oldSubcategoryName, newSubcategoryName);
-        return ResponseEntity.ok("Subcategory name updated successfully.");
-    }
-
     @DeleteMapping("/remove")
     public ResponseEntity<String> removeCategory(
             @RequestParam UUID accountId,
             @RequestParam String category) {
         categoriesService.removeCategory(accountId, category);
         return ResponseEntity.ok("Category and its subcategories removed successfully.");
-    }
-    
-    @DeleteMapping("/subcategories/remove")
-    public ResponseEntity<String> removeSubcategory(
-            @RequestParam UUID accountId,
-            @RequestParam String category,
-            @RequestParam String subcategory) {
-        categoriesService.removeSubcategory(accountId, category, subcategory);
-        return ResponseEntity.ok("Subcategory removed successfully.");
     }
 
     @GetMapping("/fetch")
