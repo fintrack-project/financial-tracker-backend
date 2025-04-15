@@ -20,7 +20,7 @@ public class CategoriesController {
 
     @PostMapping("/add")
     public ResponseEntity<String> addCategory(
-            @RequestBody Map<String, Object> categoryData) {
+        @RequestBody Map<String, Object> categoryData) {
         UUID accountId = UUID.fromString((String) categoryData.get("accountId"));
         String categoryName = (String) categoryData.get("category_name");
     
@@ -30,10 +30,20 @@ public class CategoriesController {
 
     @PostMapping("/update")
     public ResponseEntity<String> updateCategoriesWithSubcategories(
-      @RequestBody List<Map<String, Object>> categories, 
-      @RequestParam UUID accountId) {
+        @RequestBody List<Map<String, Object>> categories, 
+        @RequestParam UUID accountId) {
         categoriesService.updateCategoriesWithSubcategories(accountId, categories);
         return ResponseEntity.ok("Categories updated successfully.");
+    }
+
+    @PostMapping("/name/update")
+    public ResponseEntity<String> updateCategoryName(@RequestBody Map<String, Object> categoryData) {
+        UUID accountId = UUID.fromString((String) categoryData.get("accountId"));
+        String oldCategoryName = (String) categoryData.get("old_category_name");
+        String newCategoryName = (String) categoryData.get("new_category_name");
+    
+        categoriesService.updateCategoryName(accountId, oldCategoryName, newCategoryName);
+        return ResponseEntity.ok("Category name updated successfully.");
     }
 
     @PostMapping("/subcategories/add")
@@ -82,9 +92,9 @@ public class CategoriesController {
 
     @PostMapping("/holdings/update")
     public ResponseEntity<String> updateHoldingsCategories(
-      @RequestParam UUID accountId,
-      @RequestBody List<Map<String, Object>> holdingsData
-      ) {
+        @RequestParam UUID accountId,
+        @RequestBody List<Map<String, Object>> holdingsData
+    ) {
         categoriesService.updateHoldingsCategories(accountId, holdingsData);
         return ResponseEntity.ok("Holdings categories updated successfully.");
     }
