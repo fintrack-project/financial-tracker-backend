@@ -3,8 +3,7 @@ package com.fintrack.service;
 import com.fintrack.model.Account;
 import com.fintrack.repository.AccountRepository;
 import org.springframework.stereotype.Service;
-
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
