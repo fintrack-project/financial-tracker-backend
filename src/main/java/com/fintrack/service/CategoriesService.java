@@ -4,6 +4,7 @@ import com.fintrack.repository.CategoriesRepository;
 import com.fintrack.repository.HoldingsCategoriesRepository;
 import com.fintrack.model.Category;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,52 @@ public class CategoriesService {
     public CategoriesService(CategoriesRepository categoriesRepository, HoldingsCategoriesRepository holdingsCategoriesRepository) {
         this.categoriesRepository = categoriesRepository;
         this.holdingsCategoriesRepository = holdingsCategoriesRepository;
+    }
+
+    @Transactional
+    public void addCategory(UUID accountId, String categoryName) {
+        // Validate input
+        if (categoryName == null || categoryName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Category name cannot be null or empty.");
+        }
+    
+        // Check if the category already exists
+        Integer existingCategoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
+
+        if (existingCategoryId != null) {
+            throw new IllegalArgumentException("Category with name '" + categoryName + "' already exists.");
+        }
+
+        // Dynamically calculate the priority if not provided
+        Integer maxPriority = categoriesRepository.findMaxPriorityByAccountId(accountId);
+        Integer priority = (maxPriority != null ? maxPriority : 0) + 1;
+    
+        // Insert the new category
+        try {
+            categoriesRepository.insertCategory(accountId, categoryName, null, 1, priority);
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalArgumentException("Category with name '" + categoryName + "' already exists.");
+        }
+    }
+
+    @Transactional
+    public void updateCategory(UUID accountId, String oldCategoryName, String newCategoryName) {
+        // Validate input
+        if (oldCategoryName == null || oldCategoryName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Old category name cannot be null or empty.");
+        }
+        if (newCategoryName == null || newCategoryName.trim().isEmpty()) {
+            throw new IllegalArgumentException("New category name cannot be null or empty.");
+        }
+    
+        // Find the category ID for the old category name
+        Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, oldCategoryName);
+        if (categoryId == null) {
+            throw new IllegalArgumentException("Category with name '" + oldCategoryName + "' does not exist.");
+        }
+    
+        // Update the category name
+        categoriesRepository.updateCategoryName(accountId, categoryId, newCategoryName);
     }
 
     @Transactional

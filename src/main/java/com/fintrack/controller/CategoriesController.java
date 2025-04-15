@@ -18,6 +18,16 @@ public class CategoriesController {
         this.categoriesService = categoriesService;
     }
 
+    @PostMapping("/add")
+    public ResponseEntity<String> addCategory(
+            @RequestBody Map<String, Object> categoryData) {
+        UUID accountId = UUID.fromString((String) categoryData.get("accountId"));
+        String categoryName = (String) categoryData.get("category_name");
+    
+        categoriesService.addCategory(accountId, categoryName);
+        return ResponseEntity.ok("Category added successfully.");
+    }
+
     @PostMapping("/update")
     public ResponseEntity<String> updateCategoriesWithSubcategories(
       @RequestBody List<Map<String, Object>> categories, 

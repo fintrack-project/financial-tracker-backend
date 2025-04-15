@@ -20,9 +20,19 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
     @Query(value = "SELECT * FROM categories WHERE account_id = :accountId AND parent_id = :parentId ORDER BY priority", nativeQuery = true)
     List<Category> findSubcategoriesByParentId(@Param("accountId") UUID accountId, @Param("parentId") Integer parentId);
 
+    @Query(value = "SELECT MAX(priority) FROM categories WHERE account_id = :accountId AND parent_id IS NULL", nativeQuery = true)
+    Integer findMaxPriorityByAccountId(@Param("accountId") UUID accountId);
+
     @Modifying
     @Query(value = "UPDATE categories SET priority = :priority WHERE category_id = :categoryId", nativeQuery = true)
     void updateSubcategoryPriority(@Param("categoryId") Integer categoryId, @Param("priority") int priority);
+
+    @Modifying
+    @Query(value = "UPDATE categories SET category_name = :newCategoryName WHERE account_id = :accountId AND category_id = :categoryId", nativeQuery = true)
+    void updateCategoryName(
+            @Param("accountId") UUID accountId,
+            @Param("categoryId") Integer categoryId,
+            @Param("newCategoryName") String newCategoryName);
 
     @Query(value = """
         INSERT INTO categories (account_id, category_name, parent_id, level, priority, updated_at)
