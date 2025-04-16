@@ -2,6 +2,7 @@ package com.fintrack.service;
 
 import com.fintrack.repository.HoldingsCategoriesRepository;
 import com.fintrack.repository.CategoriesRepository;
+import com.fintrack.repository.SubcategoriesRepository;
 import com.fintrack.model.Category;
 
 import org.springframework.stereotype.Service;
@@ -14,12 +15,15 @@ public class HoldingsCategoriesService {
 
     private final HoldingsCategoriesRepository holdingsCategoriesRepository;
     private final CategoriesRepository categoriesRepository;
+    private final SubcategoriesRepository subcategoriesRepository;
 
     public HoldingsCategoriesService(
-      HoldingsCategoriesRepository holdingsCategoriesRepository, 
-      CategoriesRepository categoriesRepository) {
+        HoldingsCategoriesRepository holdingsCategoriesRepository, 
+        CategoriesRepository categoriesRepository,
+        SubcategoriesRepository subcategoriesRepository) {
         this.holdingsCategoriesRepository = holdingsCategoriesRepository;
         this.categoriesRepository = categoriesRepository;
+        this.subcategoriesRepository = subcategoriesRepository;
     }
 
     @Transactional
@@ -133,36 +137,36 @@ public class HoldingsCategoriesService {
 
     @Transactional(readOnly = true)
     public Map<String, Map<String, String>> fetchHoldingsCategories(UUID accountId) {
-      // Fetch all top-level categories ordered by priority
-      List<Category> categories = categoriesRepository.findCategoriesByAccountIdOrderedByPriority(accountId);
+        // Fetch all top-level categories ordered by priority
+        List<Category> categories = categoriesRepository.findCategoriesByAccountIdOrderedByPriority(accountId);
 
-      // Prepare the response map using LinkedHashMap to preserve order
-      Map<String, Map<String, String>> response = new LinkedHashMap<>();
+        // Prepare the response map using LinkedHashMap to preserve order
+        Map<String, Map<String, String>> response = new LinkedHashMap<>();
 
-      for (Category category : categories) {
-          // Fetch subcategories for each category ordered by priority
-          List<Category> subcategories = categoriesRepository.findSubcategoriesByParentId(accountId, category.getCategoryId());
+        for (Category category : categories) {
+            // Fetch subcategories for each category ordered by priority
+            List<Category> subcategories = subcategoriesRepository.findSubcategoriesByParentId(accountId, category.getCategoryId());
 
-          // Prepare a LinkedHashMap for subcategories to preserve order
-          Map<String, String> subcategoryMap = new LinkedHashMap<>();
+            // Prepare a LinkedHashMap for subcategories to preserve order
+            Map<String, String> subcategoryMap = new LinkedHashMap<>();
 
-          for (Category subcategory : subcategories) {
-              // Fetch holdings for each subcategory
-              List<Map<String, Object>> holdings = holdingsCategoriesRepository.findHoldingsByCategoryId(accountId, subcategory.getCategoryId());
+            for (Category subcategory : subcategories) {
+                // Fetch holdings for each subcategory
+                List<Map<String, Object>> holdings = holdingsCategoriesRepository.findHoldingsByCategoryId(accountId, subcategory.getCategoryId());
 
-              for (Map<String, Object> holding : holdings) {
-                  String assetName = (String) holding.get("asset_name");
-                  String subcategoryName = (String) holding.get("subcategory");
+                for (Map<String, Object> holding : holdings) {
+                    String assetName = (String) holding.get("asset_name");
+                    String subcategoryName = (String) holding.get("subcategory");
 
-                  // Add asset and subcategory to the subcategory map
-                  subcategoryMap.put(assetName, subcategoryName);
-              }
-          }
+                    // Add asset and subcategory to the subcategory map
+                    subcategoryMap.put(assetName, subcategoryName);
+                }
+            }
 
-          // Add the category and its subcategories to the response map
-          response.put(category.getCategoryName(), subcategoryMap);
-      }
+            // Add the category and its subcategories to the response map
+            response.put(category.getCategoryName(), subcategoryMap);
+        }
 
-      return response;
+        return response;
     } 
 }
