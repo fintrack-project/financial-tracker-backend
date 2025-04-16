@@ -1,6 +1,7 @@
 package com.fintrack.service;
 
 import com.fintrack.repository.CategoriesRepository;
+import com.fintrack.repository.SubcategoriesRepository;
 import com.fintrack.repository.HoldingsCategoriesRepository;
 import com.fintrack.model.Category;
 
@@ -15,12 +16,15 @@ import java.util.stream.Collectors;
 public class CategoriesService {
 
     private final CategoriesRepository categoriesRepository;
+    private final SubcategoriesRepository subcategoriesRepository;
     private final HoldingsCategoriesRepository holdingsCategoriesRepository;
 
     public CategoriesService(
         CategoriesRepository categoriesRepository, 
+        SubcategoriesRepository subcategoriesRepository,
         HoldingsCategoriesRepository holdingsCategoriesRepository) {
         this.categoriesRepository = categoriesRepository;
+        this.subcategoriesRepository = subcategoriesRepository;
         this.holdingsCategoriesRepository = holdingsCategoriesRepository;
     }
 
@@ -80,7 +84,7 @@ public class CategoriesService {
     
         for (Category category : categories) {
             // Fetch subcategories for each category
-            List<Category> subcategories = categoriesRepository.findSubcategoriesByParentId(accountId, category.getCategoryId());
+            List<Category> subcategories = subcategoriesRepository.findSubcategoriesByParentId(accountId, category.getCategoryId());
     
             // Format subcategories as a list of names
             List<String> subcategoryNames = subcategories.stream()
@@ -114,7 +118,7 @@ public class CategoriesService {
         holdingsCategoriesRepository.deleteByAccountIdAndCategoryId(accountId, categoryId);
 
         // Delete all subcategories for the category
-        categoriesRepository.deleteByParentId(accountId, categoryId);
+        subcategoriesRepository.deleteByParentId(accountId, categoryId);
     
         // Delete the category itself
         categoriesRepository.deleteByCategoryId(categoryId);
