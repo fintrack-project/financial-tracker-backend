@@ -28,10 +28,10 @@ public class Category {
     @Column(name = "level", nullable = false)
     private Integer level;
 
-    @Column(name = "priority", nullable = false)
+    @Column(name = "priority", nullable = false, columnDefinition = "integer default 0")
     private Integer priority;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_at", nullable = false, columnDefinition = "timestamp default CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
 
     // Getters and Setters

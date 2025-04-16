@@ -55,10 +55,23 @@ public class CategoriesController {
     @PostMapping("/holdings/update")
     public ResponseEntity<String> updateHoldingsCategories(
         @RequestParam UUID accountId,
-        @RequestBody List<Map<String, Object>> holdingsCategories
+        @RequestBody Map<String, Map<String, String>> holdingsCategories
     ) {
+        // Pass the data to the service layer
         categoriesService.updateHoldingsCategories(accountId, holdingsCategories);
+    
         return ResponseEntity.ok("Holdings categories updated successfully.");
+    }
+
+    @PostMapping("/holdings/add")
+    public ResponseEntity<String> addHoldingsCategories(
+        @RequestParam(name = "accountId") UUID accountId,
+        @RequestBody Map<String, Map<String, String>> holdingsCategories
+    ) {
+        // Pass the data to the service layer
+        categoriesService.addHoldingsCategories(accountId, holdingsCategories);
+    
+        return ResponseEntity.ok("Holdings categories added successfully.");
     }
 
     @GetMapping("/holdings/fetch")
