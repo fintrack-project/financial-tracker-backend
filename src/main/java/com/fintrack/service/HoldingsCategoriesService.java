@@ -119,6 +119,17 @@ public class HoldingsCategoriesService {
         }
     }
 
+    @Transactional
+    public void removeHoldingsCategory(UUID accountId, String category) {
+        // Validate input
+        if (category == null || category.trim().isEmpty()) {
+            throw new IllegalArgumentException("Category name cannot be null or empty.");
+        }
+    
+        // Remove the holdings category from the database
+        holdingsCategoriesRepository.deleteByAccountIdAndCategory(accountId, category);
+    }
+
     @Transactional(readOnly = true)
     public Map<String, Map<String, String>> fetchHoldingsCategories(UUID accountId) {
         // Fetch holdings categories from the repository

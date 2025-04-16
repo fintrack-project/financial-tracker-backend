@@ -44,6 +44,16 @@ public interface HoldingsCategoriesRepository extends JpaRepository<HoldingsCate
         @Param("subcategory") String subcategory
     );
 
+    @Modifying
+    @Query(value = """
+        DELETE FROM holdings_categories
+        WHERE account_id = :accountId AND category = :category
+        """, nativeQuery = true)
+    void deleteByAccountIdAndCategory(
+        @Param("accountId") UUID accountId,
+        @Param("category") String category
+    );
+
     @Query(value = """
         SELECT h.asset_name, h.category AS category, h.subcategory AS subcategory, c.priority AS priority
         FROM holdings_categories h

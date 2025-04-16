@@ -38,6 +38,17 @@ public class HoldingsCategoriesController {
         return ResponseEntity.ok("Holdings categories added successfully.");
     }
 
+    @PostMapping("/holdings/remove")
+    public ResponseEntity<String> removeHoldingsCategory(
+        @RequestParam(name = "accountId") UUID accountId,
+        @RequestParam(name = "category") String category
+    ) {
+        // Pass the data to the service layer
+        holdingsCategoriesService.removeHoldingsCategory(accountId, category);
+    
+        return ResponseEntity.ok("Holdings category removed successfully.");
+    }
+
     @GetMapping("/holdings/fetch")
     public ResponseEntity<Map<String, Map<String, String>>> fetchHoldingsCategories(@RequestParam UUID accountId) {
         Map<String, Map<String, String>> holdings = holdingsCategoriesService.fetchHoldingsCategories(accountId);
