@@ -2,22 +2,28 @@ package com.fintrack.service;
 
 import com.fintrack.repository.CategoriesRepository;
 import com.fintrack.repository.HoldingsCategoriesRepository;
+import com.fintrack.repository.SubcategoriesRepository;
 import com.fintrack.model.Category;
 
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class SubcategoriesService {
 
     private final CategoriesRepository categoriesRepository;
+    private final SubcategoriesRepository subcategoriesRepository;
+    private final HoldingsCategoriesRepository holdingsCategoriesRepository;
 
-    public SubcategoriesService(CategoriesRepository categoriesRepository, HoldingsCategoriesRepository holdingsCategoriesRepository) {
+    public SubcategoriesService(
+        CategoriesRepository categoriesRepository, 
+        SubcategoriesRepository subcategoriesRepository,
+        HoldingsCategoriesRepository holdingsCategoriesRepository) {
         this.categoriesRepository = categoriesRepository;
+        this.subcategoriesRepository = subcategoriesRepository;
+        this.holdingsCategoriesRepository = holdingsCategoriesRepository;
     }
 
     @Transactional
@@ -31,7 +37,7 @@ public class SubcategoriesService {
         String trimmedSubcategoryName = subcategoryName.trim();
     
         // Check if the subcategory already exists
-        Integer existingSubcategoryId = categoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
+        Integer existingSubcategoryId = subcategoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
             accountId, categoryName, trimmedSubcategoryName
         );
         if (existingSubcategoryId != null) {
@@ -39,11 +45,11 @@ public class SubcategoriesService {
         }
     
         // Dynamically calculate the priority for the subcategory
-        Integer maxPriority = categoriesRepository.findMaxSubcategoryPriorityByAccountIdAndCategoryName(accountId, categoryName);
+        Integer maxPriority = subcategoriesRepository.findMaxSubcategoryPriorityByAccountIdAndCategoryName(accountId, categoryName);
         Integer priority = (maxPriority != null ? maxPriority : 0) + 1;
     
         // Insert the new subcategory
-        categoriesRepository.insertSubcategory(accountId, categoryName, trimmedSubcategoryName, priority);
+        subcategoriesRepository.insertSubcategory(accountId, categoryName, trimmedSubcategoryName, priority);
     }
 
     @Transactional
@@ -67,7 +73,7 @@ public class SubcategoriesService {
         }
     
         // Find the subcategory ID for the old subcategory name
-        Integer subcategoryId = categoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
+        Integer subcategoryId = subcategoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
             accountId, categoryName, trimmedOldSubcategoryName
         );
         if (subcategoryId == null) {
@@ -75,7 +81,7 @@ public class SubcategoriesService {
         }
     
         // Check if the new subcategory name already exists
-        Integer duplicateSubcategoryId = categoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
+        Integer duplicateSubcategoryId = subcategoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
             accountId, categoryName, trimmedNewSubcategoryName
         );
         if (duplicateSubcategoryId != null) {
@@ -83,7 +89,7 @@ public class SubcategoriesService {
         }
     
         // Update the subcategory name
-        categoriesRepository.updateSubcategoryName(accountId, categoryName, trimmedOldSubcategoryName, trimmedNewSubcategoryName);
+        subcategoriesRepository.updateSubcategoryName(accountId, categoryName, trimmedOldSubcategoryName, trimmedNewSubcategoryName);
     }
 
     @Transactional
@@ -99,12 +105,15 @@ public class SubcategoriesService {
         if (subcategoryId == null) {
             throw new IllegalArgumentException("Subcategory with name '" + subcategoryName + "' does not exist.");
         }
-    
+
+        // Update the holdings_categories table to set subcategory to NULL and category_id to the parent category ID
+        holdingsCategoriesRepository.updateSubcategoryToNull(accountId, subcategoryName, categoryId);
+
         // Delete the subcategory
         categoriesRepository.deleteByCategoryId(subcategoryId);
     
         // Fetch remaining subcategories and update their priorities
-        List<Category> remainingSubcategories = categoriesRepository.findSubcategoriesByParentId(accountId, categoryId);
+        List<Category> remainingSubcategories = subcategoriesRepository.findSubcategoriesByParentId(accountId, categoryId);
         for (int priority = 1; priority <= remainingSubcategories.size(); priority++) {
             Category subcategory = remainingSubcategories.get(priority - 1);
             categoriesRepository.updateSubcategoryPriority(subcategory.getCategoryId(), priority);

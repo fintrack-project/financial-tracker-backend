@@ -17,7 +17,9 @@ public class CategoriesService {
     private final CategoriesRepository categoriesRepository;
     private final HoldingsCategoriesRepository holdingsCategoriesRepository;
 
-    public CategoriesService(CategoriesRepository categoriesRepository, HoldingsCategoriesRepository holdingsCategoriesRepository) {
+    public CategoriesService(
+        CategoriesRepository categoriesRepository, 
+        HoldingsCategoriesRepository holdingsCategoriesRepository) {
         this.categoriesRepository = categoriesRepository;
         this.holdingsCategoriesRepository = holdingsCategoriesRepository;
     }
@@ -74,7 +76,7 @@ public class CategoriesService {
         List<Category> categories = categoriesRepository.findCategoriesByAccountId(accountId);
     
         // Prepare the response
-        Map<String, List<String>> subcategoriesMap = new HashMap<>();
+        Map<String, List<String>> subcategoriesMap = new LinkedHashMap<>();
     
         for (Category category : categories) {
             // Fetch subcategories for each category
@@ -95,7 +97,7 @@ public class CategoriesService {
         .collect(Collectors.toList());
     
         // Return the response
-        Map<String, Object> response = new HashMap<>();
+        Map<String, Object> response = new LinkedHashMap<>();
         response.put("categories", categoryNames);
         response.put("subcategories", subcategoriesMap);
         return response;
@@ -108,52 +110,20 @@ public class CategoriesService {
         if (categoryId == null) {
             throw new IllegalArgumentException("Category with name '" + categoryName + "' does not exist.");
         }
-    
+        // Remove all related entries in the holdings_categories table
+        holdingsCategoriesRepository.deleteByAccountIdAndCategoryId(accountId, categoryId);
+
         // Delete all subcategories for the category
         categoriesRepository.deleteByParentId(accountId, categoryId);
     
         // Delete the category itself
         categoriesRepository.deleteByCategoryId(categoryId);
-    }
 
-    @Transactional
-    public void updateHoldingsCategories(UUID accountId, List<Map<String, Object>> holdingsData) {
-
-        System.out.println("Received holdingsData: " + holdingsData);
-
-        for (Map<String, Object> holding : holdingsData) {
-            // Extract asset_name, category, and subcategory
-            String assetName = (String) holding.get("asset_name");
-            String categoryName = (String) holding.get("category");
-            String subcategoryName = (String) holding.get("subcategory");
-
-            System.out.println("Processing holding: " + holding);
-    
-            // Validate asset_name and category
-            if (assetName == null || assetName.trim().isEmpty()) {
-                throw new IllegalArgumentException("Asset name cannot be null or empty.");
-            }
-            if (categoryName == null || categoryName.trim().isEmpty()) {
-                throw new IllegalArgumentException("Category name cannot be null or empty.");
-            }
-    
-            // Find or create the category
-            Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
-            if (categoryId == null) {
-                categoryId = categoriesRepository.insertCategory(accountId, categoryName, null, 1, 1);
-            }
-    
-            // Find or create the subcategory (if provided)
-            Integer subcategoryId = null;
-            if (subcategoryName != null && !subcategoryName.trim().isEmpty()) {
-                subcategoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, subcategoryName);
-                if (subcategoryId == null) {
-                    subcategoryId = categoriesRepository.insertCategory(accountId, subcategoryName, categoryId, 2, 1);
-                }
-            }
-    
-            // Update the holdings_categories table
-            holdingsCategoriesRepository.upsertHoldingCategory(accountId, assetName, subcategoryId != null ? subcategoryId : categoryId);
+        // Fetch remaining categories and reassign their priorities
+        List<Category> remainingCategories = categoriesRepository.findCategoriesByAccountIdOrderedByPriority(accountId);
+        for (int priority = 1; priority <= remainingCategories.size(); priority++) {
+            Category category = remainingCategories.get(priority - 1);
+            categoriesRepository.updateCategoryPriority(category.getCategoryId(), priority);
         }
     }
 }

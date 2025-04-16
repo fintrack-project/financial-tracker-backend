@@ -2,12 +2,11 @@ package com.fintrack.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-
-import java.util.*;
+import java.util.UUID;
 
 @Entity
 @Table(name = "holdings_categories", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"account_id", "asset_name"})
+        @UniqueConstraint(columnNames = {"account_id", "asset_name", "category"})
 })
 public class HoldingsCategory {
 
@@ -25,7 +24,13 @@ public class HoldingsCategory {
     @Column(name = "category_id", nullable = false)
     private Integer categoryId;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "category")
+    private String category;
+
+    @Column(name = "subcategory")
+    private String subcategory;
+
+    @Column(name = "updated_at", nullable = false, columnDefinition = "timestamp default CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
 
     // Getters and Setters
@@ -59,6 +64,22 @@ public class HoldingsCategory {
 
     public void setCategoryId(Integer categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getSubcategory() {
+        return subcategory;
+    }
+
+    public void setSubcategory(String subcategory) {
+        this.subcategory = subcategory;
     }
 
     public LocalDateTime getUpdatedAt() {

@@ -3,7 +3,6 @@ com/fintrack/model/MarketData.class
 com/fintrack/repository/MarketDataRepository.class
 com/fintrack/config/WebConfig.class
 com/fintrack/repository/AccountRepository.class
-com/fintrack/service/CategoriesService.class
 com/fintrack/model/Category.class
 com/fintrack/controller/MarketDataController.class
 com/fintrack/repository/HoldingsRepository.class
@@ -15,7 +14,6 @@ com/fintrack/service/MarketAverageDataService.class
 com/fintrack/controller/TransactionController.class
 com/fintrack/service/TransactionService.class
 com/fintrack/repository/TransactionRepository.class
-com/fintrack/repository/HoldingsCategoriesRepository.class
 com/fintrack/service/MarketDataService.class
 com/fintrack/model/MarketAverageData.class
 com/fintrack/model/HoldingsCategory.class

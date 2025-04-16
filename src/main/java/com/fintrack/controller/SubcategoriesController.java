@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/categories/sbubcategories")
+@RequestMapping("/api/categories/subcategories")
 public class SubcategoriesController {
 
     private final SubcategoriesService subcategoriesService;

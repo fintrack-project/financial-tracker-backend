@@ -4,9 +4,7 @@ import com.fintrack.service.CategoriesService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/categories")
@@ -50,14 +48,5 @@ public class CategoriesController {
     public ResponseEntity<Map<String, Object>> getCategoriesAndSubcategories(@RequestParam UUID accountId) {
         Map<String, Object> response = categoriesService.getCategoriesAndSubcategories(accountId);
         return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/holdings/update")
-    public ResponseEntity<String> updateHoldingsCategories(
-        @RequestParam UUID accountId,
-        @RequestBody List<Map<String, Object>> holdingsData
-    ) {
-        categoriesService.updateHoldingsCategories(accountId, holdingsData);
-        return ResponseEntity.ok("Holdings categories updated successfully.");
     }
 }
