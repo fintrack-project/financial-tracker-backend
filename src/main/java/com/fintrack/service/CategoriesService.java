@@ -153,7 +153,32 @@ public class CategoriesService {
             }
     
             // Update the holdings_categories table
-            holdingsCategoriesRepository.upsertHoldingCategory(accountId, assetName, subcategoryId != null ? subcategoryId : categoryId);
+            holdingsCategoriesRepository.upsertHoldingCategory(
+                accountId, 
+                assetName, 
+                subcategoryId != null ? subcategoryId : categoryId,
+                categoryName,
+                subcategoryName);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Map<String, String>> fetchHoldingsCategories(UUID accountId) {
+        // Fetch holdings categories from the repository
+        List<Map<String, Object>> holdings = holdingsCategoriesRepository.findHoldingsByAccountId(accountId);
+    
+        // Prepare the response map
+        Map<String, Map<String, String>> response = new HashMap<>();
+    
+        for (Map<String, Object> holding : holdings) {
+            String category = (String) holding.get("category");
+            String assetName = (String) holding.get("asset_name");
+            String subcategory = (String) holding.get("subcategory");
+    
+            // Group by category
+            response.computeIfAbsent(category, k -> new HashMap<>()).put(assetName, subcategory);
+        }
+    
+        return response;
     }
 }

@@ -7,20 +7,34 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import com.fintrack.model.HoldingsCategory;
 
-import java.util.UUID;
+import java.util.*;
 
 @Repository
 public interface HoldingsCategoriesRepository extends JpaRepository<HoldingsCategory, Integer> {
 
     @Modifying
     @Query(value = """
-        INSERT INTO holdings_categories (account_id, asset_name, category_id, updated_at)
-        VALUES (:accountId, :assetName, :categoryId, CURRENT_TIMESTAMP)
+        INSERT INTO holdings_categories (account_id, asset_name, category_id, category, subcategory, updated_at)
+        VALUES (:accountId, :assetName, :categoryId, :category, :subcategory, CURRENT_TIMESTAMP)
         ON CONFLICT (account_id, asset_name)
-        DO UPDATE SET category_id = EXCLUDED.category_id, updated_at = CURRENT_TIMESTAMP
+        DO UPDATE SET 
+            category_id = EXCLUDED.category_id,
+            category = EXCLUDED.category,
+            subcategory = EXCLUDED.subcategory,
+            updated_at = CURRENT_TIMESTAMP
         """, nativeQuery = true)
     void upsertHoldingCategory(
-      @Param("accountId")UUID accountId, 
-      @Param("assetName")String assetName, 
-      @Param("categoryId")Integer categoryId);
+        @Param("accountId") UUID accountId,
+        @Param("assetName") String assetName,
+        @Param("categoryId") Integer categoryId,
+        @Param("category") String category,
+        @Param("subcategory") String subcategory
+    );
+
+    @Query(value = """
+        SELECT h.asset_name, h.category AS category, h.subcategory AS subcategory
+        FROM holdings_categories h
+        WHERE h.account_id = :accountId
+        """, nativeQuery = true)
+    List<Map<String, Object>> findHoldingsByAccountId(@Param("accountId") UUID accountId);
 }

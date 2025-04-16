@@ -60,4 +60,10 @@ public class CategoriesController {
         categoriesService.updateHoldingsCategories(accountId, holdingsData);
         return ResponseEntity.ok("Holdings categories updated successfully.");
     }
+
+    @GetMapping("/holdings/fetch")
+    public ResponseEntity<Map<String, Map<String, String>>> fetchHoldingsCategories(@RequestParam UUID accountId) {
+        Map<String, Map<String, String>> holdings = categoriesService.fetchHoldingsCategories(accountId);
+        return ResponseEntity.ok(holdings);
+    }
 }
