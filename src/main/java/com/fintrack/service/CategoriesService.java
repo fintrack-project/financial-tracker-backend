@@ -15,9 +15,13 @@ import java.util.stream.Collectors;
 public class CategoriesService {
 
     private final CategoriesRepository categoriesRepository;
+    private final HoldingsCategoriesRepository holdingsCategoriesRepository;
 
-    public CategoriesService(CategoriesRepository categoriesRepository, HoldingsCategoriesRepository holdingsCategoriesRepository) {
+    public CategoriesService(
+        CategoriesRepository categoriesRepository, 
+        HoldingsCategoriesRepository holdingsCategoriesRepository) {
         this.categoriesRepository = categoriesRepository;
+        this.holdingsCategoriesRepository = holdingsCategoriesRepository;
     }
 
     @Transactional
@@ -72,7 +76,7 @@ public class CategoriesService {
         List<Category> categories = categoriesRepository.findCategoriesByAccountId(accountId);
     
         // Prepare the response
-        Map<String, List<String>> subcategoriesMap = new HashMap<>();
+        Map<String, List<String>> subcategoriesMap = new LinkedHashMap<>();
     
         for (Category category : categories) {
             // Fetch subcategories for each category
@@ -93,7 +97,7 @@ public class CategoriesService {
         .collect(Collectors.toList());
     
         // Return the response
-        Map<String, Object> response = new HashMap<>();
+        Map<String, Object> response = new LinkedHashMap<>();
         response.put("categories", categoryNames);
         response.put("subcategories", subcategoriesMap);
         return response;
@@ -106,11 +110,20 @@ public class CategoriesService {
         if (categoryId == null) {
             throw new IllegalArgumentException("Category with name '" + categoryName + "' does not exist.");
         }
-    
+        // Remove all related entries in the holdings_categories table
+        holdingsCategoriesRepository.deleteByAccountIdAndCategoryId(accountId, categoryId);
+
         // Delete all subcategories for the category
         categoriesRepository.deleteByParentId(accountId, categoryId);
     
         // Delete the category itself
         categoriesRepository.deleteByCategoryId(categoryId);
+
+        // Fetch remaining categories and reassign their priorities
+        List<Category> remainingCategories = categoriesRepository.findCategoriesByAccountIdOrderedByPriority(accountId);
+        for (int priority = 1; priority <= remainingCategories.size(); priority++) {
+            Category category = remainingCategories.get(priority - 1);
+            categoriesRepository.updateCategoryPriority(category.getCategoryId(), priority);
+        }
     }
 }

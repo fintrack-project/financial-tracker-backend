@@ -13,9 +13,13 @@ import java.util.*;
 public class SubcategoriesService {
 
     private final CategoriesRepository categoriesRepository;
+    private final HoldingsCategoriesRepository holdingsCategoriesRepository;
 
-    public SubcategoriesService(CategoriesRepository categoriesRepository, HoldingsCategoriesRepository holdingsCategoriesRepository) {
+    public SubcategoriesService(
+        CategoriesRepository categoriesRepository, 
+        HoldingsCategoriesRepository holdingsCategoriesRepository) {
         this.categoriesRepository = categoriesRepository;
+        this.holdingsCategoriesRepository = holdingsCategoriesRepository;
     }
 
     @Transactional
@@ -97,7 +101,10 @@ public class SubcategoriesService {
         if (subcategoryId == null) {
             throw new IllegalArgumentException("Subcategory with name '" + subcategoryName + "' does not exist.");
         }
-    
+
+        // Update the holdings_categories table to set subcategory to NULL and category_id to the parent category ID
+        holdingsCategoriesRepository.updateSubcategoryToNull(accountId, subcategoryName, categoryId);
+
         // Delete the subcategory
         categoriesRepository.deleteByCategoryId(subcategoryId);
     

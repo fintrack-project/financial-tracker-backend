@@ -2,6 +2,7 @@ package com.fintrack.service;
 
 import com.fintrack.repository.HoldingsCategoriesRepository;
 import com.fintrack.repository.CategoriesRepository;
+import com.fintrack.model.Category;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -132,21 +133,36 @@ public class HoldingsCategoriesService {
 
     @Transactional(readOnly = true)
     public Map<String, Map<String, String>> fetchHoldingsCategories(UUID accountId) {
-        // Fetch holdings categories from the repository
-        List<Map<String, Object>> holdings = holdingsCategoriesRepository.findHoldingsByAccountId(accountId);
-    
-        // Prepare the response map
-        Map<String, Map<String, String>> response = new LinkedHashMap<>();
-    
-        for (Map<String, Object> holding : holdings) {
-            String category = (String) holding.get("category");
-            String assetName = (String) holding.get("asset_name");
-            String subcategory = (String) holding.get("subcategory");
-    
-            // Group by category
-            response.computeIfAbsent(category, k -> new LinkedHashMap<>()).put(assetName, subcategory);
-        }
-    
-        return response;
+      // Fetch all top-level categories ordered by priority
+      List<Category> categories = categoriesRepository.findCategoriesByAccountIdOrderedByPriority(accountId);
+
+      // Prepare the response map using LinkedHashMap to preserve order
+      Map<String, Map<String, String>> response = new LinkedHashMap<>();
+
+      for (Category category : categories) {
+          // Fetch subcategories for each category ordered by priority
+          List<Category> subcategories = categoriesRepository.findSubcategoriesByParentId(accountId, category.getCategoryId());
+
+          // Prepare a LinkedHashMap for subcategories to preserve order
+          Map<String, String> subcategoryMap = new LinkedHashMap<>();
+
+          for (Category subcategory : subcategories) {
+              // Fetch holdings for each subcategory
+              List<Map<String, Object>> holdings = holdingsCategoriesRepository.findHoldingsByCategoryId(accountId, subcategory.getCategoryId());
+
+              for (Map<String, Object> holding : holdings) {
+                  String assetName = (String) holding.get("asset_name");
+                  String subcategoryName = (String) holding.get("subcategory");
+
+                  // Add asset and subcategory to the subcategory map
+                  subcategoryMap.put(assetName, subcategoryName);
+              }
+          }
+
+          // Add the category and its subcategories to the response map
+          response.put(category.getCategoryName(), subcategoryMap);
+      }
+
+      return response;
     } 
 }

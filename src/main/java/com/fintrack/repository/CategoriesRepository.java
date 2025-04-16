@@ -35,11 +35,22 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
         @Param("subcategoryName") String subcategoryName
     );
 
-    @Query(value = "SELECT * FROM categories WHERE account_id = :accountId AND parent_id IS NULL ORDER BY priority", nativeQuery = true)
+    @Query(value = "SELECT * FROM categories WHERE account_id = :accountId AND parent_id IS NULL ORDER BY priority ASC", nativeQuery = true)
     List<Category> findCategoriesByAccountId(@Param("accountId") UUID accountId);
 
-    @Query(value = "SELECT * FROM categories WHERE account_id = :accountId AND parent_id = :parentId ORDER BY priority", nativeQuery = true)
+    @Query(value = """
+        SELECT * FROM categories
+        WHERE account_id = :accountId AND parent_id = :parentId
+        ORDER BY priority ASC
+        """, nativeQuery = true)
     List<Category> findSubcategoriesByParentId(@Param("accountId") UUID accountId, @Param("parentId") Integer parentId);
+
+    @Query(value = """
+        SELECT * FROM categories
+        WHERE account_id = :accountId AND parent_id IS NULL
+        ORDER BY priority ASC
+        """, nativeQuery = true)
+    List<Category> findCategoriesByAccountIdOrderedByPriority(@Param("accountId") UUID accountId);
 
     @Query(value = "SELECT MAX(priority) FROM categories WHERE account_id = :accountId AND parent_id IS NULL", nativeQuery = true)
     Integer findMaxPriorityByAccountId(@Param("accountId") UUID accountId);
@@ -60,6 +71,14 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
         @Param("accountId") UUID accountId,
         @Param("categoryName") String categoryName
     );
+
+    @Modifying
+    @Query(value = """
+        UPDATE categories
+        SET priority = :priority
+        WHERE category_id = :categoryId
+        """, nativeQuery = true)
+    void updateCategoryPriority(@Param("categoryId") Integer categoryId, @Param("priority") Integer priority);
 
     @Modifying
     @Query(value = "UPDATE categories SET priority = :priority WHERE category_id = :categoryId", nativeQuery = true)
@@ -157,18 +176,5 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
     void deleteSubcategoriesByCategoryName(
         @Param("accountId") UUID accountId,
         @Param("categoryName") String categoryName
-    );
-
-    @Modifying
-    @Query(value = """
-        INSERT INTO holdings_categories (account_id, asset_name, category_id, updated_at)
-        VALUES (:accountId, :assetName, :categoryId, CURRENT_TIMESTAMP)
-        ON CONFLICT (account_id, asset_name)
-        DO UPDATE SET category_id = EXCLUDED.category_id, updated_at = CURRENT_TIMESTAMP
-        """, nativeQuery = true)
-    void upsertHoldingCategory(
-        @Param("accountId") UUID accountId,
-        @Param("assetName") String assetName,
-        @Param("categoryId") Integer categoryId
     );
 }

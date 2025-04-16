@@ -54,6 +54,28 @@ public interface HoldingsCategoriesRepository extends JpaRepository<HoldingsCate
         @Param("category") String category
     );
 
+    @Modifying
+    @Query(value = """
+        DELETE FROM holdings_categories
+        WHERE account_id = :accountId AND category_id = :categoryId
+        """, nativeQuery = true)
+    void deleteByAccountIdAndCategoryId(
+        @Param("accountId") UUID accountId,
+        @Param("categoryId") Integer categoryId
+    );
+
+    @Modifying
+    @Query(value = """
+        UPDATE holdings_categories
+        SET subcategory = NULL, category_id = :categoryId
+        WHERE account_id = :accountId AND subcategory = :subcategory
+        """, nativeQuery = true)
+    void updateSubcategoryToNull(
+        @Param("accountId") UUID accountId,
+        @Param("subcategory") String subcategory,
+        @Param("categoryId") Integer categoryId
+    );
+
     @Query(value = """
         SELECT h.asset_name, h.category AS category, h.subcategory AS subcategory, c.priority AS priority
         FROM holdings_categories h
@@ -62,4 +84,11 @@ public interface HoldingsCategoriesRepository extends JpaRepository<HoldingsCate
         ORDER BY c.priority ASC
         """, nativeQuery = true)
     List<Map<String, Object>> findHoldingsByAccountId(@Param("accountId") UUID accountId);
+
+    @Query(value = """
+        SELECT h.asset_name, h.subcategory
+        FROM holdings_categories h
+        WHERE h.account_id = :accountId AND h.category_id = :categoryId
+        """, nativeQuery = true)
+    List<Map<String, Object>> findHoldingsByCategoryId(@Param("accountId") UUID accountId, @Param("categoryId") Integer categoryId);
 }
