@@ -12,7 +12,9 @@ import java.util.*;
 @Repository
 public interface CategoriesRepository extends JpaRepository<Category, Integer> {
     @Query(value = "SELECT category_id FROM categories WHERE account_id = :accountId AND category_name = :categoryName", nativeQuery = true)
-    Integer findCategoryIdByAccountIdAndCategoryName(@Param("accountId") UUID accountId, @Param("categoryName") String categoryName);
+    Integer findCategoryIdByAccountIdAndCategoryName(
+        @Param("accountId") UUID accountId, 
+        @Param("categoryName") String categoryName);
 
     @Query(value = """
         SELECT category_id 
@@ -66,9 +68,9 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
     @Modifying
     @Query(value = "UPDATE categories SET category_name = :newCategoryName WHERE account_id = :accountId AND category_id = :categoryId", nativeQuery = true)
     void updateCategoryName(
-            @Param("accountId") UUID accountId,
-            @Param("categoryId") Integer categoryId,
-            @Param("newCategoryName") String newCategoryName);
+        @Param("accountId") UUID accountId,
+        @Param("categoryId") Integer categoryId,
+        @Param("newCategoryName") String newCategoryName);
 
     @Modifying
     @Query(value = """
@@ -97,11 +99,11 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
         RETURNING category_id
         """, nativeQuery = true)
     Integer insertCategory(
-    @Param("accountId") UUID accountId, 
-    @Param("categoryName") String categoryName, 
-    @Param("parentId") Integer parentId, 
-    @Param("level") int level, 
-    @Param("priority") int priority);
+        @Param("accountId") UUID accountId, 
+        @Param("categoryName") String categoryName, 
+        @Param("parentId") Integer parentId, 
+        @Param("level") int level, 
+        @Param("priority") int priority);
 
     @Modifying
     @Query(value = """

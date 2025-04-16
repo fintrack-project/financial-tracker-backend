@@ -55,9 +55,9 @@ public class CategoriesController {
     @PostMapping("/holdings/update")
     public ResponseEntity<String> updateHoldingsCategories(
         @RequestParam UUID accountId,
-        @RequestBody List<Map<String, Object>> holdingsData
+        @RequestBody List<Map<String, Object>> holdingsCategories
     ) {
-        categoriesService.updateHoldingsCategories(accountId, holdingsData);
+        categoriesService.updateHoldingsCategories(accountId, holdingsCategories);
         return ResponseEntity.ok("Holdings categories updated successfully.");
     }
 
