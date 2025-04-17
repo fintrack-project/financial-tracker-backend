@@ -79,11 +79,11 @@ public class MarketAverageDataService {
         return result;
     }
 
-    public void sendMarketAverageDataUpdateRequest(List<String> indexNames) {
+    public void sendMarketAverageDataUpdateRequest(List<String> symbols) {
         try {
             // Create the payload as a Map
             Map<String, Object> payload = new HashMap<>();
-            payload.put("index_names", indexNames);
+            payload.put("symbols", symbols);
 
             // Convert the payload to a JSON string
             ObjectMapper objectMapper = new ObjectMapper();

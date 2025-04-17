@@ -30,7 +30,7 @@ public class MarketDataService {
         try {
             // Create the payload as a Map
             Map<String, Object> payload = new HashMap<>();
-            payload.put("asset_names", symbols);
+            payload.put("symbols", symbols);
 
             // Convert the payload to a JSON string
             ObjectMapper objectMapper = new ObjectMapper();
