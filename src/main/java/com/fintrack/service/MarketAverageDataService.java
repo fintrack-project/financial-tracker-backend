@@ -24,8 +24,14 @@ public class MarketAverageDataService {
     }
 
     public Map<String, Object> getMostRecentMarketData(List<String> symbols) {
+        // Decode all symbols first
+        List<String> decodedSymbols = new ArrayList<>();
+        for (String encodedSymbol : symbols) {
+            decodedSymbols.add(URLDecoder.decode(encodedSymbol, StandardCharsets.UTF_8));
+        }
+
         // Send a Kafka message to request an update
-        sendMarketAverageDataUpdateRequest(symbols);
+        sendMarketAverageDataUpdateRequest(decodedSymbols);
 
         // Retry mechanism to fetch data until all symbols are available
         Map<String, Object> result = new HashMap<>();
@@ -33,8 +39,7 @@ public class MarketAverageDataService {
         int retryCount = 0;
         while (retryCount < maxRetries) {
             result.clear();
-            for (String encodedSymbol : symbols) {
-                String symbol = URLDecoder.decode(encodedSymbol, StandardCharsets.UTF_8);
+            for (String symbol : decodedSymbols) {
                 MarketAverageData mostRecentData = marketAverageDataRepository.findTopBySymbolOrderByTimeDesc(symbol);
                 if (mostRecentData != null) {
                     result.put(symbol, Map.of(
@@ -48,7 +53,7 @@ public class MarketAverageDataService {
             }
 
             // Check if all symbols have data
-            if (result.size() == symbols.size()) {
+            if (result.size() == decodedSymbols.size()) {
                 break;
             }
 
@@ -64,7 +69,7 @@ public class MarketAverageDataService {
             retryCount++;
         }
 
-        if (result.size() < symbols.size()) {
+        if (result.size() < decodedSymbols.size()) {
             System.err.println("Failed to fetch data for all symbols after " + maxRetries + " retries.");
         }
 
@@ -93,28 +98,12 @@ public class MarketAverageDataService {
     public void onMarketAverageDataUpdateComplete(String message) {
         System.out.println("Received market average data update complete message: " + message);
 
-        if (message == null || message.trim().isEmpty() || message.equals("{}")) {
-            System.err.println("Received an empty or invalid message. Skipping processing.");
-            return;
-        }
-
+        // No need to save the data; just log the message
         try {
-            // Parse the JSON message
             ObjectMapper objectMapper = new ObjectMapper();
             List<Map<String, Object>> indexDataList = objectMapper.readValue(message, List.class);
-
-            // Save the updated data to the database
             for (Map<String, Object> indexData : indexDataList) {
-                MarketAverageData marketAverageData = new MarketAverageData();
-                marketAverageData.setSymbol((String) indexData.get("symbol"));
-                marketAverageData.setPrice(indexData.get("price").toString());
-                marketAverageData.setPriceChange((Double) indexData.get("price_change"));
-                marketAverageData.setPercentChange(indexData.get("percent_change").toString());
-                marketAverageData.setPriceHigh((Double) indexData.get("price_high"));
-                marketAverageData.setPriceLow((Double) indexData.get("price_low"));
-                marketAverageData.setTime(LocalDateTime.now()); // Set the current timestamp
-
-                System.out.println("MarketAverageData: " + marketAverageData);
+                System.out.println("MarketAverageData: " + indexData);
             }
         } catch (Exception e) {
             System.err.println("Failed to process market average data update complete message: " + e.getMessage());
