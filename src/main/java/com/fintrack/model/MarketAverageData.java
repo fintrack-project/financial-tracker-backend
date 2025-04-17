@@ -4,18 +4,23 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "market_average_data", uniqueConstraints = @UniqueConstraint(columnNames = "symbol"))
 public class MarketAverageData {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "symbol", nullable = false, length = 255, unique = true)
     private String symbol;
+
+    @Column(name = "price", nullable = false, length = 255)
     private String price;
 
     @Column(name = "price_change")
     private Double priceChange;
 
-    @Column(name = "percent_change")
+    @Column(name = "percent_change", length = 255)
     private String percentChange;
 
     @Column(name = "price_high")
@@ -24,10 +29,10 @@ public class MarketAverageData {
     @Column(name = "price_low")
     private Double priceLow;
 
-    @Column(name = "timestamp")
-    private LocalDateTime time;
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
-    // Getters and setters
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -84,11 +89,11 @@ public class MarketAverageData {
         this.priceLow = priceLow;
     }
 
-    public LocalDateTime getTime() {
-        return time;
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 
-    public void setTime(LocalDateTime time) {
-        this.time = time;
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

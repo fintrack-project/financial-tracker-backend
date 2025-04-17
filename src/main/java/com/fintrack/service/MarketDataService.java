@@ -21,21 +21,19 @@ public class MarketDataService {
         this.kafkaProducerService = kafkaProducerService;
     }
 
-    public List<MarketData> fetchMarketDataByAssetNames(List<String> assetNames) {
-        // Fetch market data for the specified asset names
-        return marketDataRepository.findMarketDataByAssetNames(assetNames);
+    public List<MarketData> getMostRecentMarketData(List<String> symbols) {
+        // Fetch the most recent market data for the given asset names
+        return marketDataRepository.findMarketDataBySymbols(symbols);
     }
 
-    public void sendMarketDataUpdateRequest(List<String> assetNames) {
+    public void sendMarketDataUpdateRequest(List<String> symbols) {
         try {
             // Create the payload as a Map
             Map<String, Object> payload = new HashMap<>();
-            payload.put("asset_names", assetNames);
-
-            // Create an ObjectMapper instance
-            ObjectMapper objectMapper = new ObjectMapper();
+            payload.put("asset_names", symbols);
 
             // Convert the payload to a JSON string
+            ObjectMapper objectMapper = new ObjectMapper();
             String jsonPayload = objectMapper.writeValueAsString(payload);
 
             // Publish the JSON payload to the Kafka topic
@@ -50,22 +48,11 @@ public class MarketDataService {
     public void onMarketDataUpdateComplete(String message) {
         System.out.println("Received market data update complete message: " + message);
 
-        // Create an ObjectMapper instance
-        ObjectMapper objectMapper = new ObjectMapper();
+        // No need to save the data; just log the message
         try {
-            // Parse the JSON message
+            ObjectMapper objectMapper = new ObjectMapper();
             Map<String, Object> payload = objectMapper.readValue(message, Map.class);
-
-            // Extract the assets and status
-            List<String> assets = (List<String>) payload.get("assets");
-            String status = (String) payload.get("status");
-
-            if ("complete".equalsIgnoreCase(status) && assets != null && !assets.isEmpty()) {
-                // Send the updated market data to the WebSocket topic
-                marketDataRepository.findMarketDataByAssetNames(assets);
-            } else {
-                System.err.println("Invalid or incomplete message: " + message);
-            }
+            System.out.println("MarketDataUpdate: " + payload);
         } catch (Exception e) {
             System.err.println("Failed to process market data update complete message: " + e.getMessage());
         }

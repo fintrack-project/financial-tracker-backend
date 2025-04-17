@@ -9,16 +9,17 @@ import org.springframework.data.repository.query.Param;
 import java.util.*;
 
 @Repository
-public interface MarketDataRepository extends JpaRepository<MarketData, UUID> {
-    @Query(value=
-      "SELECT id, symbol, price, percent_change, timestamp, asset_name, price_unit\n" + //
-      "FROM (\n" + //
-      "    SELECT m.id, m.symbol, m.price, m.percent_change, m.timestamp, m.asset_name, m.price_unit,\n" + //
-      "      ROW_NUMBER() OVER (PARTITION BY m.asset_name ORDER BY m.timestamp DESC) AS row_num\n" + //
-      "    FROM market_data m\n" + //
-      "    WHERE m.asset_name IN (:assetNames)\n" + //
-      ") ranked\n" + //
-      "WHERE row_num = 1;", 
-    nativeQuery = true)
-    List<MarketData> findMarketDataByAssetNames(@Param("assetNames") List<String> assetNames);
+public interface MarketDataRepository extends JpaRepository<MarketData, Long> {
+
+    @Query(value = """
+        SELECT id, symbol, price, percent_change, updated_at
+        FROM (
+            SELECT m.id, m.symbol, m.price, m.percent_change, m.updated_at,
+                ROW_NUMBER() OVER (PARTITION BY m.symbol ORDER BY m.updated_at DESC) AS row_num
+            FROM market_data m
+            WHERE m.symbol IN (:symbols)
+        ) ranked
+        WHERE row_num = 1;
+        """, nativeQuery = true)
+    List<MarketData> findMarketDataBySymbols(@Param("symbols") List<String> symbols);
 }

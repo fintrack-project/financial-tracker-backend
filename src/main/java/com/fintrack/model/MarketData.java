@@ -5,30 +5,24 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "market_data")
+@Table(name = "market_data", uniqueConstraints = @UniqueConstraint(columnNames = "symbol"))
 public class MarketData {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(length = 10, nullable = false)
+    @Column(name = "symbol", nullable = false, length = 10, unique = true)
     private String symbol;
 
-    @Column(nullable = false)
+    @Column(name = "price", precision = 19, scale = 4)
     private BigDecimal price;
 
-    @Column(name = "percent_change", nullable = false)
+    @Column(name = "percent_change", precision = 19, scale = 4)
     private BigDecimal percentChange;
 
-    @Column(nullable = false)
-    private LocalDateTime timestamp;
-
-    @Column(name = "asset_name", length = 255, nullable = false)
-    private String assetName;
-
-    @Column(name = "price_unit", length = 50, nullable = false)
-    private String priceUnit;
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
     // Getters and Setters
     public Long getId() {
@@ -63,27 +57,11 @@ public class MarketData {
         this.percentChange = percentChange;
     }
 
-    public LocalDateTime getTimestamp() {
-        return timestamp;
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public String getAssetName() {
-        return assetName;
-    }
-
-    public void setAssetName(String assetName) {
-        this.assetName = assetName;
-    }
-
-    public String getPriceUnit() {
-        return priceUnit;
-    }
-
-    public void setPriceUnit(String priceUnit) {
-        this.priceUnit = priceUnit;
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

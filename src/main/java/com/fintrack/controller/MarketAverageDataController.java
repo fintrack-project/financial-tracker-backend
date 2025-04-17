@@ -18,16 +18,10 @@ public class MarketAverageDataController {
         this.marketAverageDataService = marketAverageDataService;
     }
 
-    @PostMapping("/update")
-    public ResponseEntity<Map<String, String>> updateMarketAverageData(@RequestBody List<String> indexNames) {
-        marketAverageDataService.sendMarketAverageDataUpdateRequest(indexNames);
-        return ResponseEntity.ok(Map.of("message", "Market average data update request sent."));
-    }
-
     @GetMapping("/fetch")
     public ResponseEntity<Map<String, Object>> fetchMarketData(@RequestParam List<String> indexNames) {
         try {
-            Map<String, Object> marketData = marketAverageDataService.getMostRecentMarketData(indexNames);
+            Map<String, Object> marketData = marketAverageDataService.getMostRecentMarketAverageData(indexNames);
             return ResponseEntity.ok(marketData);
         } catch (Exception e) {
             e.printStackTrace(); // Log the error for debugging

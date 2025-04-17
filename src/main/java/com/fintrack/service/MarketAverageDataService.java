@@ -23,6 +23,62 @@ public class MarketAverageDataService {
         this.marketAverageDataRepository = marketAverageDataRepository;
     }
 
+    public Map<String, Object> getMostRecentMarketAverageData(List<String> symbols) {
+        // Decode all symbols first
+        List<String> decodedSymbols = new ArrayList<>();
+        for (String encodedSymbol : symbols) {
+            decodedSymbols.add(URLDecoder.decode(encodedSymbol, StandardCharsets.UTF_8));
+        }
+
+        // Send a Kafka message to request an update
+        sendMarketAverageDataUpdateRequest(decodedSymbols);
+
+        // Retry mechanism to fetch data until all symbols are available
+        Map<String, Object> result = new HashMap<>();
+        int maxRetries = 5;
+        int retryCount = 0;
+        while (retryCount < maxRetries) {
+            result.clear();
+            List<MarketAverageData> recentMarketAverageData = marketAverageDataRepository.findMarketAverageDataBySymbols(decodedSymbols);
+            if(recentMarketAverageData.isEmpty()) {
+                System.out.println("No data found for symbols: " + decodedSymbols);
+                break; // Exit if no data is found
+            }
+
+            for (MarketAverageData data : recentMarketAverageData) {
+                result.put(data.getSymbol(), Map.of(
+                    "price", data.getPrice(),
+                    "price_change", data.getPriceChange(),
+                    "percent_change", data.getPercentChange(),
+                    "price_low", data.getPriceLow(),
+                    "price_high", data.getPriceHigh()
+                ));
+            }
+
+            // Check if all symbols have data
+            if (result.size() == decodedSymbols.size()) {
+                break;
+            }
+
+            // Wait before retrying
+            try {
+                Thread.sleep(2000); // Wait for 2 seconds before retrying
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.err.println("Retry interrupted: " + e.getMessage());
+                break;
+            }
+
+            retryCount++;
+        }
+
+        if (result.size() < decodedSymbols.size()) {
+            System.err.println("Failed to fetch data for all symbols after " + maxRetries + " retries.");
+        }
+
+        return result;
+    }
+
     public void sendMarketAverageDataUpdateRequest(List<String> indexNames) {
         try {
             // Create the payload as a Map
@@ -45,45 +101,15 @@ public class MarketAverageDataService {
     public void onMarketAverageDataUpdateComplete(String message) {
         System.out.println("Received market average data update complete message: " + message);
 
+        // No need to save the data; just log the message
         try {
-            // Parse the JSON message
             ObjectMapper objectMapper = new ObjectMapper();
             List<Map<String, Object>> indexDataList = objectMapper.readValue(message, List.class);
-
-            // Save the updated data to the database
             for (Map<String, Object> indexData : indexDataList) {
-                MarketAverageData marketAverageData = new MarketAverageData();
-                marketAverageData.setSymbol((String) indexData.get("symbol"));
-                marketAverageData.setPrice(indexData.get("price").toString());
-                marketAverageData.setPriceChange((Double) indexData.get("price_change"));
-                marketAverageData.setPercentChange(indexData.get("percent_change").toString());
-                marketAverageData.setPriceHigh((Double) indexData.get("price_high"));
-                marketAverageData.setPriceLow((Double) indexData.get("price_low"));
-                marketAverageData.setTime(LocalDateTime.now()); // Set the current timestamp
-                marketAverageDataRepository.save(marketAverageData);
+                System.out.println("MarketAverageData: " + indexData);
             }
-
-            System.out.println("Updated market average data in the database.");
         } catch (Exception e) {
             System.err.println("Failed to process market average data update complete message: " + e.getMessage());
         }
-    }
-
-    public Map<String, Object> getMostRecentMarketData(List<String> symbols) {
-        Map<String, Object> result = new HashMap<>();
-        for (String encodedSymbol : symbols) {
-            String symbol = URLDecoder.decode(encodedSymbol, StandardCharsets.UTF_8);
-            MarketAverageData mostRecentData = marketAverageDataRepository.findTopBySymbolOrderByTimeDesc(symbol);
-            if (mostRecentData != null) {
-                result.put(symbol, Map.of(
-                    "price", mostRecentData.getPrice(),
-                    "price_change", mostRecentData.getPriceChange(),
-                    "percent_change", mostRecentData.getPercentChange(),
-                    "price_low", mostRecentData.getPriceLow(),
-                    "price_high", mostRecentData.getPriceHigh()
-                ));
-            }
-        }
-        return result;
     }
 }
