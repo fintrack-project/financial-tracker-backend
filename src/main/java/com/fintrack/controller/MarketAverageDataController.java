@@ -21,7 +21,7 @@ public class MarketAverageDataController {
     @GetMapping("/fetch")
     public ResponseEntity<Map<String, Object>> fetchMarketData(@RequestParam List<String> indexNames) {
         try {
-            Map<String, Object> marketData = marketAverageDataService.getMostRecentMarketData(indexNames);
+            Map<String, Object> marketData = marketAverageDataService.getMostRecentMarketAverageData(indexNames);
             return ResponseEntity.ok(marketData);
         } catch (Exception e) {
             e.printStackTrace(); // Log the error for debugging

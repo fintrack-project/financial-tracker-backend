@@ -25,7 +25,7 @@ public class MarketDataController {
 
     @GetMapping("/fetch")
     public ResponseEntity<List<MarketData>> fetchMarketData(@RequestParam List<String> assetNames) {
-        List<MarketData> marketData = marketDataService.fetchMarketDataByAssetNames(assetNames);
+        List<MarketData> marketData = marketDataService.getMostRecentMarketData(assetNames);
         return ResponseEntity.ok(marketData);
     }
 }

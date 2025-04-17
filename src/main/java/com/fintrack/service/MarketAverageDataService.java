@@ -23,7 +23,7 @@ public class MarketAverageDataService {
         this.marketAverageDataRepository = marketAverageDataRepository;
     }
 
-    public Map<String, Object> getMostRecentMarketData(List<String> symbols) {
+    public Map<String, Object> getMostRecentMarketAverageData(List<String> symbols) {
         // Decode all symbols first
         List<String> decodedSymbols = new ArrayList<>();
         for (String encodedSymbol : symbols) {
@@ -39,17 +39,20 @@ public class MarketAverageDataService {
         int retryCount = 0;
         while (retryCount < maxRetries) {
             result.clear();
-            for (String symbol : decodedSymbols) {
-                MarketAverageData mostRecentData = marketAverageDataRepository.findTopBySymbolOrderByTimeDesc(symbol);
-                if (mostRecentData != null) {
-                    result.put(symbol, Map.of(
-                        "price", mostRecentData.getPrice(),
-                        "price_change", mostRecentData.getPriceChange(),
-                        "percent_change", mostRecentData.getPercentChange(),
-                        "price_low", mostRecentData.getPriceLow(),
-                        "price_high", mostRecentData.getPriceHigh()
-                    ));
-                }
+            List<MarketAverageData> recentMarketAverageData = marketAverageDataRepository.findMarketAverageDataBySymbols(decodedSymbols);
+            if(recentMarketAverageData.isEmpty()) {
+                System.out.println("No data found for symbols: " + decodedSymbols);
+                break; // Exit if no data is found
+            }
+
+            for (MarketAverageData data : recentMarketAverageData) {
+                result.put(data.getSymbol(), Map.of(
+                    "price", data.getPrice(),
+                    "price_change", data.getPriceChange(),
+                    "percent_change", data.getPercentChange(),
+                    "price_low", data.getPriceLow(),
+                    "price_high", data.getPriceHigh()
+                ));
             }
 
             // Check if all symbols have data

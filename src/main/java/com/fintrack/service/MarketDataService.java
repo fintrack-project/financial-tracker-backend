@@ -21,16 +21,16 @@ public class MarketDataService {
         this.kafkaProducerService = kafkaProducerService;
     }
 
-    public List<MarketData> fetchMarketDataByAssetNames(List<String> assetNames) {
-        // Fetch market data for the specified asset names
-        return marketDataRepository.findMarketDataByAssetNames(assetNames);
+    public List<MarketData> getMostRecentMarketData(List<String> symbols) {
+        // Fetch the most recent market data for the given asset names
+        return marketDataRepository.findMarketDataBySymbols(symbols);
     }
 
-    public void sendMarketDataUpdateRequest(List<String> assetNames) {
+    public void sendMarketDataUpdateRequest(List<String> symbols) {
         try {
             // Create the payload as a Map
             Map<String, Object> payload = new HashMap<>();
-            payload.put("asset_names", assetNames);
+            payload.put("asset_names", symbols);
 
             // Convert the payload to a JSON string
             ObjectMapper objectMapper = new ObjectMapper();
