@@ -12,7 +12,7 @@ import java.util.List;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
-    @Query(value = "SELECT transaction_id, account_id, date, asset_name, credit, debit, total_balance_before, total_balance_after, unit FROM transactions WHERE account_id = :accountId ORDER BY date DESC", nativeQuery = true)
+    @Query(value = "SELECT transaction_id, account_id, date, asset_name, symbol, credit, debit, unit FROM transactions WHERE account_id = :accountId ORDER BY date DESC", nativeQuery = true)
     List<Transaction> findByAccountIdOrderByDateDesc(@Param("accountId") UUID accountId);
 
     @Modifying

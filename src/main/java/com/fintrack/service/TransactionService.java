@@ -46,7 +46,7 @@ public class TransactionService {
         // Separate transactions to save and delete
         List<Transaction> transactionsToSave = previewTransactions.stream()
                 .filter(transaction -> !transaction.isMarkDelete())
-                .map(this::convertToTransaction)
+                .map(transaction -> transaction.convertToTransaction())
                 .toList();
 
         List<Long> transactionIdsToDelete = previewTransactions.stream()
@@ -69,20 +69,5 @@ public class TransactionService {
             Instant.now().toString()
         );
         kafkaProducerService.publishEvent(KafkaTopics.TRANSACTIONS_CONFIRMED.getTopicName(), transactionsConfirmedPayload);
-    }
-
-    // Helper method to convert PreviewTransaction to Transaction
-    private Transaction convertToTransaction(PreviewTransaction previewTransaction) {
-        Transaction transaction = new Transaction();
-        transaction.setTransactionId(previewTransaction.getTransactionId());
-        transaction.setAccountId(previewTransaction.getAccountId());
-        transaction.setDate(previewTransaction.getDate());
-        transaction.setAssetName(previewTransaction.getAssetName());
-        transaction.setCredit(previewTransaction.getCredit());
-        transaction.setDebit(previewTransaction.getDebit());
-        transaction.setTotalBalanceBefore(previewTransaction.getTotalBalanceBefore());
-        transaction.setTotalBalanceAfter(previewTransaction.getTotalBalanceAfter());
-        transaction.setUnit(previewTransaction.getUnit());
-        return transaction;
     }
 }
