@@ -22,7 +22,7 @@ public class HoldingsController {
 
     @GetMapping("/{accountId}/holdings")
     public ResponseEntity<List<HoldingDto>> getHoldings(@PathVariable UUID accountId) {
-        List<HoldingDto> holdings = holdingsService.getLatestHoldingsByAccount(accountId);
+        List<HoldingDto> holdings = holdingsService.getHoldingsByAccount(accountId);
         return ResponseEntity.ok(holdings);
     }
 }

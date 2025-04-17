@@ -3,7 +3,6 @@ package com.fintrack.model;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-
 import java.util.UUID;
 
 @Entity
@@ -23,20 +22,17 @@ public class Transaction {
     @Column(nullable = false)
     private String assetName;
 
-    @Column(nullable = false)
-    private BigDecimal credit;
+    @Column(nullable = false, precision = 38, scale = 2, columnDefinition = "numeric(38,2) default 0")
+    private BigDecimal credit = BigDecimal.ZERO;
 
-    @Column(nullable = false)
-    private BigDecimal debit;
-
-    @Column(nullable = false)
-    private BigDecimal totalBalanceBefore;
-
-    @Column(nullable = false)
-    private BigDecimal totalBalanceAfter;
+    @Column(nullable = false, precision = 38, scale = 2, columnDefinition = "numeric(38,2) default 0")
+    private BigDecimal debit = BigDecimal.ZERO;
 
     @Column(nullable = false)
     private String unit;
+
+    @Column
+    private String symbol;
 
     // Getters and Setters
     public Long getTransactionId() {
@@ -87,27 +83,19 @@ public class Transaction {
         this.debit = debit;
     }
 
-    public BigDecimal getTotalBalanceBefore() {
-        return totalBalanceBefore;
-    }
-
-    public void setTotalBalanceBefore(BigDecimal totalBalanceBefore) {
-        this.totalBalanceBefore = totalBalanceBefore;
-    }
-
-    public BigDecimal getTotalBalanceAfter() {
-        return totalBalanceAfter;
-    }
-
-    public void setTotalBalanceAfter(BigDecimal totalBalanceAfter) {
-        this.totalBalanceAfter = totalBalanceAfter;
-    }
-
     public String getUnit() {
         return unit;
     }
 
     public void setUnit(String unit) {
         this.unit = unit;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
     }
 }

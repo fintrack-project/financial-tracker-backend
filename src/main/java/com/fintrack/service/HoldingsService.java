@@ -18,8 +18,8 @@ public class HoldingsService {
         this.holdingsRepository = holdingsRepository;
     }
 
-    public List<HoldingDto> getLatestHoldingsByAccount(UUID accountId) {
-        return holdingsRepository.findLatestHoldingsByAccount(accountId);
+    public List<HoldingDto> getHoldingsByAccount(UUID accountId) {
+        return holdingsRepository.findHoldingsByAccount(accountId);
     }
 
     @KafkaListener(topics = "#{T(com.fintrack.constants.KafkaTopics).PROCESS_TRANSACTIONS_TO_HOLDINGS.getTopicName()}", groupId = "holdings-group")
@@ -32,7 +32,7 @@ public class HoldingsService {
             System.out.println("Received " + KafkaTopics.PROCESS_TRANSACTIONS_TO_HOLDINGS.getTopicName() + " for account: " + accountId);
 
             // Fetch the latest holdings
-            List<HoldingDto> holdings = getLatestHoldingsByAccount(accountId);
+            List<HoldingDto> holdings = getHoldingsByAccount(accountId);
             System.out.println("Latest holdings: " + holdings);
         } catch (Exception e) {
             System.err.println("Failed to process message: " + e.getMessage());
