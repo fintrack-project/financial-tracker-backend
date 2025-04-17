@@ -23,6 +23,54 @@ public class MarketAverageDataService {
         this.marketAverageDataRepository = marketAverageDataRepository;
     }
 
+    public Map<String, Object> getMostRecentMarketData(List<String> symbols) {
+        // Send a Kafka message to request an update
+        sendMarketAverageDataUpdateRequest(symbols);
+
+        // Retry mechanism to fetch data until all symbols are available
+        Map<String, Object> result = new HashMap<>();
+        int maxRetries = 5;
+        int retryCount = 0;
+        while (retryCount < maxRetries) {
+            result.clear();
+            for (String encodedSymbol : symbols) {
+                String symbol = URLDecoder.decode(encodedSymbol, StandardCharsets.UTF_8);
+                MarketAverageData mostRecentData = marketAverageDataRepository.findTopBySymbolOrderByTimeDesc(symbol);
+                if (mostRecentData != null) {
+                    result.put(symbol, Map.of(
+                        "price", mostRecentData.getPrice(),
+                        "price_change", mostRecentData.getPriceChange(),
+                        "percent_change", mostRecentData.getPercentChange(),
+                        "price_low", mostRecentData.getPriceLow(),
+                        "price_high", mostRecentData.getPriceHigh()
+                    ));
+                }
+            }
+
+            // Check if all symbols have data
+            if (result.size() == symbols.size()) {
+                break;
+            }
+
+            // Wait before retrying
+            try {
+                Thread.sleep(2000); // Wait for 2 seconds before retrying
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.err.println("Retry interrupted: " + e.getMessage());
+                break;
+            }
+
+            retryCount++;
+        }
+
+        if (result.size() < symbols.size()) {
+            System.err.println("Failed to fetch data for all symbols after " + maxRetries + " retries.");
+        }
+
+        return result;
+    }
+
     public void sendMarketAverageDataUpdateRequest(List<String> indexNames) {
         try {
             // Create the payload as a Map
@@ -45,6 +93,11 @@ public class MarketAverageDataService {
     public void onMarketAverageDataUpdateComplete(String message) {
         System.out.println("Received market average data update complete message: " + message);
 
+        if (message == null || message.trim().isEmpty() || message.equals("{}")) {
+            System.err.println("Received an empty or invalid message. Skipping processing.");
+            return;
+        }
+
         try {
             // Parse the JSON message
             ObjectMapper objectMapper = new ObjectMapper();
@@ -60,30 +113,11 @@ public class MarketAverageDataService {
                 marketAverageData.setPriceHigh((Double) indexData.get("price_high"));
                 marketAverageData.setPriceLow((Double) indexData.get("price_low"));
                 marketAverageData.setTime(LocalDateTime.now()); // Set the current timestamp
-                marketAverageDataRepository.save(marketAverageData);
-            }
 
-            System.out.println("Updated market average data in the database.");
+                System.out.println("MarketAverageData: " + marketAverageData);
+            }
         } catch (Exception e) {
             System.err.println("Failed to process market average data update complete message: " + e.getMessage());
         }
-    }
-
-    public Map<String, Object> getMostRecentMarketData(List<String> symbols) {
-        Map<String, Object> result = new HashMap<>();
-        for (String encodedSymbol : symbols) {
-            String symbol = URLDecoder.decode(encodedSymbol, StandardCharsets.UTF_8);
-            MarketAverageData mostRecentData = marketAverageDataRepository.findTopBySymbolOrderByTimeDesc(symbol);
-            if (mostRecentData != null) {
-                result.put(symbol, Map.of(
-                    "price", mostRecentData.getPrice(),
-                    "price_change", mostRecentData.getPriceChange(),
-                    "percent_change", mostRecentData.getPercentChange(),
-                    "price_low", mostRecentData.getPriceLow(),
-                    "price_high", mostRecentData.getPriceHigh()
-                ));
-            }
-        }
-        return result;
     }
 }
