@@ -9,6 +9,8 @@ public class HoldingDto {
     @GeneratedValue
     @Column(name = "asset_name", nullable = false, unique = true, updatable = false)
     private String assetName;
+    @Column(name = "symbol")
+    private String symbol;
     @Column(name = "total_balance", nullable = false)
     private double totalBalance;
     @Column(name = "unit", nullable = false)
@@ -21,6 +23,14 @@ public class HoldingDto {
 
     public void setAssetName(String assetName) {
         this.assetName = assetName;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
     }
 
     public double getTotalBalance() {

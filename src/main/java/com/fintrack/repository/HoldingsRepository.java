@@ -12,7 +12,7 @@ import java.util.*;
 public interface HoldingsRepository extends JpaRepository<HoldingDto, Long> {
 
     @Query(value = """
-        SELECT h.asset_name, h.total_balance, h.unit
+        SELECT h.asset_name, h.symbol, h.total_balance, h.unit
         FROM holdings h
         WHERE h.account_id = :accountId
         AND h.date = (
