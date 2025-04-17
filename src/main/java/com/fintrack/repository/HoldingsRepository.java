@@ -15,12 +15,7 @@ public interface HoldingsRepository extends JpaRepository<HoldingDto, Long> {
         SELECT h.asset_name, h.symbol, h.total_balance, h.unit
         FROM holdings h
         WHERE h.account_id = :accountId
-        AND h.date = (
-            SELECT MAX(h2.date)
-            FROM holdings h2
-            WHERE h2.account_id = :accountId AND h2.asset_name = h.asset_name
-        )
         AND h.total_balance > 0
         """, nativeQuery = true)
-    List<HoldingDto> findLatestHoldingsByAccount(@Param("accountId") UUID accountId);
+    List<HoldingDto> findHoldingsByAccount(@Param("accountId") UUID accountId);
 }
