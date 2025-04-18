@@ -72,13 +72,15 @@ public class TransactionService {
     public void confirmTransactions(UUID accountId, List<PreviewTransaction> previewTransactions) {
         // Separate transactions to save and delete
         List<Transaction> transactionsToSave = previewTransactions.stream()
-                .filter(transaction -> !transaction.isMarkDelete())
-                .map(transaction -> transaction.convertToTransaction())
-                .toList();
+            .filter(transaction -> !transaction.isMarkDelete()) // Exclude transactions marked for deletion
+            .map(PreviewTransaction::convertToTransaction)
+            .filter(newTransaction -> newTransaction.getTransactionId() == null && newTransaction.getAccountId() == null) // Only save new transactions
+            .toList();
 
         List<Long> transactionIdsToDelete = previewTransactions.stream()
                 .filter(transaction -> transaction.isMarkDelete())
                 .map(PreviewTransaction::getTransactionId)
+                .filter(Objects::nonNull) // Exclude unsaved transactions (those without a transactionId)
                 .toList();
 
         // Save new transactions
