@@ -108,7 +108,7 @@ public class TransactionService {
                 Instant.now().toString()
         );
         kafkaProducerService.publishEventWithRetry(
-            transactionsConfirmedPayload, 
+            KafkaTopics.TRANSACTIONS_CONFIRMED.getTopicName(), 
             transactionsConfirmedPayload, 
             3, 
             2000);
