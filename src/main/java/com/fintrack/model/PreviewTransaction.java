@@ -8,11 +8,9 @@ public class PreviewTransaction extends Transaction {
         transaction.setTransactionId(getTransactionId());
         transaction.setAccountId(getAccountId());
         transaction.setDate(getDate());
-        transaction.setAssetName(getAssetName());
+        transaction.setAsset(getAsset());
         transaction.setCredit(getCredit());
         transaction.setDebit(getDebit());
-        transaction.setUnit(getUnit());
-        transaction.setSymbol(getSymbol());
         transaction.setDeletedAt(getDeletedAt());
         return transaction;
     }

@@ -1,8 +1,10 @@
 package com.fintrack.service;
 
 import com.fintrack.repository.HoldingsCategoriesRepository;
+import com.fintrack.repository.AssetRepository;
 import com.fintrack.repository.CategoriesRepository;
 import com.fintrack.repository.SubcategoriesRepository;
+import com.fintrack.model.Asset;
 import com.fintrack.model.Category;
 
 import org.springframework.stereotype.Service;
@@ -16,14 +18,17 @@ public class HoldingsCategoriesService {
     private final HoldingsCategoriesRepository holdingsCategoriesRepository;
     private final CategoriesRepository categoriesRepository;
     private final SubcategoriesRepository subcategoriesRepository;
+    private final AssetRepository assetRepository;
 
     public HoldingsCategoriesService(
         HoldingsCategoriesRepository holdingsCategoriesRepository, 
         CategoriesRepository categoriesRepository,
-        SubcategoriesRepository subcategoriesRepository) {
+        SubcategoriesRepository subcategoriesRepository,
+        AssetRepository assetRepository) {
         this.holdingsCategoriesRepository = holdingsCategoriesRepository;
         this.categoriesRepository = categoriesRepository;
         this.subcategoriesRepository = subcategoriesRepository;
+        this.assetRepository = assetRepository;
     }
 
     @Transactional
@@ -52,6 +57,12 @@ public class HoldingsCategoriesService {
                 // Validate asset name
                 if (assetName == null || assetName.trim().isEmpty()) {
                     throw new IllegalArgumentException("Asset name cannot be null or empty.");
+                }
+
+                // Fetch the Asset
+                Optional<Asset> assetOptional = assetRepository.findByAccountIdAndAssetName(accountId, assetName);
+                if (assetOptional.isEmpty()) {
+                    throw new IllegalArgumentException("Asset not found for accountId: " + accountId + " and assetName: " + assetName);
                 }
     
                 // Find or create the subcategory (if provided)

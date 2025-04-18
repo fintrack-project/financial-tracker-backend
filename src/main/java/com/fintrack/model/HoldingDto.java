@@ -3,7 +3,9 @@ package com.fintrack.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "holdings")
+@Table(name = "holdings", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"account_id", "asset_name"})
+})
 public class HoldingDto {
     @Id
     @GeneratedValue
