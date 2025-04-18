@@ -3,6 +3,8 @@ package com.fintrack.service;
 import com.fintrack.model.PreviewTransaction;
 import com.fintrack.model.Transaction;
 import com.fintrack.repository.TransactionRepository;
+import com.fintrack.model.Asset;
+import com.fintrack.repository.AssetRepository;
 
 import com.fintrack.constants.KafkaTopics;
 
@@ -16,14 +18,18 @@ import java.time.Instant;
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
+    private final AssetRepository assetRepository;
     private final KafkaProducerService kafkaProducerService;
 
     public TransactionService(TransactionRepository transactionRepository, 
+        AssetRepository assetRepository,
         KafkaProducerService kafkaProducerService) {
         this.transactionRepository = transactionRepository;
+        this.assetRepository = assetRepository;
         this.kafkaProducerService = kafkaProducerService;
     }
 
+    @Transactional(readOnly = true)
     public List<Transaction> getTransactionsByAccountId(UUID accountId) {
         return transactionRepository.findByAccountIdOrderByDateDesc(accountId);
     }
@@ -37,37 +43,76 @@ public class TransactionService {
     }
 
     @Transactional
-    public void deleteByTransactionIds(List<Long> transactionIds) {
-        transactionRepository.deleteByTransactionIds(transactionIds);
+    public void softDeleteByTransactionIds(List<Long> transactionIds) {
+        transactionRepository.softDeleteByTransactionIds(transactionIds);
+    }
+
+    @Transactional
+    public void ensureAssetsExist(UUID accountId, List<PreviewTransaction> previewTransactions) {
+        for (PreviewTransaction previewTransaction : previewTransactions) {
+            String assetName = previewTransaction.getAssetName();
+            String symbol = previewTransaction.getSymbol();
+            String unit = previewTransaction.getUnit();
+    
+            // Check if the Asset exists
+            Optional<Asset> assetOptional = assetRepository.findByAccountIdAndAssetName(accountId, assetName);
+            if (assetOptional.isEmpty()) {
+                // Create a new Asset if it does not exist
+                Asset asset = new Asset();
+                asset.setAccountId(accountId);
+                asset.setAssetName(assetName);
+                asset.setSymbol(symbol);
+                asset.setUnit(unit);
+                assetRepository.save(asset);
+            }
+        }
     }
 
     @Transactional
     public void confirmTransactions(UUID accountId, List<PreviewTransaction> previewTransactions) {
         // Separate transactions to save and delete
         List<Transaction> transactionsToSave = previewTransactions.stream()
-                .filter(transaction -> !transaction.isMarkDelete())
-                .map(transaction -> transaction.convertToTransaction())
-                .toList();
+            .filter(transaction -> !transaction.isMarkDelete()) // Exclude transactions marked for deletion
+            .map(PreviewTransaction::convertToTransaction)
+            .filter(newTransaction -> newTransaction.getTransactionId() == null && newTransaction.getAccountId() == null) // Only save new transactions
+            .toList();
 
         List<Long> transactionIdsToDelete = previewTransactions.stream()
                 .filter(transaction -> transaction.isMarkDelete())
                 .map(PreviewTransaction::getTransactionId)
+                .filter(Objects::nonNull) // Exclude unsaved transactions (those without a transactionId)
                 .toList();
 
         // Save new transactions
         saveAllTransactions(accountId, transactionsToSave);
 
-        // Delete old transactions
-        deleteByTransactionIds(transactionIdsToDelete);
+        // Fetch saved transactions to get their IDs
+        List<Long> transactionIdsToSave = transactionRepository.findByAccountIdOrderByDateDesc(accountId).stream()
+                .filter(savedTransaction -> transactionsToSave.stream()
+                        .anyMatch(toSave -> toSave.getAssetName().equals(savedTransaction.getAssetName())
+                                && toSave.getDate().equals(savedTransaction.getDate())
+                                && toSave.getCredit().equals(savedTransaction.getCredit())
+                                && toSave.getDebit().equals(savedTransaction.getDebit())
+                                && toSave.getUnit().equals(savedTransaction.getUnit())
+                                && Objects.equals(toSave.getSymbol(), savedTransaction.getSymbol())))
+                .map(Transaction::getTransactionId)
+                .toList();
+
+        // Soft delete old transactions
+        softDeleteByTransactionIds(transactionIdsToDelete);
         
-        // Publish TRANSACTIONS_CONFIRMED message
+        // Publish TRANSACTIONS_CONFIRMED message with only transaction IDs
         String transactionsConfirmedPayload = String.format(
-            "{\"account_id\": \"%s\", \"transactions_added\": %s, \"transactions_deleted\": %s, \"timestamp\": \"%s\"}",
-            accountId,
-            transactionsToSave,
-            transactionIdsToDelete,
-            Instant.now().toString()
+                "{\"account_id\": \"%s\", \"transactions_added\": %s, \"transactions_deleted\": %s, \"timestamp\": \"%s\"}",
+                accountId,
+                transactionIdsToSave,
+                transactionIdsToDelete,
+                Instant.now().toString()
         );
-        kafkaProducerService.publishEvent(KafkaTopics.TRANSACTIONS_CONFIRMED.getTopicName(), transactionsConfirmedPayload);
+        kafkaProducerService.publishEventWithRetry(
+            KafkaTopics.TRANSACTIONS_CONFIRMED.getTopicName(), 
+            transactionsConfirmedPayload, 
+            3, 
+            2000);
     }
 }

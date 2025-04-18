@@ -51,6 +51,11 @@ public class TransactionController {
     public ResponseEntity<Void> confirmTransactions(@PathVariable UUID accountId, 
     @RequestBody List<PreviewTransaction> previewTransactions,
     HttpSession session) {
+
+        // Ensure assets exist before confirming transactions
+        transactionService.ensureAssetsExist(accountId, previewTransactions);
+
+        // Confirm transactions
         transactionService.confirmTransactions(accountId, previewTransactions);
 
         // Clear the session after confirmation

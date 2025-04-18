@@ -1,6 +1,6 @@
 package com.fintrack.repository;
 
-import com.fintrack.model.HoldingDto;
+import com.fintrack.model.Holdings;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -9,13 +9,13 @@ import org.springframework.stereotype.Repository;
 import java.util.*;
 
 @Repository
-public interface HoldingsRepository extends JpaRepository<HoldingDto, Long> {
+public interface HoldingsRepository extends JpaRepository<Holdings, Long> {
 
     @Query(value = """
-        SELECT h.asset_name, h.symbol, h.total_balance, h.unit
-        FROM holdings h
-        WHERE h.account_id = :accountId
-        AND h.total_balance > 0
+        SELECT * 
+        FROM holdings 
+        WHERE account_id = :accountId
+        AND total_balance > 0
         """, nativeQuery = true)
-    List<HoldingDto> findHoldingsByAccount(@Param("accountId") UUID accountId);
+    List<Holdings> findHoldingsByAccount(@Param("accountId") UUID accountId);
 }

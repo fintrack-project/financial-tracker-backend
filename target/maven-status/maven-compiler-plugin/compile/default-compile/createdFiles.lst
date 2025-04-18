@@ -1,3 +1,4 @@
+com/fintrack/repository/AssetRepository.class
 com/fintrack/model/User.class
 com/fintrack/model/MarketData.class
 com/fintrack/repository/MarketDataRepository.class
@@ -25,11 +26,11 @@ com/fintrack/model/HoldingsCategory.class
 com/fintrack/repository/CategoriesRepository.class
 com/fintrack/controller/AccountController.class
 com/fintrack/model/Transaction.class
+com/fintrack/model/Asset.class
 com/fintrack/repository/UserRepository.class
 com/fintrack/repository/SubcategoriesRepository.class
 com/fintrack/controller/HoldingsController.class
 com/fintrack/constants/KafkaTopics.class
-com/fintrack/model/HoldingDto.class
 com/fintrack/controller/SubcategoriesController.class
 com/fintrack/controller/MarketAverageDataController.class
 com/fintrack/model/PreviewTransaction.class

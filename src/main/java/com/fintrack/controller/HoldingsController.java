@@ -1,6 +1,6 @@
 package com.fintrack.controller;
 
-import com.fintrack.model.HoldingDto;
+import com.fintrack.model.Holdings;
 import com.fintrack.service.HoldingsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,8 +21,8 @@ public class HoldingsController {
     }
 
     @GetMapping("/{accountId}/holdings")
-    public ResponseEntity<List<HoldingDto>> getHoldings(@PathVariable UUID accountId) {
-        List<HoldingDto> holdings = holdingsService.getHoldingsByAccount(accountId);
+    public ResponseEntity<List<Holdings>> getHoldings(@PathVariable UUID accountId) {
+        List<Holdings> holdings = holdingsService.getHoldingsByAccount(accountId);
         return ResponseEntity.ok(holdings);
     }
 }

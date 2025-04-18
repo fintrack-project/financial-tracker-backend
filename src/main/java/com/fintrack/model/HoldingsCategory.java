@@ -2,7 +2,6 @@ package com.fintrack.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "holdings_categories", uniqueConstraints = {
@@ -15,11 +14,12 @@ public class HoldingsCategory {
     @Column(name = "id")
     private Integer id;
 
-    @Column(name = "account_id", nullable = false)
-    private UUID accountId;
-
-    @Column(name = "asset_name", nullable = false)
-    private String assetName;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumns({
+        @JoinColumn(name = "account_id", referencedColumnName = "account_id", insertable = false, updatable = false),
+        @JoinColumn(name = "asset_name", referencedColumnName = "asset_name", insertable = false, updatable = false)
+    })
+    private Asset asset;
 
     @Column(name = "category_id", nullable = false)
     private Integer categoryId;
@@ -42,20 +42,12 @@ public class HoldingsCategory {
         this.id = id;
     }
 
-    public UUID getAccountId() {
-        return accountId;
+    public Asset getAsset() {
+        return asset;
     }
 
-    public void setAccountId(UUID accountId) {
-        this.accountId = accountId;
-    }
-
-    public String getAssetName() {
-        return assetName;
-    }
-
-    public void setAssetName(String assetName) {
-        this.assetName = assetName;
+    public void setAsset(Asset asset) {
+        this.asset = asset;
     }
 
     public Integer getCategoryId() {

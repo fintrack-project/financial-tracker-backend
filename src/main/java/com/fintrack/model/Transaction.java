@@ -3,6 +3,7 @@ package com.fintrack.model;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -11,16 +12,30 @@ public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "transaction_id")
     private Long transactionId;
 
-    @Column(nullable = false)
+    @Column(name = "account_id")
     private UUID accountId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumns({
+        @JoinColumn(name = "account_id", referencedColumnName = "account_id", insertable = false, updatable = false),
+        @JoinColumn(name = "asset_name", referencedColumnName = "asset_name", insertable = false, updatable = false)
+    })
+    private Asset asset;
+
+    @Column(name = "asset_name")
+    private String assetName;
+
+    @Column(name = "symbol")
+    private String symbol;
+
+    @Column(name = "unit")
+    private String unit;
 
     @Column(nullable = false)
     private LocalDate date;
-
-    @Column(nullable = false)
-    private String assetName;
 
     @Column(nullable = false, precision = 38, scale = 2, columnDefinition = "numeric(38,2) default 0")
     private BigDecimal credit = BigDecimal.ZERO;
@@ -28,11 +43,8 @@ public class Transaction {
     @Column(nullable = false, precision = 38, scale = 2, columnDefinition = "numeric(38,2) default 0")
     private BigDecimal debit = BigDecimal.ZERO;
 
-    @Column(nullable = false)
-    private String unit;
-
-    @Column
-    private String symbol;
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     // Getters and Setters
     public Long getTransactionId() {
@@ -51,12 +63,12 @@ public class Transaction {
         this.accountId = accountId;
     }
 
-    public LocalDate getDate() {
-        return date;
+    public Asset getAsset() {
+        return asset;
     }
 
-    public void setDate(LocalDate date) {
-        this.date = date;
+    public void setAsset(Asset asset) {
+        this.asset = asset;
     }
 
     public String getAssetName() {
@@ -65,6 +77,30 @@ public class Transaction {
 
     public void setAssetName(String assetName) {
         this.assetName = assetName;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
+    }
+
+    public LocalDate getDate() {
+        return date;
+    }
+
+    public void setDate(LocalDate date) {
+        this.date = date;
     }
 
     public BigDecimal getCredit() {
@@ -83,19 +119,11 @@ public class Transaction {
         this.debit = debit;
     }
 
-    public String getUnit() {
-        return unit;
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
     }
 
-    public void setUnit(String unit) {
-        this.unit = unit;
-    }
-
-    public String getSymbol() {
-        return symbol;
-    }
-
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
     }
 }

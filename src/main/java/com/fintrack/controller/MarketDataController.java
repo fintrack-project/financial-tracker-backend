@@ -2,6 +2,8 @@ package com.fintrack.controller;
 
 import com.fintrack.model.MarketData;
 import com.fintrack.service.MarketDataService;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,15 +19,15 @@ public class MarketDataController {
         this.marketDataService = marketDataService;
     }
 
-    @PostMapping("/update")
-    public ResponseEntity<Map<String, String>> updateMarketData(@RequestBody List<String> assetNames) {
-        marketDataService.sendMarketDataUpdateRequest(assetNames);
-        return ResponseEntity.ok(Map.of("message", "Market data update request sent."));
-    }
-
     @GetMapping("/fetch")
-    public ResponseEntity<List<MarketData>> fetchMarketData(@RequestParam List<String> assetNames) {
-        List<MarketData> marketData = marketDataService.getMostRecentMarketData(assetNames);
-        return ResponseEntity.ok(marketData);
+    public ResponseEntity<List<MarketData>> fetchMarketData(@RequestParam List<String> symbols) {
+        try {
+            List<MarketData> marketData = marketDataService.fetchMarketData(symbols);
+            return ResponseEntity.ok(marketData);
+        } catch (Exception e) {
+            e.printStackTrace(); // Log the error for debugging
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
+        }
+        
     }
 }
