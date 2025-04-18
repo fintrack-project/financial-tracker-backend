@@ -21,18 +21,20 @@ public class Transaction {
     @Column(nullable = false)
     private LocalDate date;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumns({
-        @JoinColumn(name = "account_id", referencedColumnName = "account_id", insertable = false, updatable = false),
-        @JoinColumn(name = "asset_name", referencedColumnName = "asset_name", insertable = false, updatable = false)
-    })
-    private Asset asset;
+    @Column(nullable = false)
+    private String assetName;
 
     @Column(nullable = false, precision = 38, scale = 2, columnDefinition = "numeric(38,2) default 0")
     private BigDecimal credit = BigDecimal.ZERO;
 
     @Column(nullable = false, precision = 38, scale = 2, columnDefinition = "numeric(38,2) default 0")
     private BigDecimal debit = BigDecimal.ZERO;
+
+    @Column(nullable = false)
+    private String unit;
+
+    @Column
+    private String symbol;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
@@ -62,12 +64,12 @@ public class Transaction {
         this.date = date;
     }
 
-    public Asset getAsset() {
-        return asset;
+    public String getAssetName() {
+        return assetName;
     }
 
-    public void setAsset(Asset asset) {
-        this.asset = asset;
+    public void setAssetName(String assetName) {
+        this.assetName = assetName;
     }
 
     public BigDecimal getCredit() {
@@ -84,6 +86,22 @@ public class Transaction {
 
     public void setDebit(BigDecimal debit) {
         this.debit = debit;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
     }
 
     public LocalDateTime getDeletedAt() {

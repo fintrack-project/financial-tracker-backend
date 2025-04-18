@@ -60,10 +60,12 @@ public class TransactionService {
         // Fetch saved transactions to get their IDs
         List<Long> transactionIdsToSave = transactionRepository.findByAccountIdOrderByDateDesc(accountId).stream()
                 .filter(savedTransaction -> transactionsToSave.stream()
-                        .anyMatch(toSave -> toSave.getAsset().equals(savedTransaction.getAsset())
+                        .anyMatch(toSave -> toSave.getAssetName().equals(savedTransaction.getAssetName())
                                 && toSave.getDate().equals(savedTransaction.getDate())
                                 && toSave.getCredit().equals(savedTransaction.getCredit())
-                                && toSave.getDebit().equals(savedTransaction.getDebit())))
+                                && toSave.getDebit().equals(savedTransaction.getDebit())
+                                && toSave.getUnit().equals(savedTransaction.getUnit())
+                                && Objects.equals(toSave.getSymbol(), savedTransaction.getSymbol())))
                 .map(Transaction::getTransactionId)
                 .toList();
 
