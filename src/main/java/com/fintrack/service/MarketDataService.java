@@ -21,9 +21,48 @@ public class MarketDataService {
         this.kafkaProducerService = kafkaProducerService;
     }
 
-    public List<MarketData> getMostRecentMarketData(List<String> symbols) {
-        // Fetch the most recent market data for the given asset names
-        return marketDataRepository.findMarketDataBySymbols(symbols);
+    public List<MarketData> fetchMarketData(List<String> symbols) {
+        // Send a Kafka message to request an update
+        sendMarketDataUpdateRequest(symbols);
+
+        // Retry mechanism to fetch data until all symbols are available
+        List<MarketData> result = new ArrayList<>();
+        int maxRetries = 5;
+        int retryCount = 0;
+
+        while (retryCount < maxRetries) {
+            result.clear();
+            List<MarketData> recentMarketData = marketDataRepository.findMarketDataBySymbols(symbols);
+
+            if (recentMarketData.isEmpty()) {
+                System.out.println("No data found for symbols: " + symbols);
+                break; // Exit if no data is found
+            }
+
+            result.addAll(recentMarketData);
+
+            // Check if all symbols have data
+            if (result.size() == symbols.size()) {
+                break;
+            }
+
+            // Wait before retrying
+            try {
+                Thread.sleep(2000); // Wait for 2 seconds before retrying
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.err.println("Retry interrupted: " + e.getMessage());
+                break;
+            }
+
+            retryCount++;
+        }
+
+        if (result.size() < symbols.size()) {
+            System.err.println("Failed to fetch data for all symbols after " + maxRetries + " retries.");
+        }
+
+        return result;
     }
 
     public void sendMarketDataUpdateRequest(List<String> symbols) {
