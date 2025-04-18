@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fintrack.constants.KafkaTopics;
-import com.fintrack.model.HoldingDto;
+import com.fintrack.model.Holdings;
 import com.fintrack.repository.HoldingsRepository;
 
 import java.util.*;
@@ -18,7 +18,7 @@ public class HoldingsService {
         this.holdingsRepository = holdingsRepository;
     }
 
-    public List<HoldingDto> getHoldingsByAccount(UUID accountId) {
+    public List<Holdings> getHoldingsByAccount(UUID accountId) {
         return holdingsRepository.findHoldingsByAccount(accountId);
     }
 
@@ -32,7 +32,7 @@ public class HoldingsService {
             System.out.println("Received " + KafkaTopics.PROCESS_TRANSACTIONS_TO_HOLDINGS_COMPLETE.getTopicName() + " for account: " + accountId);
 
             // Fetch the latest holdings
-            List<HoldingDto> holdings = getHoldingsByAccount(accountId);
+            List<Holdings> holdings = getHoldingsByAccount(accountId);
             System.out.println("Latest holdings: " + holdings);
         } catch (Exception e) {
             System.err.println("Failed to process message: " + e.getMessage());

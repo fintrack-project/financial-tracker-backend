@@ -12,9 +12,10 @@ public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "transaction_id", nullable = false, unique = true, updatable = false)
     private Long transactionId;
 
-    @Column(nullable = false)
+    @Column(name = "account_id", nullable = false)
     private UUID accountId;
 
     @Column(nullable = false)

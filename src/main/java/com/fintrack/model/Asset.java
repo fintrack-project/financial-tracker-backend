@@ -12,19 +12,19 @@ public class Asset {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "account_id", nullable = false)
     private UUID accountId;
 
-    @Column(nullable = false)
+    @Column(name = "asset_name", nullable = false)
     private String assetName;
 
-    @Column(nullable = false)
+    @Column(name = "symbol", nullable = false)
     private String symbol;
 
-    @Column(nullable = false)
+    @Column(name = "unit", nullable = false)
     private String unit;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_at", nullable = false, columnDefinition = "timestamp default CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
 
     // Getters and Setters
