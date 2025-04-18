@@ -3,6 +3,8 @@ package com.fintrack.service;
 import com.fintrack.model.PreviewTransaction;
 import com.fintrack.model.Transaction;
 import com.fintrack.repository.TransactionRepository;
+import com.fintrack.model.Asset;
+import com.fintrack.repository.AssetRepository;
 
 import com.fintrack.constants.KafkaTopics;
 
@@ -16,14 +18,18 @@ import java.time.Instant;
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
+    private final AssetRepository assetRepository;
     private final KafkaProducerService kafkaProducerService;
 
     public TransactionService(TransactionRepository transactionRepository, 
+        AssetRepository assetRepository,
         KafkaProducerService kafkaProducerService) {
         this.transactionRepository = transactionRepository;
+        this.assetRepository = assetRepository;
         this.kafkaProducerService = kafkaProducerService;
     }
 
+    @Transactional(readOnly = true)
     public List<Transaction> getTransactionsByAccountId(UUID accountId) {
         return transactionRepository.findByAccountIdOrderByDateDesc(accountId);
     }
@@ -39,6 +45,27 @@ public class TransactionService {
     @Transactional
     public void softDeleteByTransactionIds(List<Long> transactionIds) {
         transactionRepository.softDeleteByTransactionIds(transactionIds);
+    }
+
+    @Transactional
+    public void ensureAssetsExist(UUID accountId, List<PreviewTransaction> previewTransactions) {
+        for (PreviewTransaction previewTransaction : previewTransactions) {
+            String assetName = previewTransaction.getAssetName();
+            String symbol = previewTransaction.getSymbol();
+            String unit = previewTransaction.getUnit();
+    
+            // Check if the Asset exists
+            Optional<Asset> assetOptional = assetRepository.findByAccountIdAndAssetName(accountId, assetName);
+            if (assetOptional.isEmpty()) {
+                // Create a new Asset if it does not exist
+                Asset asset = new Asset();
+                asset.setAccountId(accountId);
+                asset.setAssetName(assetName);
+                asset.setSymbol(symbol);
+                asset.setUnit(unit);
+                assetRepository.save(asset);
+            }
+        }
     }
 
     @Transactional
@@ -80,6 +107,10 @@ public class TransactionService {
                 transactionIdsToDelete,
                 Instant.now().toString()
         );
-        kafkaProducerService.publishEvent(KafkaTopics.TRANSACTIONS_CONFIRMED.getTopicName(), transactionsConfirmedPayload);
+        kafkaProducerService.publishEventWithRetry(
+            transactionsConfirmedPayload, 
+            transactionsConfirmedPayload, 
+            3, 
+            2000);
     }
 }

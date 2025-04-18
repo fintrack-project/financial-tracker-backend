@@ -4,6 +4,10 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class KafkaProducerService {
@@ -21,6 +25,46 @@ public class KafkaProducerService {
                 System.err.println("Failed to send message to topic: " + topic + " - " + ex.getMessage());
                 return null;
             });
+    }
+
+    public void publishEventWithRetry(String topic, String message, int maxRetries, long retryIntervalMillis) {
+        AtomicInteger attempt = new AtomicInteger(0); // Use AtomicInteger to make it mutable
+        boolean success = false;
+    
+        while (attempt.get() < maxRetries && !success) {
+            try {
+                attempt.incrementAndGet(); // Increment the attempt count
+                CompletableFuture<Void> future = kafkaTemplate.send(topic, message)
+                        .thenAccept(result -> {
+                            System.out.printf("Message sent successfully to topic: %s, partition: %d, offset: %d%n",
+                                    result.getRecordMetadata().topic(),
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
+                        })
+                        .exceptionally(ex -> {
+                            System.err.printf("Attempt %d: Failed to send message to topic: %s, error: %s%n",
+                                    attempt.get(), topic, ex.getMessage()); // Use attempt.get() here
+                            return null;
+                        });
+    
+                // Wait for the send to complete
+                future.get(10, TimeUnit.SECONDS); // Timeout after 10 seconds
+                success = true; // If no exception, mark as success
+            } catch (Exception e) {
+                System.err.printf("Attempt %d: Exception occurred while sending message to topic: %s, error: %s%n",
+                        attempt.get(), topic, e.getMessage());
+                if (attempt.get() < maxRetries) {
+                    try {
+                        Thread.sleep(retryIntervalMillis); // Wait before retrying
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException("Retry interrupted", ie);
+                    }
+                } else {
+                    throw new RuntimeException("Failed to send message after " + maxRetries + " attempts", e);
+                }
+            }
+        }
     }
 
     /**

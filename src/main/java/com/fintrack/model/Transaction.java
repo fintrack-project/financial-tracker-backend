@@ -12,29 +12,36 @@ public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "transaction_id", nullable = false, unique = true, updatable = false)
+    @Column(name = "transaction_id")
     private Long transactionId;
 
-    @Column(name = "account_id", nullable = false)
+    @Column(name = "account_id")
     private UUID accountId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumns({
+        @JoinColumn(name = "account_id", referencedColumnName = "account_id", insertable = false, updatable = false),
+        @JoinColumn(name = "asset_name", referencedColumnName = "asset_name", insertable = false, updatable = false)
+    })
+    private Asset asset;
+
+    @Column(name = "asset_name")
+    private String assetName;
+
+    @Column(name = "symbol")
+    private String symbol;
+
+    @Column(name = "unit")
+    private String unit;
 
     @Column(nullable = false)
     private LocalDate date;
-
-    @Column(nullable = false)
-    private String assetName;
 
     @Column(nullable = false, precision = 38, scale = 2, columnDefinition = "numeric(38,2) default 0")
     private BigDecimal credit = BigDecimal.ZERO;
 
     @Column(nullable = false, precision = 38, scale = 2, columnDefinition = "numeric(38,2) default 0")
     private BigDecimal debit = BigDecimal.ZERO;
-
-    @Column(nullable = false)
-    private String unit;
-
-    @Column
-    private String symbol;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
@@ -56,12 +63,12 @@ public class Transaction {
         this.accountId = accountId;
     }
 
-    public LocalDate getDate() {
-        return date;
+    public Asset getAsset() {
+        return asset;
     }
 
-    public void setDate(LocalDate date) {
-        this.date = date;
+    public void setAsset(Asset asset) {
+        this.asset = asset;
     }
 
     public String getAssetName() {
@@ -70,6 +77,30 @@ public class Transaction {
 
     public void setAssetName(String assetName) {
         this.assetName = assetName;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
+    }
+
+    public LocalDate getDate() {
+        return date;
+    }
+
+    public void setDate(LocalDate date) {
+        this.date = date;
     }
 
     public BigDecimal getCredit() {
@@ -86,22 +117,6 @@ public class Transaction {
 
     public void setDebit(BigDecimal debit) {
         this.debit = debit;
-    }
-
-    public String getUnit() {
-        return unit;
-    }
-
-    public void setUnit(String unit) {
-        this.unit = unit;
-    }
-
-    public String getSymbol() {
-        return symbol;
-    }
-
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
     }
 
     public LocalDateTime getDeletedAt() {
