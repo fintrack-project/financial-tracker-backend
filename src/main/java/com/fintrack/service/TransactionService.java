@@ -37,8 +37,8 @@ public class TransactionService {
     }
 
     @Transactional
-    public void deleteByTransactionIds(List<Long> transactionIds) {
-        transactionRepository.deleteByTransactionIds(transactionIds);
+    public void softDeleteByTransactionIds(List<Long> transactionIds) {
+        transactionRepository.softDeleteByTransactionIds(transactionIds);
     }
 
     @Transactional
@@ -57,16 +57,28 @@ public class TransactionService {
         // Save new transactions
         saveAllTransactions(accountId, transactionsToSave);
 
-        // Delete old transactions
-        deleteByTransactionIds(transactionIdsToDelete);
+        // Fetch saved transactions to get their IDs
+        List<Long> transactionIdsToSave = transactionRepository.findByAccountIdOrderByDateDesc(accountId).stream()
+                .filter(savedTransaction -> transactionsToSave.stream()
+                        .anyMatch(toSave -> toSave.getAssetName().equals(savedTransaction.getAssetName())
+                                && toSave.getDate().equals(savedTransaction.getDate())
+                                && toSave.getCredit().equals(savedTransaction.getCredit())
+                                && toSave.getDebit().equals(savedTransaction.getDebit())
+                                && toSave.getUnit().equals(savedTransaction.getUnit())
+                                && Objects.equals(toSave.getSymbol(), savedTransaction.getSymbol())))
+                .map(Transaction::getTransactionId)
+                .toList();
+
+        // Soft delete old transactions
+        softDeleteByTransactionIds(transactionIdsToDelete);
         
-        // Publish TRANSACTIONS_CONFIRMED message
+        // Publish TRANSACTIONS_CONFIRMED message with only transaction IDs
         String transactionsConfirmedPayload = String.format(
-            "{\"account_id\": \"%s\", \"transactions_added\": %s, \"transactions_deleted\": %s, \"timestamp\": \"%s\"}",
-            accountId,
-            transactionsToSave,
-            transactionIdsToDelete,
-            Instant.now().toString()
+                "{\"account_id\": \"%s\", \"transactions_added\": %s, \"transactions_deleted\": %s, \"timestamp\": \"%s\"}",
+                accountId,
+                transactionIdsToSave,
+                transactionIdsToDelete,
+                Instant.now().toString()
         );
         kafkaProducerService.publishEvent(KafkaTopics.TRANSACTIONS_CONFIRMED.getTopicName(), transactionsConfirmedPayload);
     }

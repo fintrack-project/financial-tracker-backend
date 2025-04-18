@@ -3,6 +3,7 @@ package com.fintrack.model;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -33,6 +34,9 @@ public class Transaction {
 
     @Column
     private String symbol;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     // Getters and Setters
     public Long getTransactionId() {
@@ -97,5 +101,13 @@ public class Transaction {
 
     public void setSymbol(String symbol) {
         this.symbol = symbol;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
     }
 }

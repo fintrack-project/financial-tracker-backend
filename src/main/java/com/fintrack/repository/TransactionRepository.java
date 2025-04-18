@@ -12,10 +12,12 @@ import java.util.List;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
-    @Query(value = "SELECT transaction_id, account_id, date, asset_name, symbol, credit, debit, unit FROM transactions WHERE account_id = :accountId ORDER BY date DESC", nativeQuery = true)
+    // Fetch transactions by accountId, excluding soft-deleted ones
+    @Query("SELECT t FROM Transaction t WHERE t.accountId = :accountId AND t.deletedAt IS NULL ORDER BY t.date DESC")
     List<Transaction> findByAccountIdOrderByDateDesc(@Param("accountId") UUID accountId);
 
+    // Soft delete transactions by setting the deleted_at column
     @Modifying
-    @Query(value = "DELETE FROM transactions WHERE transaction_id IN (:transactionIds)", nativeQuery = true)
-    void deleteByTransactionIds(@Param("transactionIds") List<Long> transactionIds);
+    @Query("UPDATE Transaction t SET t.deletedAt = CURRENT_TIMESTAMP WHERE t.transactionId IN :transactionIds")
+    void softDeleteByTransactionIds(@Param("transactionIds") List<Long> transactionIds);
 }
