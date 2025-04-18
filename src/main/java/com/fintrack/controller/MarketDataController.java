@@ -18,14 +18,14 @@ public class MarketDataController {
     }
 
     @PostMapping("/update")
-    public ResponseEntity<Map<String, String>> updateMarketData(@RequestBody List<String> assetNames) {
-        marketDataService.sendMarketDataUpdateRequest(assetNames);
+    public ResponseEntity<Map<String, String>> updateMarketData(@RequestBody List<String> symbols) {
+        marketDataService.sendMarketDataUpdateRequest(symbols);
         return ResponseEntity.ok(Map.of("message", "Market data update request sent."));
     }
 
     @GetMapping("/fetch")
-    public ResponseEntity<List<MarketData>> fetchMarketData(@RequestParam List<String> assetNames) {
-        List<MarketData> marketData = marketDataService.getMostRecentMarketData(assetNames);
+    public ResponseEntity<List<MarketData>> fetchMarketData(@RequestParam List<String> symbols) {
+        List<MarketData> marketData = marketDataService.getMostRecentMarketData(symbols);
         return ResponseEntity.ok(marketData);
     }
 }
