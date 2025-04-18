@@ -31,6 +31,7 @@ com/fintrack/repository/UserRepository.class
 com/fintrack/repository/SubcategoriesRepository.class
 com/fintrack/controller/HoldingsController.class
 com/fintrack/constants/KafkaTopics.class
+com/fintrack/model/HoldingDto.class
 com/fintrack/controller/SubcategoriesController.class
 com/fintrack/controller/MarketAverageDataController.class
 com/fintrack/model/PreviewTransaction.class
