@@ -80,12 +80,7 @@ public class PortfolioService {
         // Fetch holdings categories for the given account ID
         List<HoldingsCategory> holdingsCategories = holdingsCategoriesRepository.findHoldingsCategoryByAccountId(accountId);
 
-        PieChart pieChart = new PieChart(
-          holdings, 
-          marketDataList, 
-          holdingsCategories, 
-          categoryName);
-        // PieChart pieChart = new PieChart(holdings, marketDataList, holdingsCategories, subcategories, categoryName);
+        PieChart pieChart = new PieChart(holdings, marketDataList, holdingsCategories, subcategories, categoryName);
         return pieChart.getData();
     }
 }

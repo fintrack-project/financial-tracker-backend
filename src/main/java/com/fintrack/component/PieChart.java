@@ -1,12 +1,12 @@
 package com.fintrack.component;
 
 import java.util.*;
-import java.util.Locale.Category;
 import java.util.stream.Collectors;
 
 import com.fintrack.model.Holdings;
 import com.fintrack.model.HoldingsCategory;
 import com.fintrack.model.MarketData;
+import com.fintrack.model.Category;
 
 public class PieChart {
 
@@ -85,6 +85,7 @@ public class PieChart {
                       symbol,
                       "None",
                       value, 
+                      0, // Default priority
                       getRandomColor()); // Assign a random color
                 })
                 .collect(Collectors.toList());
@@ -102,7 +103,7 @@ public class PieChart {
         Map<String, String> assetNamesSubcategoryMap = filteredHoldingsCategories.stream()
             .collect(Collectors.toMap(
                 HoldingsCategory::getAssetName,
-                category -> category.getSubcategory() != null ? category.getSubcategory() : "Unnamed", // Assign "Unnamed" if subcategory is null
+                category -> category.getSubcategory() != null ? category.getSubcategory() : "None", // Assign "None" if subcategory is null
                 (existing, replacement) -> existing // Handle duplicate keys by keeping the existing value
             ));
         
@@ -124,15 +125,24 @@ public class PieChart {
                       symbol,
                       subcategory, 
                       value, 
+                      getSubcategoryPriorityMap().getOrDefault(subcategory, 0), // Get priority from subcategory map
                       color); // Use subcategory as name
                 })
                 .collect(Collectors.toList());
+        Collections.sort(pieChartData);
         return pieChartData;
     }
 
     private Map<String, Double> getSymbolToPriceMap() {
         return marketData.stream()
                 .collect(Collectors.toMap(MarketData::getSymbol, marketData -> marketData.getPrice().doubleValue()));
+    }
+
+    private Map<String, Integer> getSubcategoryPriorityMap() {
+        Map<String, Integer> subcategoryPriorityMap = subcategories.stream()
+        .collect(Collectors.toMap(Category::getCategoryName, Category::getPriority));
+        subcategoryPriorityMap.put("None", 0); // Assign priority 0 to "None" subcategory
+        return subcategoryPriorityMap;
     }
 
     private String getRandomColor() {
