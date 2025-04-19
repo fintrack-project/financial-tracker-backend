@@ -14,6 +14,7 @@ public class PieChart {
     private List<HoldingsCategory> holdingsCategories;
     private String categoryName;
     private List<PieChartData> pieChartData;
+    private Map<String, String> subcategoryColorMap = new HashMap<>();
 
     public PieChart(List<Holdings> holdings, List<MarketData> marketData) {
         this.holdings = holdings;
@@ -49,7 +50,9 @@ public class PieChart {
         List<Map<String, Object>> data = new ArrayList<>();
         for (PieChartData pieChart : pieChartData) {
             Map<String, Object> map = new HashMap<>();
-            map.put("name", pieChart.getName());
+            map.put("assetName", pieChart.getAssetName());
+            map.put("symbol", pieChart.getSymbol());
+            map.put("subcategory", pieChart.getSubcategory());
             map.put("value", pieChart.getValue());
             map.put("color", pieChart.getColor());
             data.add(map);
@@ -66,7 +69,12 @@ public class PieChart {
                     Double price = symbolToPriceMap.getOrDefault(symbol, 0.0); // Default price to 0.0 if not found
                     Double value = totalBalance * price; // Calculate value using price and total balance
 
-                    return new PieChartData(holding.getAssetName(), value, getRandomColor()); // Assign a random color
+                    return new PieChartData(
+                      holding.getAssetName(), 
+                      symbol,
+                      "None",
+                      value, 
+                      getRandomColor()); // Assign a random color
                 })
                 .collect(Collectors.toList());
         return pieChartData;
@@ -95,7 +103,17 @@ public class PieChart {
                     Double price = symbolToPriceMap.getOrDefault(symbol, 0.0); // Default price to 0.0 if not found
                     Double value = totalBalance * price; // Calculate value using price and total balance
 
-                    return new PieChartData(assetNamesSubcategoryMap.get(holding.getAssetName()), value, getRandomColor()); // Use subcategory as name
+                    String subcategory = assetNamesSubcategoryMap.get(holding.getAssetName());
+
+                    // Get or generate a color for the subcategory
+                    String color = subcategoryColorMap.computeIfAbsent(subcategory, key -> getRandomColor());
+
+                    return new PieChartData(
+                      holding.getAssetName(),
+                      symbol,
+                      subcategory, 
+                      value, 
+                      color); // Use subcategory as name
                 })
                 .collect(Collectors.toList());
         return pieChartData;

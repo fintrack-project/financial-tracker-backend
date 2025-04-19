@@ -1,22 +1,42 @@
 package com.fintrack.component;
 
 public class PieChartData {
-    private String name;
+    private String assetName;
+    private String symbol;
+    private String subcategory;
     private double value;
     private String color;
 
-    public PieChartData(String name, double value, String color) {
-        this.name = name;
+    public PieChartData(String assetName, String symbol, String subcategory, double value, String color) {
+        this.assetName = assetName;
+        this.symbol = symbol;
+        this.subcategory = subcategory;
         this.value = value;
         this.color = color;
     }
 
-    public String getName() {
-        return name;
+    public String getAssetName() {
+        return assetName;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setAssetName(String assetName) {
+        this.assetName = assetName;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
+    }
+
+    public String getSubcategory() {
+        return subcategory;
+    }
+
+    public void setSubcategory(String subcategory) {
+        this.subcategory = subcategory;
     }
 
     public double getValue() {
