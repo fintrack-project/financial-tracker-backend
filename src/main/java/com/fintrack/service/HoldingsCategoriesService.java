@@ -151,12 +151,12 @@ public class HoldingsCategoriesService {
             Map<String, String> subcategoryMap = new LinkedHashMap<>();
 
             for (Category subcategory : subcategories) {
-                // Fetch holdings for each subcategory
-                List<Map<String, Object>> holdings = holdingsCategoriesRepository.findHoldingsByCategoryId(accountId, subcategory.getCategoryId());
+                // Fetch asset names for each subcategory
+                List<Map<String, Object>> assetNamesSubcategoryMap = holdingsCategoriesRepository.findHoldingsByCategoryId(accountId, subcategory.getCategoryId());
 
-                for (Map<String, Object> holding : holdings) {
-                    String assetName = (String) holding.get("asset_name");
-                    String subcategoryName = (String) holding.get("subcategory");
+                for (Map<String, Object> assetNamesToSubcategory : assetNamesSubcategoryMap) {
+                    String assetName = (String) assetNamesToSubcategory.get("asset_name");
+                    String subcategoryName = (String) assetNamesToSubcategory.get("subcategory");
 
                     // Add asset and subcategory to the subcategory map
                     subcategoryMap.put(assetName, subcategoryName);
