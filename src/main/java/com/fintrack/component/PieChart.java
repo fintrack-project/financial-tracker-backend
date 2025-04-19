@@ -10,6 +10,21 @@ import com.fintrack.model.Category;
 
 public class PieChart {
 
+    private static final List<String> COLORS = Arrays.asList(
+        "#4CAF50", // Green
+        "#2196F3", // Blue
+        "#FFC107", // Amber
+        "#FF5722", // Deep Orange
+        "#9C27B0", // Purple
+        "#3F51B5", // Indigo
+        "#00BCD4", // Cyan
+        "#8BC34A", // Light Green
+        "#FF9800", // Orange
+        "#E91E63"  // Pink
+    );
+
+    private int colorIndex = 0;
+
     private List<Holdings> holdings;
     private List<MarketData> marketData;
     private List<HoldingsCategory> holdingsCategories;
@@ -86,7 +101,7 @@ public class PieChart {
                       "None",
                       value, 
                       0, // Default priority
-                      getRandomColor()); // Assign a random color
+                      getColor()); // Assign a random color
                 })
                 .collect(Collectors.toList());
         return pieChartData;
@@ -118,7 +133,7 @@ public class PieChart {
                     String subcategory = assetNamesSubcategoryMap.get(holding.getAssetName());
 
                     // Get or generate a color for the subcategory
-                    String color = subcategoryColorMap.computeIfAbsent(subcategory, key -> getRandomColor());
+                    String color = subcategoryColorMap.computeIfAbsent(subcategory, key -> getColor());
 
                     return new PieChartData(
                       holding.getAssetName(),
@@ -145,11 +160,9 @@ public class PieChart {
         return subcategoryPriorityMap;
     }
 
-    private String getRandomColor() {
-      Random random = new Random();
-      int r = random.nextInt(256);
-      int g = random.nextInt(256);
-      int b = random.nextInt(256);
-      return String.format("#%02x%02x%02x", r, g, b); // Return color in hex format
+    private String getColor() {
+      String color = COLORS.get(colorIndex); // Get color from predefined list
+      colorIndex = (colorIndex + 1) % COLORS.size(); // Cycle through colors
+      return color; // Return color in hex format
   }
 }
