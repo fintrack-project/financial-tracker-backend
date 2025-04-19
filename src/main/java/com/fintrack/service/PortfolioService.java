@@ -45,9 +45,27 @@ public class PortfolioService {
 
         logger.info("Calculating portfolio pie chart data for account ID: " + accountId + " and category name: " + categoryName);
 
+        // Fetch holdings for the given account ID
+        List<Holdings> holdings = holdingsRepository.findHoldingsByAccount(accountId);
+        holdings.stream()
+                .forEach(holding -> logger.info("Holdings: " + holding.getAssetName() + ", Symbol: " + holding.getSymbol() + ", Total Balance: " + holding.getTotalBalance()));
+
+        // Fetch market data for the symbols
+        List<String> symbols = holdings.stream()
+                .map(Holdings::getSymbol)
+                .distinct()
+                .collect(Collectors.toList());
+        List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbols(symbols);
+        logger.info("Generating Piechart... Market Data: " + marketDataList);
+    
+        // Create a map of symbol to price for quick lookup
+        Map<String, Double> symbolToPriceMap = marketDataList.stream()
+                .collect(Collectors.toMap(MarketData::getSymbol, marketData -> marketData.getPrice().doubleValue()));
+        logger.info("Generating Piechart... Symbol to Price Map: " + symbolToPriceMap);
+
         // Handle the case when categoryName is "None"
         if ("None".equalsIgnoreCase(categoryName)) {
-            return generatePieChartDataForAssets(accountId);
+            return generatePieChartDataForAssets(accountId, holdings, symbolToPriceMap);
         }
 
         // Fetch the category ID for the given account and category name
@@ -58,87 +76,46 @@ public class PortfolioService {
         
         logger.info("Category ID for category name '" + categoryName + "' is: " + categoryId);
 
-        // Fetch subcategories for the given category ID
-        List<Category> subcategories = subcategoriesRepository.findSubcategoriesByParentId(accountId, categoryId);
+        // Fetch holdings categories for the given account ID
+        List<Map<String, Object>> holdingsCategories = holdingsCategoriesRepository.findHoldingsByAccountId(accountId);
+
+        // Filter holdings categories by the specified category
+        List<Map<String, Object>> filteredHoldingsCategories = holdingsCategories.stream()
+        .filter(category -> category.get("category") != null && category.get("category").equals(categoryName)) // Filter by category
+        .collect(Collectors.toList());
+
+        // Log the filtered holdings categories
+        filteredHoldingsCategories.stream()
+                .forEach(category -> logger.info("Holdings Categories, Asset Names:" + category.get("asset_name") + ", Category: " + category.get("category") + ", Subcategory: " + category.get("subcategory")));
+
+        Map<String, String> assetNamesSubcategoryMap = filteredHoldingsCategories.stream()
+                .collect(Collectors.toMap(
+                        category -> (String) category.get("asset_name"),
+                        category -> (String) category.get("subcategory"),
+                        (existing, replacement) -> existing // Handle duplicate keys by keeping the existing value
+                ));
         
-        subcategories.forEach(subcategory -> {
-            logger.info("Subcategory: " + subcategory.getCategoryName());
-        });
-
-        // Fetch asset name and subcategory map for the category
-        List<Map<String, Object>> assetNamesSubcategoryEntries = holdingsCategoriesRepository.findHoldingsByCategoryId(accountId, categoryId);
-        Map<String, Object> assetNamesSubcategoryMap = assetNamesSubcategoryEntries.stream()
-            .collect(Collectors.toMap(
-                entry -> (String) entry.get("asset_name"),
-                entry -> entry.get("subcategory_name")
-            ));
-
-        // Print the asset names and subcategories
-        assetNamesSubcategoryMap.forEach((assetName, subcategory) -> {
-            logger.info("Asset Name: " + assetName + ", Subcategory: " + subcategory);
-        });
-
-        // Fetch holdings for the given account ID
-        List<Holdings> holdings = holdingsRepository.findHoldingsByAccount(accountId);
+        assetNamesSubcategoryMap.forEach((assetName, subcategoryName) -> 
+                logger.info("Asset Name: {}, Subcategory Name: {}", assetName, subcategoryName));
 
         // Generate pie chart data based on subcategories
-        return generatePieChartDataForSubcategories(holdings, assetNamesSubcategoryMap);
-    }
-
-
-    private List<Map<String, Object>> generatePieChartDataForAssets(UUID accountId) {
-        // Fetch holdings for the given account ID
-        List<Holdings> holdings = holdingsRepository.findHoldingsByAccount(accountId);
-    
-        // Fetch market data for the symbols
-        List<String> symbols = holdings.stream()
-                .map(Holdings::getSymbol)
-                .distinct()
-                .collect(Collectors.toList());
-        List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbols(symbols);
-    
-        // Create a map of symbol to price for quick lookup
-        Map<String, Double> symbolToPriceMap = marketDataList.stream()
-                .collect(Collectors.toMap(MarketData::getSymbol, marketData -> marketData.getPrice().doubleValue()));
-    
-        // Generate pie chart data
-        return holdings.stream()
-                .map(holding -> {
-                    String symbol = holding.getSymbol();
-                    Double totalBalance = holding.getTotalBalance();
-                    Double price = symbolToPriceMap.getOrDefault(symbol, 0.0); // Default price to 0.0 if not found
-                    Double value = totalBalance * price; // Calculate value using price and total balance
-    
-                    return Map.<String, Object>of(
-                            "name", holding.getAssetName(),
-                            "value", value,
-                            "color", getRandomColor() // Assign a random color
-                    );
-                })
-                .collect(Collectors.toList());
-    }
-
-    private List<Map<String, Object>> generatePieChartDataForSubcategories(List<Holdings> holdings, Map<String, Object> assetNamesSubcategoryMap) {
         Map<String, Double> subcategoryTotals = new HashMap<>();
 
         for (Holdings holding : holdings) {
             String symbol = holding.getSymbol();
             Double totalBalance = holding.getTotalBalance();
-            String subcategory = (String) assetNamesSubcategoryMap.get(holding.getAssetName());
-
-            // Use "Unnamed" if subcategory is null
-            if (subcategory == null) {
-                subcategory = "Unnamed";
-            }
+            String subcategory = assetNamesSubcategoryMap.getOrDefault(holding.getAssetName(), "Unnamed"); // Use "Unnamed" if subcategory is null
+            logger.info("Generating Piechart... Asset Name: " + holding.getAssetName() + ", Subcategory: " + subcategory);
 
             // Calculate total value
             if (totalBalance != null) {
-                double totalValue = totalBalance * 0; // Placeholder for price, to be replaced with actual price from market data
+                double totalValue = totalBalance * symbolToPriceMap.get(symbol); // Placeholder for price, to be replaced with actual price from market data
                 subcategoryTotals.put(subcategory, subcategoryTotals.getOrDefault(subcategory, 0.0) + totalValue);
             }
+            logger.info("Generating Piechart... Subcategory: " + subcategory + ", Total Value: " + subcategoryTotals.get(subcategory));
         }
 
-        return subcategoryTotals.entrySet().stream()
+        List<Map<String, Object>> pieChartData = subcategoryTotals.entrySet().stream()
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())) // Sort by total value descending
                 .map(entry -> Map.<String, Object>of(
                         "name", entry.getKey(),
@@ -146,6 +123,30 @@ public class PortfolioService {
                         "color", getRandomColor() // Assign a random color
                 ))
                 .collect(Collectors.toList());
+        logger.info("Generatated pie chart data: " + pieChartData);
+        return pieChartData;
+    }
+
+    private List<Map<String, Object>> generatePieChartDataForAssets(UUID accountId, List<Holdings> holdings, Map<String, Double> symbolToPriceMap) {
+        // Generate pie chart data
+        List<Map<String, Object>> pieChartData = holdings.stream()
+                .map(holding -> {
+                    String symbol = holding.getSymbol();
+                    Double totalBalance = holding.getTotalBalance();
+                    Double price = symbolToPriceMap.getOrDefault(symbol, 0.0); // Default price to 0.0 if not found
+                    Double value = totalBalance * price; // Calculate value using price and total balance
+
+                    logger.info("Generating Piechart... Asset Name: " + holding.getAssetName() + ", Symbol: " + symbol + ", Total Balance: " + totalBalance + ", Price: " + price + ", Value: " + value);
+
+                    return Map.<String, Object>of(
+                            "name", holding.getAssetName(),
+                            "value", value,
+                            "color", getRandomColor() // Assign a random color
+                    );
+                })
+                .collect(Collectors.toList());
+        logger.info("Generated pie chart data: " + pieChartData);
+        return pieChartData;
     }
 
     private String getRandomColor() {

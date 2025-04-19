@@ -16,6 +16,10 @@
 
     <!-- Logger for PortfolioService -->
     <logger name="com.fintrack.service" level="debug" />
-    <logger name="org.hibernate.SQL" level="info" />
-    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="info" />
+    <logger name="org.hibernate.SQL" level="debug" />
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="trace" />
+
+    <!-- Hibernate Session and Transaction Logs -->
+    <logger name="org.hibernate.engine.transaction" level="debug" />
+    <logger name="org.hibernate.event.internal" level="debug" />
 </configuration>

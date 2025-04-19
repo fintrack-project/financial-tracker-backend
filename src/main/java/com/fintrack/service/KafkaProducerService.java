@@ -51,8 +51,7 @@ public class KafkaProducerService {
                 future.get(10, TimeUnit.SECONDS); // Timeout after 10 seconds
                 success = true; // If no exception, mark as success
             } catch (Exception e) {
-                System.err.printf("Attempt %d: Exception occurred while sending message to topic: %s, error: %s%n",
-                        attempt.get(), topic, e.getMessage());
+                logger.error("Attempt {}: Exception occurred while sending message to topic: {}, error: {}", attempt.get(), topic, e.getMessage());
                 if (attempt.get() < maxRetries) {
                     try {
                         Thread.sleep(retryIntervalMillis); // Wait before retrying
