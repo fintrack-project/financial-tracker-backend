@@ -5,6 +5,9 @@ import com.fintrack.constants.KafkaTopics;
 import com.fintrack.model.MarketData;
 import com.fintrack.repository.MarketDataRepository;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +15,8 @@ import java.util.*;
 
 @Service
 public class MarketDataService {
+
+    private static final Logger logger = LoggerFactory.getLogger(MarketDataService.class);
 
     private final MarketDataRepository marketDataRepository;
     private final KafkaProducerService kafkaProducerService;
@@ -35,7 +40,7 @@ public class MarketDataService {
             List<MarketData> recentMarketData = marketDataRepository.findMarketDataBySymbols(symbols);
 
             if (recentMarketData.isEmpty()) {
-                System.out.println("No data found for symbols: " + symbols);
+                logger.info("No data found for symbols: " + symbols);
                 break; // Exit if no data is found
             }
 
@@ -51,7 +56,7 @@ public class MarketDataService {
                 Thread.sleep(2000); // Wait for 2 seconds before retrying
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                System.err.println("Retry interrupted: " + e.getMessage());
+                logger.error("Retry interrupted: " + e.getMessage());
                 break;
             }
 
@@ -59,7 +64,7 @@ public class MarketDataService {
         }
 
         if (result.size() < symbols.size()) {
-            System.err.println("Failed to fetch data for all symbols after " + maxRetries + " retries.");
+            logger.error("Failed to fetch data for all symbols after " + maxRetries + " retries.");
         }
 
         return result;
@@ -77,23 +82,23 @@ public class MarketDataService {
 
             // Publish the JSON payload to the Kafka topic
             kafkaProducerService.publishEvent(KafkaTopics.MARKET_DATA_UPDATE_REQUEST.getTopicName(), jsonPayload);
-            System.out.println("Sent market data update request: " + jsonPayload);
+            logger.info("Sent market data update request: " + jsonPayload);
         } catch (Exception e) {
-            System.err.println("Failed to send market data update request: " + e.getMessage());
+            logger.error("Failed to send market data update request: " + e.getMessage());
         }
     }
 
     @KafkaListener(topics = "#{T(com.fintrack.constants.KafkaTopics).MARKET_DATA_UPDATE_COMPLETE.getTopicName()}", groupId = "market-data-group")
     public void onMarketDataUpdateComplete(String message) {
-        System.out.println("Received market data update complete message: " + message);
+        logger.info("Received " + KafkaTopics.MARKET_DATA_UPDATE_COMPLETE.getTopicName() + " message: " + message);
 
         // No need to save the data; just log the message
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             Map<String, Object> payload = objectMapper.readValue(message, Map.class);
-            System.out.println("MarketDataUpdate: " + payload);
+            logger.info("Market data update complete payload: " + payload);
         } catch (Exception e) {
-            System.err.println("Failed to process market data update complete message: " + e.getMessage());
+            logger.error("Failed to process market data update complete message: " + e.getMessage());
         }
     }
 }

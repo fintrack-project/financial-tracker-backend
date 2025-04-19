@@ -3,6 +3,9 @@ package com.fintrack.service;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fintrack.constants.KafkaTopics;
 import com.fintrack.model.Holdings;
@@ -12,6 +15,9 @@ import java.util.*;
 
 @Service
 public class HoldingsService {
+
+    private static final Logger logger = LoggerFactory.getLogger(HoldingsService.class);
+
     private HoldingsRepository holdingsRepository;
 
     public HoldingsService(HoldingsRepository holdingsRepository) {
@@ -29,13 +35,13 @@ public class HoldingsService {
         try {
             Map<String, Object> payload = objectMapper.readValue(message, Map.class);
             UUID accountId = UUID.fromString((String) payload.get("account_id"));
-            System.out.println("Received " + KafkaTopics.PROCESS_TRANSACTIONS_TO_HOLDINGS_COMPLETE.getTopicName() + " for account: " + accountId);
+            logger.info("Received " + KafkaTopics.PROCESS_TRANSACTIONS_TO_HOLDINGS_COMPLETE.getTopicName() + " for account: " + accountId);
 
             // Fetch the latest holdings
             List<Holdings> holdings = getHoldingsByAccount(accountId);
-            System.out.println("Latest holdings: " + holdings);
+            logger.info("Latest holdings: " + holdings);
         } catch (Exception e) {
-            System.err.println("Failed to process message: " + e.getMessage());
+            logger.error("Error processing message: " + e.getMessage(), e);
         }
     }
 }
