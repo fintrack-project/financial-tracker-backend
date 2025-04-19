@@ -1,6 +1,7 @@
 package com.fintrack.service;
 
 import com.fintrack.repository.*;
+import com.fintrack.component.PieChart;
 import com.fintrack.model.*;
 
 import org.apache.logging.log4j.LogManager;
@@ -57,15 +58,11 @@ public class PortfolioService {
                 .collect(Collectors.toList());
         List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbols(symbols);
         logger.info("Generating Piechart... Market Data: " + marketDataList);
-    
-        // Create a map of symbol to price for quick lookup
-        Map<String, Double> symbolToPriceMap = marketDataList.stream()
-                .collect(Collectors.toMap(MarketData::getSymbol, marketData -> marketData.getPrice().doubleValue()));
-        logger.info("Generating Piechart... Symbol to Price Map: " + symbolToPriceMap);
 
         // Handle the case when categoryName is "None"
         if ("None".equalsIgnoreCase(categoryName)) {
-            return generatePieChartDataForAssets(accountId, holdings, symbolToPriceMap);
+            PieChart pieChart = new PieChart(holdings, marketDataList);
+            return pieChart.getData();
         }
 
         // Fetch the category ID for the given account and category name
@@ -77,83 +74,9 @@ public class PortfolioService {
         logger.info("Category ID for category name '" + categoryName + "' is: " + categoryId);
 
         // Fetch holdings categories for the given account ID
-        List<Map<String, Object>> holdingsCategories = holdingsCategoriesRepository.findHoldingsByAccountId(accountId);
+        List<HoldingsCategory> holdingsCategories = holdingsCategoriesRepository.findHoldingsCategoryByAccountId(accountId);
 
-        // Filter holdings categories by the specified category
-        List<Map<String, Object>> filteredHoldingsCategories = holdingsCategories.stream()
-        .filter(category -> category.get("category") != null && category.get("category").equals(categoryName)) // Filter by category
-        .collect(Collectors.toList());
-
-        // Log the filtered holdings categories
-        filteredHoldingsCategories.stream()
-                .forEach(category -> logger.info("Holdings Categories, Asset Names:" + category.get("asset_name") + ", Category: " + category.get("category") + ", Subcategory: " + category.get("subcategory")));
-
-        Map<String, String> assetNamesSubcategoryMap = filteredHoldingsCategories.stream()
-                .collect(Collectors.toMap(
-                        category -> (String) category.get("asset_name"),
-                        category -> (String) category.get("subcategory"),
-                        (existing, replacement) -> existing // Handle duplicate keys by keeping the existing value
-                ));
-        
-        assetNamesSubcategoryMap.forEach((assetName, subcategoryName) -> 
-                logger.info("Asset Name: {}, Subcategory Name: {}", assetName, subcategoryName));
-
-        // Generate pie chart data based on subcategories
-        Map<String, Double> subcategoryTotals = new HashMap<>();
-
-        for (Holdings holding : holdings) {
-            String symbol = holding.getSymbol();
-            Double totalBalance = holding.getTotalBalance();
-            String subcategory = assetNamesSubcategoryMap.getOrDefault(holding.getAssetName(), "Unnamed"); // Use "Unnamed" if subcategory is null
-            logger.info("Generating Piechart... Asset Name: " + holding.getAssetName() + ", Subcategory: " + subcategory);
-
-            // Calculate total value
-            if (totalBalance != null) {
-                double totalValue = totalBalance * symbolToPriceMap.get(symbol); // Placeholder for price, to be replaced with actual price from market data
-                subcategoryTotals.put(subcategory, subcategoryTotals.getOrDefault(subcategory, 0.0) + totalValue);
-            }
-            logger.info("Generating Piechart... Subcategory: " + subcategory + ", Total Value: " + subcategoryTotals.get(subcategory));
-        }
-
-        List<Map<String, Object>> pieChartData = subcategoryTotals.entrySet().stream()
-                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())) // Sort by total value descending
-                .map(entry -> Map.<String, Object>of(
-                        "name", entry.getKey(),
-                        "value", entry.getValue(),
-                        "color", getRandomColor() // Assign a random color
-                ))
-                .collect(Collectors.toList());
-        logger.info("Generatated pie chart data: " + pieChartData);
-        return pieChartData;
-    }
-
-    private List<Map<String, Object>> generatePieChartDataForAssets(UUID accountId, List<Holdings> holdings, Map<String, Double> symbolToPriceMap) {
-        // Generate pie chart data
-        List<Map<String, Object>> pieChartData = holdings.stream()
-                .map(holding -> {
-                    String symbol = holding.getSymbol();
-                    Double totalBalance = holding.getTotalBalance();
-                    Double price = symbolToPriceMap.getOrDefault(symbol, 0.0); // Default price to 0.0 if not found
-                    Double value = totalBalance * price; // Calculate value using price and total balance
-
-                    logger.info("Generating Piechart... Asset Name: " + holding.getAssetName() + ", Symbol: " + symbol + ", Total Balance: " + totalBalance + ", Price: " + price + ", Value: " + value);
-
-                    return Map.<String, Object>of(
-                            "name", holding.getAssetName(),
-                            "value", value,
-                            "color", getRandomColor() // Assign a random color
-                    );
-                })
-                .collect(Collectors.toList());
-        logger.info("Generated pie chart data: " + pieChartData);
-        return pieChartData;
-    }
-
-    private String getRandomColor() {
-        Random random = new Random();
-        int r = random.nextInt(256);
-        int g = random.nextInt(256);
-        int b = random.nextInt(256);
-        return String.format("#%02x%02x%02x", r, g, b); // Return color in hex format
+        PieChart pieChart = new PieChart(holdings, marketDataList, holdingsCategories, categoryName);
+        return pieChart.getData();
     }
 }

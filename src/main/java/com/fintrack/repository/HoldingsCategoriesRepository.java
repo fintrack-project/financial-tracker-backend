@@ -77,6 +77,13 @@ public interface HoldingsCategoriesRepository extends JpaRepository<HoldingsCate
     );
 
     @Query(value = """
+        SELECT *
+        FROM holdings_categories h
+        WHERE h.account_id = :accountId
+        """, nativeQuery = true)
+    List<HoldingsCategory> findHoldingsCategoryByAccountId(@Param("accountId") UUID accountId);
+
+    @Query(value = """
         SELECT h.asset_name, h.category AS category, h.subcategory AS subcategory, c.priority AS priority
         FROM holdings_categories h
         LEFT JOIN categories c ON h.category_id = c.category_id
