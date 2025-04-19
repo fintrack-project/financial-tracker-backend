@@ -1,6 +1,7 @@
 package com.fintrack.component;
 
 import java.util.*;
+import java.util.Locale.Category;
 import java.util.stream.Collectors;
 
 import com.fintrack.model.Holdings;
@@ -12,6 +13,7 @@ public class PieChart {
     private List<Holdings> holdings;
     private List<MarketData> marketData;
     private List<HoldingsCategory> holdingsCategories;
+    private List<Category> subcategories;
     private String categoryName;
     private List<PieChartData> pieChartData;
     private Map<String, String> subcategoryColorMap = new HashMap<>();
@@ -26,6 +28,15 @@ public class PieChart {
         this.holdings = holdings;
         this.marketData = marketData;
         this.holdingsCategories = holdingsCategories;
+        this.categoryName = categoryName;
+        this.pieChartData = generatePieChartDataByCategoryName(categoryName);
+    }
+
+    public PieChart(List<Holdings> holdings, List<MarketData> marketData, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, String categoryName) {
+        this.holdings = holdings;
+        this.marketData = marketData;
+        this.holdingsCategories = holdingsCategories;
+        this.subcategories = subcategories;
         this.categoryName = categoryName;
         this.pieChartData = generatePieChartDataByCategoryName(categoryName);
     }

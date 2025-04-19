@@ -50,11 +50,11 @@ public class HoldingsCategory {
         this.id = id;
     }
 
-    public String getAccountId() {
+    public UUID getAccountId() {
         return accountId;
     }
 
-    public void setAccountId(String accountId) {
+    public void setAccountId(UUID accountId) {
         this.accountId = accountId;
     }
 

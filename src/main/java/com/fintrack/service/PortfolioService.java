@@ -48,8 +48,6 @@ public class PortfolioService {
 
         // Fetch holdings for the given account ID
         List<Holdings> holdings = holdingsRepository.findHoldingsByAccount(accountId);
-        holdings.stream()
-                .forEach(holding -> logger.info("Holdings: " + holding.getAssetName() + ", Symbol: " + holding.getSymbol() + ", Total Balance: " + holding.getTotalBalance()));
 
         // Fetch market data for the symbols
         List<String> symbols = holdings.stream()
@@ -73,10 +71,21 @@ public class PortfolioService {
         
         logger.info("Category ID for category name '" + categoryName + "' is: " + categoryId);
 
+        // Fetch subcategories for the given account ID and category ID
+        List<Category> subcategories = subcategoriesRepository.findSubcategoriesByParentId(accountId, categoryId);
+        if (subcategories.isEmpty()) {
+            throw new IllegalArgumentException("No subcategories found for the given account and category ID.");
+        }
+
         // Fetch holdings categories for the given account ID
         List<HoldingsCategory> holdingsCategories = holdingsCategoriesRepository.findHoldingsCategoryByAccountId(accountId);
 
-        PieChart pieChart = new PieChart(holdings, marketDataList, holdingsCategories, categoryName);
+        PieChart pieChart = new PieChart(
+          holdings, 
+          marketDataList, 
+          holdingsCategories, 
+          categoryName);
+        // PieChart pieChart = new PieChart(holdings, marketDataList, holdingsCategories, subcategories, categoryName);
         return pieChart.getData();
     }
 }
