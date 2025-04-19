@@ -49,4 +49,10 @@ public class CategoriesController {
         Map<String, Object> response = categoriesService.getCategoriesAndSubcategories(accountId);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/fetch/names")
+    public ResponseEntity<List<String>> getCategoryNames(@RequestParam UUID accountId) {
+        List<String> categoryNames = categoriesService.getCategoryNames(accountId);
+        return ResponseEntity.ok(categoryNames);
+    }
 }

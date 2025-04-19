@@ -74,6 +74,13 @@ public class CategoriesService {
         categoriesRepository.updateCategoryName(accountId, categoryId, newCategoryName);
     }
 
+    public List<String> getCategoryNames(UUID accountId) {
+        // Fetch category names from the repository
+        return categoriesRepository.findCategoriesByAccountId(accountId).stream()
+                .map(Category::getCategoryName)
+                .collect(Collectors.toList());
+    }
+
     @Transactional(readOnly = true)
     public Map<String, Object> getCategoriesAndSubcategories(UUID accountId) {
         // Fetch all top-level categories (parent_id is NULL)
