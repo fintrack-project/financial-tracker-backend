@@ -3,6 +3,9 @@ package com.fintrack.service;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -12,6 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Service
 public class KafkaProducerService {
 
+    private static final Logger logger = LoggerFactory.getLogger(KafkaProducerService.class);
     private final KafkaTemplate<String, String> kafkaTemplate;
 
     public KafkaProducerService(KafkaTemplate<String, String> kafkaTemplate) {
@@ -20,9 +24,9 @@ public class KafkaProducerService {
 
     public void publishEvent(String topic, String message) {
         kafkaTemplate.send(topic, message)
-            .thenAccept(result -> System.out.println("Message sent successfully to topic: " + topic))
+            .thenAccept(result -> logger.info("Message sent successfully to topic: " + topic + ", partition: " + result.getRecordMetadata().partition() + ", offset: " + result.getRecordMetadata().offset()))
             .exceptionally(ex -> {
-                System.err.println("Failed to send message to topic: " + topic + " - " + ex.getMessage());
+                logger.error("Failed to send message to topic: " + topic + ", error: " + ex.getMessage());
                 return null;
             });
     }
@@ -36,14 +40,10 @@ public class KafkaProducerService {
                 attempt.incrementAndGet(); // Increment the attempt count
                 CompletableFuture<Void> future = kafkaTemplate.send(topic, message)
                         .thenAccept(result -> {
-                            System.out.printf("Message sent successfully to topic: %s, partition: %d, offset: %d%n",
-                                    result.getRecordMetadata().topic(),
-                                    result.getRecordMetadata().partition(),
-                                    result.getRecordMetadata().offset());
+                            logger.info("Message sent successfully to topic: " + topic + ", partition: " + result.getRecordMetadata().partition() + ", offset: " + result.getRecordMetadata().offset());
                         })
                         .exceptionally(ex -> {
-                            System.err.printf("Attempt %d: Failed to send message to topic: %s, error: %s%n",
-                                    attempt.get(), topic, ex.getMessage()); // Use attempt.get() here
+                            logger.error("Failed to send message to topic: " + topic + ", error: " + ex.getMessage());
                             return null;
                         });
     

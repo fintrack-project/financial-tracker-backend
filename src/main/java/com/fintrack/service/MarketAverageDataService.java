@@ -4,6 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fintrack.constants.KafkaTopics;
 import com.fintrack.model.MarketAverageData;
 import com.fintrack.repository.MarketAverageDataRepository;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -14,6 +18,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class MarketAverageDataService {
+
+    private static final Logger logger = LoggerFactory.getLogger(MarketAverageDataService.class);
 
     private final KafkaProducerService kafkaProducerService;
     private final MarketAverageDataRepository marketAverageDataRepository;
@@ -41,7 +47,7 @@ public class MarketAverageDataService {
             result.clear();
             List<MarketAverageData> recentMarketAverageData = marketAverageDataRepository.findMarketAverageDataBySymbols(decodedSymbols);
             if(recentMarketAverageData.isEmpty()) {
-                System.out.println("No data found for symbols: " + decodedSymbols);
+                logger.info("No data found for symbols: " + decodedSymbols);
                 break; // Exit if no data is found
             }
 
@@ -65,7 +71,7 @@ public class MarketAverageDataService {
                 Thread.sleep(2000); // Wait for 2 seconds before retrying
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                System.err.println("Retry interrupted: " + e.getMessage());
+                logger.error("Retry interrupted: " + e.getMessage());
                 break;
             }
 
@@ -73,7 +79,7 @@ public class MarketAverageDataService {
         }
 
         if (result.size() < decodedSymbols.size()) {
-            System.err.println("Failed to fetch data for all symbols after " + maxRetries + " retries.");
+            logger.error("Failed to fetch data for all symbols after " + maxRetries + " retries.");
         }
 
         return result;
@@ -91,25 +97,25 @@ public class MarketAverageDataService {
 
             // Publish the JSON payload to the Kafka topic
             kafkaProducerService.publishEvent(KafkaTopics.MARKET_AVERAGE_DATA_UPDATE_REQUEST.getTopicName(), jsonPayload);
-            System.out.println("Sent market average data update request: " + jsonPayload);
+            logger.info("Sent market average data update request: " + jsonPayload);
         } catch (Exception e) {
-            System.err.println("Failed to send market average data update request: " + e.getMessage());
+            logger.error("Failed to send market average data update request: " + e.getMessage());
         }
     }
 
     @KafkaListener(topics = "#{T(com.fintrack.constants.KafkaTopics).MARKET_AVERAGE_DATA_UPDATE_COMPLETE.getTopicName()}", groupId = "market-average-data-group")
     public void onMarketAverageDataUpdateComplete(String message) {
-        System.out.println("Received market average data update complete message: " + message);
+        logger.info("Received " + KafkaTopics.MARKET_AVERAGE_DATA_UPDATE_COMPLETE.getTopicName() + " message: " + message);
 
         // No need to save the data; just log the message
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             List<Map<String, Object>> indexDataList = objectMapper.readValue(message, List.class);
             for (Map<String, Object> indexData : indexDataList) {
-                System.out.println("MarketAverageData: " + indexData);
+                logger.info("MarketAverageData: " + indexData);
             }
         } catch (Exception e) {
-            System.err.println("Failed to process market average data update complete message: " + e.getMessage());
+            logger.error("Failed to process market average data update complete message: " + e.getMessage());
         }
     }
 }

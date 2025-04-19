@@ -5,6 +5,9 @@ import com.fintrack.repository.CategoriesRepository;
 import com.fintrack.repository.SubcategoriesRepository;
 import com.fintrack.model.Category;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +15,8 @@ import java.util.*;
 
 @Service
 public class HoldingsCategoriesService {
+
+    private static final Logger logger = LogManager.getLogger(HoldingsCategoriesService.class);
 
     private final HoldingsCategoriesRepository holdingsCategoriesRepository;
     private final CategoriesRepository categoriesRepository;
@@ -28,7 +33,7 @@ public class HoldingsCategoriesService {
 
     @Transactional
     public void updateHoldingsCategories(UUID accountId, Map<String, Map<String, String>> holdingsCategories) {
-        System.out.println("Received holdingsCategories: " + holdingsCategories);
+        logger.info("Received holdingsCategories: " + holdingsCategories);
     
         for (Map.Entry<String, Map<String, String>> categoryEntry : holdingsCategories.entrySet()) {
             String categoryName = categoryEntry.getKey();
@@ -77,7 +82,7 @@ public class HoldingsCategoriesService {
 
     @Transactional
     public void addHoldingsCategories(UUID accountId, Map<String, Map<String, String>> holdingsCategories) {
-        System.out.println("Received holdingsCategories: " + holdingsCategories);
+        logger.info("Received holdingsCategories: " + holdingsCategories);
     
         for (Map.Entry<String, Map<String, String>> categoryEntry : holdingsCategories.entrySet()) {
             String categoryName = categoryEntry.getKey();
