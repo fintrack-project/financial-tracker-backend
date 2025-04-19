@@ -81,11 +81,11 @@ public class PieChart {
         .collect(Collectors.toList());
 
         Map<String, String> assetNamesSubcategoryMap = filteredHoldingsCategories.stream()
-                .collect(Collectors.toMap(
-                        category -> (String) category.getAssetName(),
-                        category -> (String) category.getSubcategory(),
-                        (existing, replacement) -> existing // Handle duplicate keys by keeping the existing value
-                ));
+            .collect(Collectors.toMap(
+                HoldingsCategory::getAssetName,
+                category -> category.getSubcategory() != null ? category.getSubcategory() : "Unnamed", // Assign "Unnamed" if subcategory is null
+                (existing, replacement) -> existing // Handle duplicate keys by keeping the existing value
+            ));
         
         List<PieChartData> pieChartData = holdings.stream()
                 .filter(holding -> assetNamesSubcategoryMap.containsKey(holding.getAssetName())) // Ensure filtering by valid keys
