@@ -44,8 +44,12 @@ public class PortfolioService {
             throw new IllegalArgumentException("Account ID and category name must not be null or empty.");
         }
 
+        logger.debug("Calculating portfolio pie chart data for account ID: " + accountId + " and category name: " + categoryName);
+
         // Fetch holdings for the given account ID
         List<Holdings> holdings = holdingsRepository.findHoldingsByAccount(accountId);
+
+        logger.debug("Fetched holdings: " + holdings);
 
         // Fetch market data for the symbols
         List<String> symbols = holdings.stream()
@@ -58,6 +62,8 @@ public class PortfolioService {
             return pieChart.getData();
         }
 
+        logger.debug("Fetched market data: " + marketDataList);
+
         // Fetch the category ID for the given account and category name
         Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
         if (categoryId == null) {
@@ -67,6 +73,10 @@ public class PortfolioService {
         if (subcategories.isEmpty()) {
             throw new IllegalArgumentException("No subcategories found for the given account and category ID.");
         }
+
+        subcategories.forEach(subcategory -> {
+            logger.debug("Subcategory: " + subcategory.getCategoryName());
+        });
 
         // Fetch holdings categories for the given account ID
         List<HoldingsCategory> holdingsCategories = holdingsCategoriesRepository.findHoldingsCategoryByAccountId(accountId);
