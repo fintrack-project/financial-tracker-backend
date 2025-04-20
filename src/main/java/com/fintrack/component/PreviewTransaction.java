@@ -1,4 +1,6 @@
-package com.fintrack.model;
+package com.fintrack.component;
+
+import com.fintrack.model.Transaction;
 
 public class PreviewTransaction extends Transaction {
     private boolean markDelete;
