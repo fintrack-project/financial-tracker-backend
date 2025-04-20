@@ -1,6 +1,6 @@
 package com.fintrack.controller;
 
-import com.fintrack.model.PreviewTransaction;
+import com.fintrack.component.PreviewTransaction;
 import com.fintrack.model.Transaction;
 import com.fintrack.service.TransactionService;
 
