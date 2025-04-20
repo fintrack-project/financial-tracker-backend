@@ -100,7 +100,7 @@ public class TransactionTable<T extends OverviewTransaction> {
                 .thenComparing(OverviewTransaction::getCredit) // Ascending order of credit
                 .thenComparing(OverviewTransaction::getDebit)); // Ascending order of debit
 
-        logger.info("Transactions sorted in descending order of date, ascending order of asset name, credit, and debit.");
+
         transactions.forEach(transaction -> 
             logger.info("Sorted transaction, date: {}, assetName: {}, credit: {}, debit: {}",
                 transaction.getDate(), transaction.getAssetName(), transaction.getCredit(), transaction.getDebit())
@@ -113,13 +113,9 @@ public class TransactionTable<T extends OverviewTransaction> {
             return; // Already filled
         }
 
-        logger.info("Starting total balance calculation...");
-        logger.info("Initial totalBalanceAfterMap: {}", totalBalanceAfterMap);
-        logger.info("Initial initialTotalBalanceBeforeMap: {}", initialTotalBalanceBeforeMap);
 
         // Deep copy initialTotalBalanceBeforeMap to totalBalanceBeforeMap
         Map<String, BigDecimal> totalBalanceBeforeMap = new HashMap<>(initialTotalBalanceBeforeMap);
-        logger.info("Deep copied initialTotalBalanceBeforeMap to totalBalanceBeforeMap: {}", totalBalanceBeforeMap);
 
         // Temporarily sort transactions in reversed order of date for calculation
         transactions.sort(Comparator
@@ -128,20 +124,10 @@ public class TransactionTable<T extends OverviewTransaction> {
                 .thenComparing(OverviewTransaction::getCredit, Comparator.reverseOrder()) // Descending order of credit
                 .thenComparing(OverviewTransaction::getDebit, Comparator.reverseOrder())); // Descending order of debit
 
-        logger.info("Transactions sorted in ascending order of date for calculation.");
-        transactions.forEach(transaction -> 
-            logger.info("Sorted transaction, date: {}, assetName: {}, credit: {}, debit: {}",
-                transaction.getDate(), transaction.getAssetName(), transaction.getCredit(), transaction.getDebit())
-        );
-
         for (T transaction : transactions) {
             String assetName = transaction.getAssetName();
             BigDecimal balanceBefore = totalBalanceBeforeMap.getOrDefault(assetName, BigDecimal.ZERO);
             BigDecimal balanceAfter = balanceBefore.add(transaction.getCredit()).subtract(transaction.getDebit());
-
-            logger.info("Processing transaction: {}", transaction);
-            logger.info("Current balanceBefore for asset {}: {}", assetName, balanceBefore);
-            logger.info("Current balanceAfter for asset {}: {}", assetName, balanceAfter);
 
             transaction.setTotalBalanceBefore(balanceBefore);
             transaction.setTotalBalanceAfter(balanceAfter);
@@ -150,24 +136,11 @@ public class TransactionTable<T extends OverviewTransaction> {
             totalBalanceBeforeMap.put(assetName, balanceAfter);
             totalBalanceAfterMap.put(assetName, balanceAfter);
 
-            logger.info("Updated balanceAfter for asset {}: {}", assetName, totalBalanceAfterMap.get(assetName));
-            logger.info("Updated balanceBefore for asset {}: {}", assetName, totalBalanceBeforeMap.get(assetName));
- 
         }
         isTotalBalancesFilled = true;
 
-        logger.info("Total balance calculation completed.");
-        logger.info("Final totalBalanceAfterMap: {}", totalBalanceAfterMap);
-        logger.info("Final initialTotalBalanceBeforeMap: {}", initialTotalBalanceBeforeMap);
-
-
         // Restore the original order of transactions
         sortTransactions();
-        logger.info("Transactions restored to original sorting order.");
-        transactions.forEach(transaction -> 
-            logger.info("Sorted transaction, date: {}, assetName: {}, credit: {}, debit: {}",
-                transaction.getDate(), transaction.getAssetName(), transaction.getCredit(), transaction.getDebit())
-        );
     }
 
     public void clear() {

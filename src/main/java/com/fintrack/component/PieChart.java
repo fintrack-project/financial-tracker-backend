@@ -10,6 +10,8 @@ import com.fintrack.model.Category;
 
 public class PieChart {
 
+    private static final Logger logger = LoggerFactory.getLogger(PieChart.class);
+
     private static final List<String> COLORS = Arrays.asList(
         "#4CAF50", // Green
         "#2196F3", // Blue

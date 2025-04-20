@@ -18,7 +18,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.time.LocalDate;
 
 import org.slf4j.Logger;
@@ -74,19 +73,9 @@ public class TransactionService {
         // Step 4: Find the 1st date of the month for the earliest date
         LocalDate firstDateOfMonth = earliestDate.withDayOfMonth(1);
         LocalDate lastDateOfMonth = firstDateOfMonth.withDayOfMonth(firstDateOfMonth.lengthOfMonth());
-        logger.info("First date of the month for earliest date: {}", firstDateOfMonth);
-        logger.info("Last date of the month for earliest date: {}", lastDateOfMonth);
 
         // Fetch monthly holdings after the 1st date of the month
         List<HoldingsMonthly> monthlyHoldings = holdingsMonthlyRepository.findByAccountIdAndDateBetween(accountId, firstDateOfMonth, lastDateOfMonth);
-
-        monthlyHoldings.forEach(
-            holding -> {
-                logger.info("Monthly Holdings, Asset name : " + holding.getAssetName() +
-                    ", Date: " + holding.getDate() +
-                    ", Total Balance: " + holding.getTotalBalance());
-            }
-        );
 
         // Step 5: Set initialTotalBalanceBeforeMap using monthly holdings
         Map<String, BigDecimal> initialTotalBalanceBeforeMap = new HashMap<>();
@@ -99,19 +88,8 @@ public class TransactionService {
             initialTotalBalanceBeforeMap.putIfAbsent(assetName, BigDecimal.ZERO);
         }
 
-        logger.info("Initial total balance before map: " + initialTotalBalanceBeforeMap);
-
         // Step 6: Calculate total balance up to the initial date
         List<Transaction> transactionsBeforeEarliestDate = transactionRepository.findByAccountIdAndDateBefore(accountId, earliestDate);
-
-        transactionsBeforeEarliestDate.forEach(
-            transaction -> {
-                logger.info("Transaction before earliest date, Asset name : " + transaction.getAssetName() +
-                    ", Date: " + transaction.getDate() +
-                    ", Credit: " + transaction.getCredit() +
-                    ", Debit: " + transaction.getDebit());
-            }
-        );;
 
         for (Transaction transaction : transactionsBeforeEarliestDate) {
             String assetName = transaction.getAssetName();

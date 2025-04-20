@@ -47,7 +47,7 @@ public class MarketAverageDataService {
             result.clear();
             List<MarketAverageData> recentMarketAverageData = marketAverageDataRepository.findMarketAverageDataBySymbols(decodedSymbols);
             if(recentMarketAverageData.isEmpty()) {
-                logger.info("No data found for symbols: " + decodedSymbols);
+                logger.error("No data found for symbols: " + decodedSymbols);
                 break; // Exit if no data is found
             }
 

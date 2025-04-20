@@ -15,9 +15,14 @@ import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @RestController
 @RequestMapping("/api/accounts")
 public class TransactionController {
+
+    private static final Logger logger = LoggerFactory.getLogger(TransactionController.class);
 
     private final TransactionService transactionService;
 
@@ -47,6 +52,10 @@ public class TransactionController {
 
     @GetMapping("/{accountId}/preview-transactions")
     public ResponseEntity<List<Transaction>> getPreviewTransactions(HttpSession session) {
+        logger.info("Fetching preview transactions from session");
+        logger.info("Session ID: {}", session.getId());
+        logger.info("Session Attributes: {}", session.getAttributeNames());
+
         List<Transaction> previewTransactions = (List<Transaction>) session.getAttribute("previewTransactions");
         if (previewTransactions == null) {
             previewTransactions = new ArrayList<>(); // Return an empty list if no transactions are stored
@@ -58,6 +67,9 @@ public class TransactionController {
     public ResponseEntity<Void> confirmTransactions(@PathVariable UUID accountId, 
     @RequestBody List<PreviewTransaction> previewTransactions,
     HttpSession session) {
+        logger.info("Confirming transactions for account ID: {}", accountId);
+        logger.info("Session ID: {}", session.getId());
+        logger.info("Session Attributes: {}", session.getAttributeNames());
 
         // Ensure assets exist before confirming transactions
         transactionService.ensureAssetsExist(accountId, previewTransactions);
