@@ -5,11 +5,25 @@ import java.math.BigDecimal;
 import com.fintrack.model.Transaction;
 
 public class OverviewTransaction extends Transaction {
-    private BigDecimal totalBalanceBefore = BigDecimal.ZERO;
-    private BigDecimal totalBalanceAfter = BigDecimal.ZERO;
+    private BigDecimal totalBalanceBefore;
+    private BigDecimal totalBalanceAfter;
 
     public OverviewTransaction() {
         super();
+    }
+
+    public OverviewTransaction(Transaction transaction) {
+        super();
+        setTransactionId(transaction.getTransactionId());
+        setAccountId(transaction.getAccountId());
+        setDate(transaction.getDate());
+        setAsset(transaction.getAsset());
+        setAssetName(transaction.getAssetName());
+        setSymbol(transaction.getSymbol());
+        setUnit(transaction.getUnit());
+        setCredit(transaction.getCredit());
+        setDebit(transaction.getDebit());
+        setDeletedAt(transaction.getDeletedAt());
     }
 
     public Transaction convertToTransaction() {

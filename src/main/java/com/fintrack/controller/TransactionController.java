@@ -2,6 +2,7 @@ package com.fintrack.controller;
 
 import com.fintrack.component.PreviewTransaction;
 import com.fintrack.model.Transaction;
+import com.fintrack.component.OverviewTransaction;
 import com.fintrack.service.TransactionService;
 
 import jakarta.servlet.http.HttpSession;
@@ -27,6 +28,12 @@ public class TransactionController {
     @GetMapping("/{accountId}/transactions")
     public ResponseEntity<List<Transaction>> getTransactionsByAccountId(@PathVariable UUID accountId) {
         List<Transaction> transactions = transactionService.getTransactionsByAccountId(accountId);
+        return ResponseEntity.ok(transactions);
+    }
+
+    @GetMapping("/{accountId}/overview-transactions")
+    public ResponseEntity<List<OverviewTransaction>> getOverviewTransactionsByAccountId(@PathVariable UUID accountId) {
+        List<OverviewTransaction> transactions = transactionService.getOverviewTransactionsByAccountId(accountId);
         return ResponseEntity.ok(transactions);
     }
 

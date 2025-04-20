@@ -1,36 +1,93 @@
 package com.fintrack.service;
 
 import com.fintrack.model.Transaction;
+import com.fintrack.component.OverviewTransaction;
 import com.fintrack.repository.TransactionRepository;
-import com.fintrack.model.Asset;
-import com.fintrack.component.PreviewTransaction;
+import com.fintrack.repository.HoldingsMonthlyRepository;
 import com.fintrack.repository.AssetRepository;
+import com.fintrack.model.Asset;
+import com.fintrack.model.HoldingsMonthly;
+import com.fintrack.component.PreviewTransaction;
+import com.fintrack.component.TransactionTable;
 import com.fintrack.constants.KafkaTopics;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.LocalDate;
 
 @Service
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final AssetRepository assetRepository;
+    private final HoldingsMonthlyRepository holdingsMonthlyRepository;
     private final KafkaProducerService kafkaProducerService;
 
     public TransactionService(TransactionRepository transactionRepository, 
         AssetRepository assetRepository,
+        HoldingsMonthlyRepository holdingsMonthlyRepository,
         KafkaProducerService kafkaProducerService) {
         this.transactionRepository = transactionRepository;
         this.assetRepository = assetRepository;
+        this.holdingsMonthlyRepository = holdingsMonthlyRepository;
         this.kafkaProducerService = kafkaProducerService;
     }
 
     @Transactional(readOnly = true)
     public List<Transaction> getTransactionsByAccountId(UUID accountId) {
         return transactionRepository.findByAccountIdOrderByDateDesc(accountId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OverviewTransaction> getOverviewTransactionsByAccountId(UUID accountId) {
+        // Step 1: Get transactions by account ID in descending order of date
+        List<Transaction> transactions = transactionRepository.findByAccountIdOrderByDateDesc(accountId);
+
+        // Step 2: Create a TransactionTable object
+        TransactionTable<OverviewTransaction> transactionTable = new TransactionTable<>(transactions.stream().map(transaction -> {
+            OverviewTransaction overviewTransaction = new OverviewTransaction(transaction);
+            return overviewTransaction;
+        }).toList());
+
+        // Step 3: Get the earliest date and unique asset names from the transactions
+        Optional<LocalDate> earliestDateOptional = transactionTable.getEarliestTransactionDate();
+        List<String> uniqueAssetNames = transactionTable.getUniqueAssetNames();
+
+        if (earliestDateOptional.isEmpty()) {
+            return Collections.emptyList(); // No transactions found
+        }
+
+        LocalDate earliestDate = earliestDateOptional.get();
+
+        // Step 4: Get monthly holdings information from HoldingsMonthlyRepository
+        List<HoldingsMonthly> monthlyHoldings = holdingsMonthlyRepository.findByAccountIdAndDateAfter(accountId, earliestDate);
+
+        // Step 5: Set initialTotalBalanceBeforeMap using monthly holdings
+        Map<String, BigDecimal> initialTotalBalanceBeforeMap = new HashMap<>();
+        for (HoldingsMonthly holding : monthlyHoldings) {
+            initialTotalBalanceBeforeMap.put(holding.getAssetName(), holding.getTotalBalance());
+        }
+
+        // Step 6: Calculate total balance up to the initial date
+        List<Transaction> transactionsBeforeEarliestDate = transactionRepository.findByAccountIdAndDateBefore(accountId, earliestDate);
+        for (Transaction transaction : transactionsBeforeEarliestDate) {
+            String assetName = transaction.getAssetName();
+            BigDecimal balance = initialTotalBalanceBeforeMap.getOrDefault(assetName, BigDecimal.ZERO);
+            balance = balance.add(transaction.getCredit()).subtract(transaction.getDebit());
+            initialTotalBalanceBeforeMap.put(assetName, balance);
+        }
+
+        // Step 7: Update total balance information in the TransactionTable
+        transactionTable.setInitialTotalBalanceBeforeMap(initialTotalBalanceBeforeMap);
+        transactionTable.fillTotalBalances();
+
+        // Step 8: Convert transactions to OverviewTransaction and return
+        return transactionTable.getTransactions();
     }
 
     @Transactional
