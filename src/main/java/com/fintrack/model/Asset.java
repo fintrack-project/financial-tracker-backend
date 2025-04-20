@@ -24,7 +24,7 @@ public class Asset {
     @Column(name = "unit", nullable = false)
     private String unit;
 
-    @Column(name = "updated_at", columnDefinition = "timestamp default CURRENT_TIMESTAMP")
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     // Getters and Setters

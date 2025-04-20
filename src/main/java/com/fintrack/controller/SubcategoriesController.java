@@ -41,9 +41,9 @@ public class SubcategoriesController {
     
     @DeleteMapping("/remove")
     public ResponseEntity<String> removeSubcategory(
-            @RequestParam UUID accountId,
-            @RequestParam String category,
-            @RequestParam String subcategory) {
+            @RequestParam(name = "accountId") UUID accountId,
+            @RequestParam(name = "category") String category,
+            @RequestParam(name = "subcategory") String subcategory) {
         subcategoriesService.removeSubcategory(accountId, category, subcategory);
         return ResponseEntity.ok("Subcategory removed successfully.");
     }

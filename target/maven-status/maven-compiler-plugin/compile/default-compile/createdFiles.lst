@@ -26,14 +26,11 @@ com/fintrack/model/HoldingDto.class
 com/fintrack/component/PieChartData.class
 com/fintrack/controller/SubcategoriesController.class
 com/fintrack/controller/MarketAverageDataController.class
-com/fintrack/model/PreviewTransaction.class
 com/fintrack/FinTrackApplication.class
 com/fintrack/model/MarketData.class
 com/fintrack/repository/MarketDataRepository.class
 com/fintrack/repository/AccountRepository.class
 com/fintrack/service/MarketAverageDataService.class
-com/fintrack/controller/TransactionController.class
-com/fintrack/service/TransactionService.class
 com/fintrack/repository/HoldingsCategoriesRepository.class
 com/fintrack/controller/HoldingsCategoriesController.class
 com/fintrack/model/HoldingsCategory.class

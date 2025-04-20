@@ -38,7 +38,7 @@ public class HoldingsCategory {
     @Column(name = "subcategory")
     private String subcategory;
 
-    @Column(name = "updated_at", nullable = false, columnDefinition = "timestamp default CURRENT_TIMESTAMP")
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     // Getters and Setters
