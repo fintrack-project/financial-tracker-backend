@@ -38,20 +38,22 @@ public class CategoriesController {
 
     @DeleteMapping("/remove")
     public ResponseEntity<String> removeCategory(
-            @RequestParam UUID accountId,
-            @RequestParam String category) {
+            @RequestParam(name = "accountId") UUID accountId,
+            @RequestParam(name = "category") String category) {
         categoriesService.removeCategory(accountId, category);
         return ResponseEntity.ok("Category and its subcategories removed successfully.");
     }
 
     @GetMapping("/fetch")
-    public ResponseEntity<Map<String, Object>> getCategoriesAndSubcategories(@RequestParam UUID accountId) {
+    public ResponseEntity<Map<String, Object>> getCategoriesAndSubcategories(
+        @RequestParam(name = "accountId") UUID accountId) {
         Map<String, Object> response = categoriesService.getCategoriesAndSubcategories(accountId);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/fetch/names")
-    public ResponseEntity<List<String>> getCategoryNames(@RequestParam UUID accountId) {
+    public ResponseEntity<List<String>> getCategoryNames(
+        @RequestParam(name = "accountId") UUID accountId) {
         List<String> categoryNames = categoriesService.getCategoryNames(accountId);
         return ResponseEntity.ok(categoryNames);
     }

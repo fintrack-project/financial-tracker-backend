@@ -43,7 +43,7 @@ public class AccountController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<Map<String, String>> createAccountForUser(@RequestParam String userId) {
+    public ResponseEntity<Map<String, String>> createAccountForUser(@RequestParam(name = "userId") String userId) {
         // Fetch the accountId associated with the userId from the users table
         String accountId = accountService.getAccountIdByUserId(userId);
 

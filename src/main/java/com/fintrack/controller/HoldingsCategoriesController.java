@@ -18,7 +18,7 @@ public class HoldingsCategoriesController {
 
     @PostMapping("/holdings/update")
     public ResponseEntity<String> updateHoldingsCategories(
-        @RequestParam UUID accountId,
+        @RequestParam(name = "accountId") UUID accountId,
         @RequestBody Map<String, Map<String, String>> holdingsCategories
     ) {
         // Pass the data to the service layer
@@ -50,7 +50,7 @@ public class HoldingsCategoriesController {
     }
 
     @GetMapping("/holdings/fetch")
-    public ResponseEntity<Map<String, Map<String, String>>> fetchHoldingsCategories(@RequestParam UUID accountId) {
+    public ResponseEntity<Map<String, Map<String, String>>> fetchHoldingsCategories(@RequestParam(name = "accountId") UUID accountId) {
         Map<String, Map<String, String>> holdings = holdingsCategoriesService.fetchHoldingsCategories(accountId);
         return ResponseEntity.ok(holdings);
     }
