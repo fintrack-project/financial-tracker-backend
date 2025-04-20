@@ -7,6 +7,7 @@ public class ChartData implements Comparable<ChartData> {
     private double value;
     private String color;
     private Integer priority;
+    private Double percentage;
 
     public ChartData(String assetName, String symbol, String subcategory, double value, Integer priority, String color) {
         this.assetName = assetName;
@@ -15,6 +16,16 @@ public class ChartData implements Comparable<ChartData> {
         this.value = value;
         this.priority = priority;
         this.color = color;
+    }
+
+    public ChartData(String assetName, String symbol, String subcategory, double value, Integer priority, String color, Double percentage) {
+        this.assetName = assetName;
+        this.symbol = symbol;
+        this.subcategory = subcategory;
+        this.value = value;
+        this.priority = priority;
+        this.color = color;
+        this.percentage = percentage;
     }
 
     public String getAssetName() {
@@ -63,6 +74,14 @@ public class ChartData implements Comparable<ChartData> {
 
     public void setColor(String color) {
         this.color = color;
+    }
+
+    public Double getPercentage() {
+        return percentage;
+    }
+
+    public void setPercentage(Double percentage) {
+        this.percentage = percentage;
     }
 
     @Override

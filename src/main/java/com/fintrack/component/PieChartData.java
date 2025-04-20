@@ -1,8 +1,21 @@
 package com.fintrack.component;
 
 public class PieChartData extends ChartData {
+    Double percentageOfSubcategory;
+
     public PieChartData(String assetName, String symbol, String subcategory, double value, Integer priority, String color) {
         super(assetName, symbol, subcategory, value, priority, color);
     }
-    // The class is currently empty, but it extends ChartData
+
+    public PieChartData(String assetName, String symbol, String subcategory, double value, Integer priority, String color, Double percentage) {
+        super(assetName, symbol, subcategory, value, priority, color, percentage);
+    }
+
+    public Double getPercentageOfSubcategory() {
+        return percentageOfSubcategory;
+    }
+
+    public void setPercentageOfSubcategory(Double percentageOfSubcategory) {
+        this.percentageOfSubcategory = percentageOfSubcategory;
+    }
 }
