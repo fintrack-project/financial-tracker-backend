@@ -32,7 +32,7 @@ public class MarketDataService {
 
         // Retry mechanism to fetch data until all symbols are available
         List<MarketData> result = new ArrayList<>();
-        int maxRetries = 5;
+        int maxRetries = 3;
         int retryCount = 0;
 
         while (retryCount < maxRetries) {
@@ -53,7 +53,7 @@ public class MarketDataService {
 
             // Wait before retrying
             try {
-                Thread.sleep(2000); // Wait for 2 seconds before retrying
+                Thread.sleep(1000); // Wait for 2 seconds before retrying
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 logger.error("Retry interrupted: " + e.getMessage());
