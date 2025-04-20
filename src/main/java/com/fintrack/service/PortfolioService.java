@@ -44,8 +44,6 @@ public class PortfolioService {
             throw new IllegalArgumentException("Account ID and category name must not be null or empty.");
         }
 
-        logger.info("Calculating portfolio pie chart data for account ID: " + accountId + " and category name: " + categoryName);
-
         // Fetch holdings for the given account ID
         List<Holdings> holdings = holdingsRepository.findHoldingsByAccount(accountId);
 
@@ -54,10 +52,7 @@ public class PortfolioService {
                 .map(Holdings::getSymbol)
                 .distinct()
                 .collect(Collectors.toList());
-        List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbols(symbols);
-        logger.info("Generating Piechart... Market Data: " + marketDataList);
-
-        // Handle the case when categoryName is "None"
+        List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbols(symbols);        // Handle the case when categoryName is "None"
         if ("None".equalsIgnoreCase(categoryName)) {
             PieChart pieChart = new PieChart(holdings, marketDataList);
             return pieChart.getData();
@@ -67,11 +62,7 @@ public class PortfolioService {
         Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
         if (categoryId == null) {
             throw new IllegalArgumentException("Category not found for the given account and category name.");
-        }
-        
-        logger.info("Category ID for category name '" + categoryName + "' is: " + categoryId);
-
-        // Fetch subcategories for the given account ID and category ID
+        }        // Fetch subcategories for the given account ID and category ID
         List<Category> subcategories = subcategoriesRepository.findSubcategoriesByParentId(accountId, categoryId);
         if (subcategories.isEmpty()) {
             throw new IllegalArgumentException("No subcategories found for the given account and category ID.");

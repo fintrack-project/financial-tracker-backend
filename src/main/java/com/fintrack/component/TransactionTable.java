@@ -99,21 +99,9 @@ public class TransactionTable<T extends OverviewTransaction> {
                 .thenComparing(OverviewTransaction::getAssetName) // Ascending order of asset name
                 .thenComparing(OverviewTransaction::getCredit) // Ascending order of credit
                 .thenComparing(OverviewTransaction::getDebit)); // Ascending order of debit
-
-
-        transactions.forEach(transaction -> 
-            logger.info("Sorted transaction, date: {}, assetName: {}, credit: {}, debit: {}",
-                transaction.getDate(), transaction.getAssetName(), transaction.getCredit(), transaction.getDebit())
-        );
     }
 
     public void fillTotalBalances() {
-        if (isTotalBalancesFilled) {
-            logger.warn("Total balances are already filled. No need to fill again.");
-            return; // Already filled
-        }
-
-
         // Deep copy initialTotalBalanceBeforeMap to totalBalanceBeforeMap
         Map<String, BigDecimal> totalBalanceBeforeMap = new HashMap<>(initialTotalBalanceBeforeMap);
 
