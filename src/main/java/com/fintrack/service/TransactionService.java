@@ -15,13 +15,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.LocalDate;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
 public class TransactionService {
+
+    private static final Logger logger = LoggerFactory.getLogger(TransactionService.class);
 
     private final TransactionRepository transactionRepository;
     private final AssetRepository assetRepository;
@@ -49,10 +55,11 @@ public class TransactionService {
         List<Transaction> transactions = transactionRepository.findByAccountIdOrderByDateDesc(accountId);
 
         // Step 2: Create a TransactionTable object
-        TransactionTable<OverviewTransaction> transactionTable = new TransactionTable<>(transactions.stream().map(transaction -> {
-            OverviewTransaction overviewTransaction = new OverviewTransaction(transaction);
-            return overviewTransaction;
-        }).toList());
+        TransactionTable<OverviewTransaction> transactionTable = new TransactionTable<>(
+            transactions.stream()
+                .map(transaction -> new OverviewTransaction(transaction))
+                .collect(Collectors.toCollection(ArrayList::new)) // Convert to mutable list
+        );
 
         // Step 3: Get the earliest date and unique asset names from the transactions
         Optional<LocalDate> earliestDateOptional = transactionTable.getEarliestTransactionDate();
@@ -64,8 +71,22 @@ public class TransactionService {
 
         LocalDate earliestDate = earliestDateOptional.get();
 
-        // Step 4: Get monthly holdings information from HoldingsMonthlyRepository
-        List<HoldingsMonthly> monthlyHoldings = holdingsMonthlyRepository.findByAccountIdAndDateAfter(accountId, earliestDate);
+        // Step 4: Find the 1st date of the month for the earliest date
+        LocalDate firstDateOfMonth = earliestDate.withDayOfMonth(1);
+        LocalDate lastDateOfMonth = firstDateOfMonth.withDayOfMonth(firstDateOfMonth.lengthOfMonth());
+        logger.info("First date of the month for earliest date: {}", firstDateOfMonth);
+        logger.info("Last date of the month for earliest date: {}", lastDateOfMonth);
+
+        // Fetch monthly holdings after the 1st date of the month
+        List<HoldingsMonthly> monthlyHoldings = holdingsMonthlyRepository.findByAccountIdAndDateBetween(accountId, firstDateOfMonth, lastDateOfMonth);
+
+        monthlyHoldings.forEach(
+            holding -> {
+                logger.info("Monthly Holdings, Asset name : " + holding.getAssetName() +
+                    ", Date: " + holding.getDate() +
+                    ", Total Balance: " + holding.getTotalBalance());
+            }
+        );
 
         // Step 5: Set initialTotalBalanceBeforeMap using monthly holdings
         Map<String, BigDecimal> initialTotalBalanceBeforeMap = new HashMap<>();
@@ -73,8 +94,25 @@ public class TransactionService {
             initialTotalBalanceBeforeMap.put(holding.getAssetName(), holding.getTotalBalance());
         }
 
+        // Handle missing asset names by assuming their balance is 0
+        for (String assetName : uniqueAssetNames) {
+            initialTotalBalanceBeforeMap.putIfAbsent(assetName, BigDecimal.ZERO);
+        }
+
+        logger.info("Initial total balance before map: " + initialTotalBalanceBeforeMap);
+
         // Step 6: Calculate total balance up to the initial date
         List<Transaction> transactionsBeforeEarliestDate = transactionRepository.findByAccountIdAndDateBefore(accountId, earliestDate);
+
+        transactionsBeforeEarliestDate.forEach(
+            transaction -> {
+                logger.info("Transaction before earliest date, Asset name : " + transaction.getAssetName() +
+                    ", Date: " + transaction.getDate() +
+                    ", Credit: " + transaction.getCredit() +
+                    ", Debit: " + transaction.getDebit());
+            }
+        );;
+
         for (Transaction transaction : transactionsBeforeEarliestDate) {
             String assetName = transaction.getAssetName();
             BigDecimal balance = initialTotalBalanceBeforeMap.getOrDefault(assetName, BigDecimal.ZERO);
@@ -86,7 +124,7 @@ public class TransactionService {
         transactionTable.setInitialTotalBalanceBeforeMap(initialTotalBalanceBeforeMap);
         transactionTable.fillTotalBalances();
 
-        // Step 8: Convert transactions to OverviewTransaction and return
+        // Step 8: Return the transactions directly from the TransactionTable
         return transactionTable.getTransactions();
     }
 

@@ -14,4 +14,6 @@ public interface HoldingsMonthlyRepository extends JpaRepository<HoldingsMonthly
     List<HoldingsMonthly> findByAccountId(UUID accountId);
 
     List<HoldingsMonthly> findByAccountIdAndDateAfter(UUID accountId, LocalDate date);
+
+    List<HoldingsMonthly> findByAccountIdAndDateBetween(UUID accountId, LocalDate startDate, LocalDate endDate);
 }

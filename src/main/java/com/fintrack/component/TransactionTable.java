@@ -5,7 +5,12 @@ import java.math.BigDecimal;
 import java.util.stream.Collectors;
 import java.time.LocalDate;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class TransactionTable<T extends OverviewTransaction> {
+    private static final Logger logger = LoggerFactory.getLogger(TransactionTable.class);
+
     private List<T> transactions;
     private List<String> uniqueAssetNames;
     private Boolean isTotalBalancesFilled = false;
@@ -94,32 +99,70 @@ public class TransactionTable<T extends OverviewTransaction> {
                 .thenComparing(OverviewTransaction::getAssetName) // Ascending order of asset name
                 .thenComparing(OverviewTransaction::getCredit) // Ascending order of credit
                 .thenComparing(OverviewTransaction::getDebit)); // Ascending order of debit
+
+        logger.info("Transactions sorted in descending order of date, ascending order of asset name, credit, and debit.");
+        transactions.forEach(transaction -> 
+            logger.info("Sorted transaction, date: {}, assetName: {}, credit: {}, debit: {}",
+                transaction.getDate(), transaction.getAssetName(), transaction.getCredit(), transaction.getDebit())
+        );
     }
 
     public void fillTotalBalances() {
         if (isTotalBalancesFilled) {
+            logger.warn("Total balances are already filled. No need to fill again.");
             return; // Already filled
         }
 
+        logger.info("Starting total balance calculation...");
+        logger.info("Initial totalBalanceAfterMap: {}", totalBalanceAfterMap);
+        logger.info("Initial initialTotalBalanceBeforeMap: {}", initialTotalBalanceBeforeMap);
+
+        // Deep copy initialTotalBalanceBeforeMap to totalBalanceBeforeMap
+        Map<String, BigDecimal> totalBalanceBeforeMap = new HashMap<>(initialTotalBalanceBeforeMap);
+        logger.info("Deep copied initialTotalBalanceBeforeMap to totalBalanceBeforeMap: {}", totalBalanceBeforeMap);
+
         // Temporarily sort transactions in ascending order of date for calculation
         transactions.sort(Comparator.comparing(OverviewTransaction::getDate));
+        logger.info("Transactions sorted in ascending order of date for calculation.");
+        transactions.forEach(transaction -> 
+            logger.info("Sorted transaction, date: {}, assetName: {}, credit: {}, debit: {}",
+                transaction.getDate(), transaction.getAssetName(), transaction.getCredit(), transaction.getDebit())
+        );
 
         for (T transaction : transactions) {
             String assetName = transaction.getAssetName();
-            BigDecimal balanceAfter = totalBalanceAfterMap.getOrDefault(assetName, BigDecimal.ZERO);
-            BigDecimal balanceBefore = initialTotalBalanceBeforeMap.getOrDefault(assetName, BigDecimal.ZERO);
+            BigDecimal balanceBefore = totalBalanceBeforeMap.getOrDefault(assetName, BigDecimal.ZERO);
+            BigDecimal balanceAfter = balanceBefore.add(transaction.getCredit()).subtract(transaction.getDebit());
 
-            transaction.setTotalBalanceAfter(balanceAfter);
+            logger.info("Processing transaction: {}", transaction);
+            logger.info("Current balanceBefore for asset {}: {}", assetName, balanceBefore);
+            logger.info("Current balanceAfter for asset {}: {}", assetName, balanceAfter);
+
             transaction.setTotalBalanceBefore(balanceBefore);
-
+            transaction.setTotalBalanceAfter(balanceAfter);
+            
             // Update the maps
-            totalBalanceAfterMap.put(assetName, balanceAfter.add(transaction.getCredit()).subtract(transaction.getDebit()));
-            initialTotalBalanceBeforeMap.put(assetName, balanceBefore.add(transaction.getCredit()).subtract(transaction.getDebit()));
+            totalBalanceBeforeMap.put(assetName, balanceAfter);
+            totalBalanceAfterMap.put(assetName, balanceAfter);
+
+            logger.info("Updated balanceAfter for asset {}: {}", assetName, totalBalanceAfterMap.get(assetName));
+            logger.info("Updated balanceBefore for asset {}: {}", assetName, totalBalanceBeforeMap.get(assetName));
+ 
         }
         isTotalBalancesFilled = true;
 
+        logger.info("Total balance calculation completed.");
+        logger.info("Final totalBalanceAfterMap: {}", totalBalanceAfterMap);
+        logger.info("Final initialTotalBalanceBeforeMap: {}", initialTotalBalanceBeforeMap);
+
+
         // Restore the original order of transactions
         sortTransactions();
+        logger.info("Transactions restored to original sorting order.");
+        transactions.forEach(transaction -> 
+            logger.info("Sorted transaction, date: {}, assetName: {}, credit: {}, debit: {}",
+                transaction.getDate(), transaction.getAssetName(), transaction.getCredit(), transaction.getDebit())
+        );
     }
 
     public void clear() {
