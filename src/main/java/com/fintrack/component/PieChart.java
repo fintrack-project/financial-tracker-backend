@@ -84,6 +84,11 @@ public class PieChart {
             map.put("subcategory", pieChart.getSubcategory());
             map.put("value", pieChart.getValue());
             map.put("color", pieChart.getColor());
+            map.put("priority", pieChart.getPriority());
+            map.put("totalValue", totalValue);
+            map.put("subcategoryValue", subcategoryValueMap.getOrDefault(pieChart.getSubcategory(), 0.0));
+            map.put("percentage", pieChart.getPercentage());
+            map.put("percentageOfSubcategory", pieChart.getPercentageOfSubcategory());
             data.add(map);
         }
         return data;
