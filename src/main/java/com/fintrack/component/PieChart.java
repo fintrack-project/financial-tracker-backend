@@ -8,7 +8,12 @@ import com.fintrack.model.HoldingsCategory;
 import com.fintrack.model.MarketData;
 import com.fintrack.model.Category;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class PieChart {
+
+    private static final Logger logger = LoggerFactory.getLogger(PieChart.class);
 
     private static final List<String> COLORS = Arrays.asList(
         "#4CAF50", // Green
@@ -95,6 +100,7 @@ public class PieChart {
     }
 
     private List<PieChartData> generatePieChartData() {
+        logger.debug("Generating pie chart data for all holdings");
         Map<String, Double> symbolToPriceMap = getSymbolToPriceMap();
         List<PieChartData> pieChartData = holdings.stream()
                 .map(holding -> {
@@ -124,16 +130,24 @@ public class PieChart {
             data.setPercentage(percentage); // Set percentage in PieChartData
             data.setPercentageOfSubcategory(1.0); // Set percentage in PieChartData
         });
+        pieChartData.forEach(date -> 
+            logger.trace("PieChartData: " + date.getAssetName() + ", " + date.getValue() + ", " + date.getPercentage())
+        );
         return pieChartData;
     }
 
     private List<PieChartData> generatePieChartDataByCategoryName(String categoryName) {
+        logger.debug("Generating pie chart data for category: " + categoryName);
         // Generate pie chart data for a specific category
         Map<String, Double> symbolToPriceMap = getSymbolToPriceMap();
 
         List<HoldingsCategory> filteredHoldingsCategories = holdingsCategories.stream()
         .filter(category -> category.getCategory() != null && category.getCategory().equals(categoryName)) // Filter by category
         .collect(Collectors.toList());
+
+        filteredHoldingsCategories.forEach(category -> 
+            logger.trace("Filtered HoldingsCategory: " + category.getAssetName() + ", " + category.getSubcategory())
+        );
 
         Map<String, String> assetNamesSubcategoryMap = filteredHoldingsCategories.stream()
             .collect(Collectors.toMap(
@@ -142,6 +156,10 @@ public class PieChart {
                 (existing, replacement) -> existing // Handle duplicate keys by keeping the existing value
             ));
         
+        assetNamesSubcategoryMap.forEach((key, value) ->
+            logger.trace("Asset Name: " + key + ", Subcategory: " + value)
+        );
+
         List<PieChartData> pieChartData = holdings.stream()
                 .filter(holding -> assetNamesSubcategoryMap.containsKey(holding.getAssetName())) // Ensure filtering by valid keys
                 .map(holding -> {
@@ -176,6 +194,9 @@ public class PieChart {
             data.setPercentage(percentage); // Set percentage in PieChartData
             data.setPercentageOfSubcategory(subcategoryValueMap.get(data.getSubcategory()) / totalValue * 100); // Set percentage of subcategory
         });
+        pieChartData.forEach(date -> 
+            logger.trace("PieChartData: " + date.getAssetName() + ", " + date.getValue() + ", " + date.getPercentage())
+        );
         Collections.sort(pieChartData);
         return pieChartData;
     }

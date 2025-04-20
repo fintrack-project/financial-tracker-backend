@@ -33,8 +33,6 @@ public class HoldingsCategoriesService {
 
     @Transactional
     public void updateHoldingsCategories(UUID accountId, Map<String, Map<String, String>> holdingsCategories) {
-        logger.info("Received holdingsCategories: " + holdingsCategories);
-    
         for (Map.Entry<String, Map<String, String>> categoryEntry : holdingsCategories.entrySet()) {
             String categoryName = categoryEntry.getKey();
             Map<String, String> assets = categoryEntry.getValue();
@@ -82,8 +80,6 @@ public class HoldingsCategoriesService {
 
     @Transactional
     public void addHoldingsCategories(UUID accountId, Map<String, Map<String, String>> holdingsCategories) {
-        logger.info("Received holdingsCategories: " + holdingsCategories);
-    
         for (Map.Entry<String, Map<String, String>> categoryEntry : holdingsCategories.entrySet()) {
             String categoryName = categoryEntry.getKey();
             Map<String, String> assets = categoryEntry.getValue();

@@ -40,7 +40,7 @@ public class MarketDataService {
             List<MarketData> recentMarketData = marketDataRepository.findMarketDataBySymbols(symbols);
 
             if (recentMarketData.isEmpty()) {
-                logger.info("No data found for symbols: " + symbols);
+                logger.error("No data found for symbols: " + symbols);
                 break; // Exit if no data is found
             }
 

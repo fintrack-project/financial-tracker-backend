@@ -34,12 +34,7 @@ public class HoldingsService {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             Map<String, Object> payload = objectMapper.readValue(message, Map.class);
-            UUID accountId = UUID.fromString((String) payload.get("account_id"));
-            logger.info("Received " + KafkaTopics.PROCESS_TRANSACTIONS_TO_HOLDINGS_COMPLETE.getTopicName() + " for account: " + accountId);
-
             // Fetch the latest holdings
-            List<Holdings> holdings = getHoldingsByAccount(accountId);
-            logger.info("Latest holdings: " + holdings);
         } catch (Exception e) {
             logger.error("Error processing message: " + e.getMessage(), e);
         }

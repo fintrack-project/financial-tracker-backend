@@ -47,7 +47,7 @@ public class MarketAverageDataService {
             result.clear();
             List<MarketAverageData> recentMarketAverageData = marketAverageDataRepository.findMarketAverageDataBySymbols(decodedSymbols);
             if(recentMarketAverageData.isEmpty()) {
-                logger.info("No data found for symbols: " + decodedSymbols);
+                logger.error("No data found for symbols: " + decodedSymbols);
                 break; // Exit if no data is found
             }
 
@@ -112,7 +112,7 @@ public class MarketAverageDataService {
             ObjectMapper objectMapper = new ObjectMapper();
             List<Map<String, Object>> indexDataList = objectMapper.readValue(message, List.class);
             for (Map<String, Object> indexData : indexDataList) {
-                logger.info("MarketAverageData: " + indexData);
+                logger.trace("MarketAverageData: " + indexData);
             }
         } catch (Exception e) {
             logger.error("Failed to process market average data update complete message: " + e.getMessage());

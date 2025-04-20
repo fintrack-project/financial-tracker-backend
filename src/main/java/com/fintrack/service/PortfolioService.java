@@ -44,38 +44,43 @@ public class PortfolioService {
             throw new IllegalArgumentException("Account ID and category name must not be null or empty.");
         }
 
-        logger.info("Calculating portfolio pie chart data for account ID: " + accountId + " and category name: " + categoryName);
+        logger.debug("Calculating portfolio pie chart data for account ID: " + accountId + " and category name: " + categoryName);
 
         // Fetch holdings for the given account ID
         List<Holdings> holdings = holdingsRepository.findHoldingsByAccount(accountId);
+
+        holdings.forEach(holding -> {
+            logger.trace("Holding: " + holding.getSymbol() + ", Quantity: " + holding.getTotalBalance());
+        });
 
         // Fetch market data for the symbols
         List<String> symbols = holdings.stream()
                 .map(Holdings::getSymbol)
                 .distinct()
                 .collect(Collectors.toList());
-        List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbols(symbols);
-        logger.info("Generating Piechart... Market Data: " + marketDataList);
-
-        // Handle the case when categoryName is "None"
+        List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbols(symbols);        // Handle the case when categoryName is "None"
         if ("None".equalsIgnoreCase(categoryName)) {
             PieChart pieChart = new PieChart(holdings, marketDataList);
             return pieChart.getData();
         }
 
+        marketDataList.forEach(marketData -> {
+            logger.trace("Market Data: " + marketData.getSymbol() + ", Price: " + marketData.getPrice());
+        });
+
         // Fetch the category ID for the given account and category name
         Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
         if (categoryId == null) {
             throw new IllegalArgumentException("Category not found for the given account and category name.");
-        }
-        
-        logger.info("Category ID for category name '" + categoryName + "' is: " + categoryId);
-
-        // Fetch subcategories for the given account ID and category ID
+        }        // Fetch subcategories for the given account ID and category ID
         List<Category> subcategories = subcategoriesRepository.findSubcategoriesByParentId(accountId, categoryId);
         if (subcategories.isEmpty()) {
             throw new IllegalArgumentException("No subcategories found for the given account and category ID.");
         }
+
+        subcategories.forEach(subcategory -> {
+            logger.trace("Subcategory: " + subcategory.getCategoryName());
+        });
 
         // Fetch holdings categories for the given account ID
         List<HoldingsCategory> holdingsCategories = holdingsCategoriesRepository.findHoldingsCategoryByAccountId(accountId);
