@@ -121,8 +121,13 @@ public class TransactionTable<T extends OverviewTransaction> {
         Map<String, BigDecimal> totalBalanceBeforeMap = new HashMap<>(initialTotalBalanceBeforeMap);
         logger.info("Deep copied initialTotalBalanceBeforeMap to totalBalanceBeforeMap: {}", totalBalanceBeforeMap);
 
-        // Temporarily sort transactions in ascending order of date for calculation
-        transactions.sort(Comparator.comparing(OverviewTransaction::getDate));
+        // Temporarily sort transactions in reversed order of date for calculation
+        transactions.sort(Comparator
+                .comparing(OverviewTransaction::getDate) // Ascending order of date
+                .thenComparing(OverviewTransaction::getAssetName, Comparator.reverseOrder()) // Descending order of asset name
+                .thenComparing(OverviewTransaction::getCredit, Comparator.reverseOrder()) // Descending order of credit
+                .thenComparing(OverviewTransaction::getDebit, Comparator.reverseOrder())); // Descending order of debit
+
         logger.info("Transactions sorted in ascending order of date for calculation.");
         transactions.forEach(transaction -> 
             logger.info("Sorted transaction, date: {}, assetName: {}, credit: {}, debit: {}",
