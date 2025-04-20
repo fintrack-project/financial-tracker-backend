@@ -34,8 +34,7 @@ public class HoldingsService {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             Map<String, Object> payload = objectMapper.readValue(message, Map.class);
-            UUID accountId = UUID.fromString((String) payload.get("account_id"));            // Fetch the latest holdings
-            List<Holdings> holdings = getHoldingsByAccount(accountId);
+            // Fetch the latest holdings
         } catch (Exception e) {
             logger.error("Error processing message: " + e.getMessage(), e);
         }
