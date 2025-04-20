@@ -53,8 +53,8 @@ public class TransactionController {
     @GetMapping("/{accountId}/preview-transactions")
     public ResponseEntity<List<Transaction>> getPreviewTransactions(HttpSession session) {
         logger.info("Fetching preview transactions from session");
-        logger.info("Session ID: {}", session.getId());
-        logger.info("Session Attributes: {}", session.getAttributeNames());
+        logger.trace("Session ID: {}", session.getId());
+        logger.trace("Session Attributes: {}", session.getAttributeNames());
 
         List<Transaction> previewTransactions = (List<Transaction>) session.getAttribute("previewTransactions");
         if (previewTransactions == null) {
@@ -68,8 +68,8 @@ public class TransactionController {
     @RequestBody List<PreviewTransaction> previewTransactions,
     HttpSession session) {
         logger.info("Confirming transactions for account ID: {}", accountId);
-        logger.info("Session ID: {}", session.getId());
-        logger.info("Session Attributes: {}", session.getAttributeNames());
+        logger.trace("Session ID: {}", session.getId());
+        logger.trace("Session Attributes: {}", session.getAttributeNames());
 
         // Ensure assets exist before confirming transactions
         transactionService.ensureAssetsExist(accountId, previewTransactions);

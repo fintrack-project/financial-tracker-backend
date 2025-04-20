@@ -49,7 +49,9 @@ public class PortfolioService {
         // Fetch holdings for the given account ID
         List<Holdings> holdings = holdingsRepository.findHoldingsByAccount(accountId);
 
-        logger.debug("Fetched holdings: " + holdings);
+        holdings.forEach(holding -> {
+            logger.trace("Holding: " + holding.getSymbol() + ", Quantity: " + holding.getTotalBalance());
+        });
 
         // Fetch market data for the symbols
         List<String> symbols = holdings.stream()
@@ -62,7 +64,9 @@ public class PortfolioService {
             return pieChart.getData();
         }
 
-        logger.debug("Fetched market data: " + marketDataList);
+        marketDataList.forEach(marketData -> {
+            logger.trace("Market Data: " + marketData.getSymbol() + ", Price: " + marketData.getPrice());
+        });
 
         // Fetch the category ID for the given account and category name
         Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
@@ -75,7 +79,7 @@ public class PortfolioService {
         }
 
         subcategories.forEach(subcategory -> {
-            logger.debug("Subcategory: " + subcategory.getCategoryName());
+            logger.trace("Subcategory: " + subcategory.getCategoryName());
         });
 
         // Fetch holdings categories for the given account ID

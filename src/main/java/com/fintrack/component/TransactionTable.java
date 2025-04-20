@@ -102,6 +102,7 @@ public class TransactionTable<T extends OverviewTransaction> {
     }
 
     public void fillTotalBalances() {
+        logger.debug("Filling total balances for transactions");
         // Deep copy initialTotalBalanceBeforeMap to totalBalanceBeforeMap
         Map<String, BigDecimal> totalBalanceBeforeMap = new HashMap<>(initialTotalBalanceBeforeMap);
 
@@ -111,6 +112,12 @@ public class TransactionTable<T extends OverviewTransaction> {
                 .thenComparing(OverviewTransaction::getAssetName, Comparator.reverseOrder()) // Descending order of asset name
                 .thenComparing(OverviewTransaction::getCredit, Comparator.reverseOrder()) // Descending order of credit
                 .thenComparing(OverviewTransaction::getDebit, Comparator.reverseOrder())); // Descending order of debit
+        transactions.forEach(transaction -> {
+            logger.trace(("Transaction: " + transaction.getDate() + ", Asset: " + transaction.getAssetName() +
+                    ", Credit: " + transaction.getCredit() + ", Debit: " + transaction.getDebit()
+                    + ", Total Balance Before: " + totalBalanceBeforeMap.getOrDefault(transaction.getAssetName(), BigDecimal.ZERO))
+            );
+        });
 
         for (T transaction : transactions) {
             String assetName = transaction.getAssetName();

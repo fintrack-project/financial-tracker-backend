@@ -100,7 +100,7 @@ public class PieChart {
     }
 
     private List<PieChartData> generatePieChartData() {
-        logger.info("Generating pie chart data for all holdings");
+        logger.debug("Generating pie chart data for all holdings");
         Map<String, Double> symbolToPriceMap = getSymbolToPriceMap();
         List<PieChartData> pieChartData = holdings.stream()
                 .map(holding -> {
@@ -131,7 +131,7 @@ public class PieChart {
             data.setPercentageOfSubcategory(1.0); // Set percentage in PieChartData
         });
         pieChartData.forEach(date -> 
-            logger.debug("PieChartData: " + date.getAssetName() + ", " + date.getValue() + ", " + date.getPercentage())
+            logger.trace("PieChartData: " + date.getAssetName() + ", " + date.getValue() + ", " + date.getPercentage())
         );
         return pieChartData;
     }
@@ -146,7 +146,7 @@ public class PieChart {
         .collect(Collectors.toList());
 
         filteredHoldingsCategories.forEach(category -> 
-            logger.debug("Filtered HoldingsCategory: " + category.getAssetName() + ", " + category.getSubcategory())
+            logger.trace("Filtered HoldingsCategory: " + category.getAssetName() + ", " + category.getSubcategory())
         );
 
         Map<String, String> assetNamesSubcategoryMap = filteredHoldingsCategories.stream()
@@ -157,7 +157,7 @@ public class PieChart {
             ));
         
         assetNamesSubcategoryMap.forEach((key, value) ->
-            logger.debug("Asset Name: " + key + ", Subcategory: " + value)
+            logger.trace("Asset Name: " + key + ", Subcategory: " + value)
         );
 
         List<PieChartData> pieChartData = holdings.stream()
@@ -195,7 +195,7 @@ public class PieChart {
             data.setPercentageOfSubcategory(subcategoryValueMap.get(data.getSubcategory()) / totalValue * 100); // Set percentage of subcategory
         });
         pieChartData.forEach(date -> 
-            logger.debug("PieChartData: " + date.getAssetName() + ", " + date.getValue() + ", " + date.getPercentage())
+            logger.trace("PieChartData: " + date.getAssetName() + ", " + date.getValue() + ", " + date.getPercentage())
         );
         Collections.sort(pieChartData);
         return pieChartData;

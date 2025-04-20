@@ -112,7 +112,7 @@ public class MarketAverageDataService {
             ObjectMapper objectMapper = new ObjectMapper();
             List<Map<String, Object>> indexDataList = objectMapper.readValue(message, List.class);
             for (Map<String, Object> indexData : indexDataList) {
-                logger.info("MarketAverageData: " + indexData);
+                logger.trace("MarketAverageData: " + indexData);
             }
         } catch (Exception e) {
             logger.error("Failed to process market average data update complete message: " + e.getMessage());
