@@ -79,7 +79,7 @@ public class BarChart extends Chart {
     private List<BarChartData> generateBarChartDataByCategoryName(String categoryName) {
         List<BarChartData> barChartDatas = getChartData().stream().map(
             data -> {
-              BarChartData barChartDatum = new BarChartData(data);
+                BarChartData barChartDatum = new BarChartData(data);
                 Double value = getAssetValueMap().get(data.getAssetName());
                 Double percentage = (value / getTotalValue()) * 100; // Calculate percentage
                 barChartDatum.setPercentage(percentage); // Set percentage in PieChartData

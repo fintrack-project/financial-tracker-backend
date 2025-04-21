@@ -3,6 +3,7 @@ package com.fintrack.service;
 import com.fintrack.repository.*;
 import com.fintrack.component.chart.BarChart;
 import com.fintrack.component.chart.PieChart;
+import com.fintrack.component.chart.PieChartData;
 import com.fintrack.model.*;
 
 import org.apache.logging.log4j.LogManager;
@@ -108,14 +109,18 @@ public class PortfolioService {
         List<HoldingsMonthly> monthlyHoldings = holdingsMonthlyRepository.findByAccountId(accountId);
 
         monthlyHoldings.forEach(monthlyHolding -> {
-            logger.trace("Monthly Holding: " + monthlyHolding.getSymbol() + ", Quantity: " + monthlyHolding.getTotalBalance());
+            logger.trace("Monthly Holding: " + monthlyHolding.getSymbol() + ", Quantity: " + monthlyHolding.getTotalBalance() + ", Date: " + monthlyHolding.getDate());
         });
 
+        // Use TreeMap to ensure the keys (dates) are sorted in ascending order
         Map<LocalDate, List<Holdings>> holdingsByDate = monthlyHoldings.stream()
-                .collect(Collectors.groupingBy(HoldingsMonthly::getDate, 
-                        Collectors.mapping(HoldingsMonthly::getHoldings, Collectors.toList())));
+        .collect(Collectors.groupingBy(
+                HoldingsMonthly::getDate,
+                () -> new TreeMap<>(), // Use TreeMap to ensure sorted keys
+                Collectors.mapping(HoldingsMonthly::getHoldings, Collectors.toList())
+        ));
 
-        List<BarChart> barCharts = new ArrayList<>();
+        List<Map<String, Object>> combinedBarChartsData = new ArrayList<>();
 
         for (Map.Entry<LocalDate, List<Holdings>> entry : holdingsByDate.entrySet()) {
             LocalDate date = entry.getKey();
@@ -127,11 +132,19 @@ public class PortfolioService {
                     .distinct()
                     .collect(Collectors.toList());
 
-            List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbols(symbols);        // Handle the case when categoryName is "None"
+            List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbols(symbols);        
+            
+            // Handle the case when categoryName is "None"
             if ("None".equalsIgnoreCase(categoryName)) {
                 BarChart barChart = new BarChart(holdings, marketDataList);
                 barChart.setLocalDate(date);
-                barCharts.add(barChart);
+                // Transform the result of getDataByDate to include "date" and "data" keys
+                Map<String, Object> transformedData = new HashMap<>();
+                transformedData.put("date", date.toString());
+                transformedData.put("data", barChart.getDataByDate().get(date.toString()));
+
+                combinedBarChartsData.add(transformedData);
+                continue;
             }
 
             marketDataList.forEach(marketData -> {
@@ -156,13 +169,15 @@ public class PortfolioService {
 
             BarChart barChart = new BarChart(holdings, marketDataList, holdingsCategories, subcategories, categoryName);
             barChart.setLocalDate(date);
-            barCharts.add(barChart);
-        }
-        // Combine all bar charts into a single list
-        List<Map<String, Object>> combinedBarChartsData = new ArrayList<>();
-        for (BarChart barChart : barCharts) {
-            combinedBarChartsData.add(barChart.getDataByDate());
+
+            // Transform the result of getDataByDate to include "date" and "data" keys
+            Map<String, Object> transformedData = new HashMap<>();
+            transformedData.put("date", date.toString());
+            transformedData.put("data", barChart.getDataByDate().get(date.toString()));
+
+            combinedBarChartsData.add(transformedData);
         }
         return combinedBarChartsData;
-    } 
+    }
+
 }
