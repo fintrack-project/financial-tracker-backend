@@ -72,7 +72,8 @@ public class PortfolioService {
         Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
         if (categoryId == null) {
             throw new IllegalArgumentException("Category not found for the given account and category name.");
-        }        // Fetch subcategories for the given account ID and category ID
+        }        
+        // Fetch subcategories for the given account ID and category ID
         List<Category> subcategories = subcategoriesRepository.findSubcategoriesByParentId(accountId, categoryId);
         if (subcategories.isEmpty()) {
             throw new IllegalArgumentException("No subcategories found for the given account and category ID.");
