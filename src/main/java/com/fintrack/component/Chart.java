@@ -141,8 +141,9 @@ public abstract class Chart {
                         0, // Default priority
                         getColor()); // Assign a random color
                 })
-                .collect(Collectors.toList());
-        
+                .sorted(Comparator.comparing(ChartData::getValue).reversed()) // Sort by asset value in descending order
+                .collect(Collectors.toList()
+                );
         return chartData;
     }
 
