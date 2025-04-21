@@ -14,13 +14,14 @@ import java.util.List;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
     // Fetch transactions by accountId, excluding soft-deleted ones
-    @Query("SELECT t FROM Transaction t WHERE t.accountId = :accountId AND t.deletedAt IS NULL ORDER BY t.date DESC")
+    @Query(value = "SELECT * FROM transactions WHERE account_id = :accountId AND deleted_at IS NULL ORDER BY date DESC", nativeQuery = true)
     List<Transaction> findByAccountIdOrderByDateDesc(@Param("accountId") UUID accountId);
 
-    List<Transaction> findByAccountIdAndDateBefore(UUID accountId, LocalDate date);
+    @Query(value = "SELECT * FROM transactions WHERE account_id = :accountId AND deleted_at IS NULL AND date < :date ORDER BY date DESC", nativeQuery = true)
+    List<Transaction> findByAccountIdAndDateBefore(@Param("accountId") UUID accountId, @Param("date") LocalDate date);
 
     // Soft delete transactions by setting the deleted_at column
     @Modifying
-    @Query("UPDATE Transaction t SET t.deletedAt = CURRENT_TIMESTAMP WHERE t.transactionId IN :transactionIds")
+    @Query(value = "UPDATE transactions SET deleted_at = CURRENT_TIMESTAMP WHERE transaction_id IN (:transactionIds)", nativeQuery = true)
     void softDeleteByTransactionIds(@Param("transactionIds") List<Long> transactionIds);
 }

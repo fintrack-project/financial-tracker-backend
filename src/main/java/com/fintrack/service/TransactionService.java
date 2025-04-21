@@ -102,15 +102,21 @@ public class TransactionService {
 
         logger.trace("Initial total balance before map: " + initialTotalBalanceBeforeMap);
 
-        // Step 6: Calculate total balance up to the initial date
+        // Step 6: Add transactions up to the initial date
         List<Transaction> transactionsBeforeEarliestDate = transactionRepository.findByAccountIdAndDateBefore(accountId, earliestDate);
 
-        for (Transaction transaction : transactionsBeforeEarliestDate) {
-            String assetName = transaction.getAssetName();
-            BigDecimal balance = initialTotalBalanceBeforeMap.getOrDefault(assetName, BigDecimal.ZERO);
-            balance = balance.add(transaction.getCredit()).subtract(transaction.getDebit());
-            initialTotalBalanceBeforeMap.put(assetName, balance);
-        }
+        logger.trace("Transactions before earliest date: " + earliestDate);
+        transactionsBeforeEarliestDate.forEach(
+            transaction -> { 
+                logger.trace("transaction, account id: " + accountId + ", date : " + transaction.getDate() + ", asset name: " + transaction.getAssetName() + ", credit: " + transaction.getCredit() + ", debit: " + transaction.getDebit());
+            }
+        );
+
+        transactionTable.addTransactions(
+            transactionsBeforeEarliestDate.stream()
+                .map(transaction -> new OverviewTransaction(transaction))
+                .collect(Collectors.toList())
+        );
 
         // Step 7: Update total balance information in the TransactionTable
         transactionTable.setInitialTotalBalanceBeforeMap(initialTotalBalanceBeforeMap);
