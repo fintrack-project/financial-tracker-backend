@@ -178,12 +178,12 @@ public class PieChart {
                     subcategoryValueMap.put(subcategory, subcategoryValueMap.getOrDefault(subcategory, 0.0) + value); // Update subcategory value
 
                     return new PieChartData(
-                      holding.getAssetName(),
-                      symbol,
-                      subcategory, 
-                      value, 
-                      getSubcategoryPriorityMap().getOrDefault(subcategory, 0), // Get priority from subcategory map
-                      color); // Use subcategory as name
+                        holding.getAssetName(),
+                        symbol,
+                        subcategory, 
+                        value, 
+                        getSubcategoryPriorityMap().getOrDefault(subcategory, 0), // Get priority from subcategory map
+                        color); // Use subcategory as name
                 })
                 .collect(Collectors.toList());
         

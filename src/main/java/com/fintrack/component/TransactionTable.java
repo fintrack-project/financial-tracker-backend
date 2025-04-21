@@ -105,6 +105,7 @@ public class TransactionTable<T extends OverviewTransaction> {
         logger.debug("Filling total balances for transactions");
         // Deep copy initialTotalBalanceBeforeMap to totalBalanceBeforeMap
         Map<String, BigDecimal> totalBalanceBeforeMap = new HashMap<>(initialTotalBalanceBeforeMap);
+        logger.debug("Initial total balance before map: " + totalBalanceBeforeMap);
 
         // Temporarily sort transactions in reversed order of date for calculation
         transactions.sort(Comparator
@@ -133,6 +134,8 @@ public class TransactionTable<T extends OverviewTransaction> {
 
         }
         isTotalBalancesFilled = true;
+
+        logger.debug("Final total balance after map: {}", totalBalanceAfterMap);
 
         // Restore the original order of transactions
         sortTransactions();

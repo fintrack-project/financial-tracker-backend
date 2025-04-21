@@ -53,6 +53,12 @@ public class TransactionService {
         // Step 1: Get transactions by account ID in descending order of date
         List<Transaction> transactions = transactionRepository.findByAccountIdOrderByDateDesc(accountId);
 
+        transactions.forEach(
+            transaction -> { 
+                logger.trace("transaction, account id: " + accountId + ", date : " + transaction.getDate() + ", asset name: " + transaction.getAssetName() + ", credit: " + transaction.getCredit() + ", debit: " + transaction.getDebit());
+            }
+        );
+
         // Step 2: Create a TransactionTable object
         TransactionTable<OverviewTransaction> transactionTable = new TransactionTable<>(
             transactions.stream()
@@ -77,6 +83,12 @@ public class TransactionService {
         // Fetch monthly holdings after the 1st date of the month
         List<HoldingsMonthly> monthlyHoldings = holdingsMonthlyRepository.findByAccountIdAndDateBetween(accountId, firstDateOfMonth, lastDateOfMonth);
 
+        monthlyHoldings.forEach(
+            holding -> { 
+                logger.trace("holdingsMonthly, account id: " + accountId + ", date : " + holding.getDate() + ", asset name: " + holding.getAssetName() + ", total balance: " + holding.getTotalBalance());
+            }
+        );
+
         // Step 5: Set initialTotalBalanceBeforeMap using monthly holdings
         Map<String, BigDecimal> initialTotalBalanceBeforeMap = new HashMap<>();
         for (HoldingsMonthly holding : monthlyHoldings) {
@@ -88,15 +100,23 @@ public class TransactionService {
             initialTotalBalanceBeforeMap.putIfAbsent(assetName, BigDecimal.ZERO);
         }
 
-        // Step 6: Calculate total balance up to the initial date
+        logger.trace("Initial total balance before map: " + initialTotalBalanceBeforeMap);
+
+        // Step 6: Add transactions up to the initial date
         List<Transaction> transactionsBeforeEarliestDate = transactionRepository.findByAccountIdAndDateBefore(accountId, earliestDate);
 
-        for (Transaction transaction : transactionsBeforeEarliestDate) {
-            String assetName = transaction.getAssetName();
-            BigDecimal balance = initialTotalBalanceBeforeMap.getOrDefault(assetName, BigDecimal.ZERO);
-            balance = balance.add(transaction.getCredit()).subtract(transaction.getDebit());
-            initialTotalBalanceBeforeMap.put(assetName, balance);
-        }
+        logger.trace("Transactions before earliest date: " + earliestDate);
+        transactionsBeforeEarliestDate.forEach(
+            transaction -> { 
+                logger.trace("transaction, account id: " + accountId + ", date : " + transaction.getDate() + ", asset name: " + transaction.getAssetName() + ", credit: " + transaction.getCredit() + ", debit: " + transaction.getDebit());
+            }
+        );
+
+        transactionTable.addTransactions(
+            transactionsBeforeEarliestDate.stream()
+                .map(transaction -> new OverviewTransaction(transaction))
+                .collect(Collectors.toList())
+        );
 
         // Step 7: Update total balance information in the TransactionTable
         transactionTable.setInitialTotalBalanceBeforeMap(initialTotalBalanceBeforeMap);
