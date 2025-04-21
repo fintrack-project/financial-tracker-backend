@@ -1,10 +1,9 @@
-package com.fintrack.component;
+package com.fintrack.component.chart;
 
 import java.time.LocalDate;
 
 public class BarChartData extends ChartData {
         Double percentageOfSubcategory;
-        LocalDate localDate;
 
         public BarChartData(ChartData chartData) {
             super(
@@ -32,13 +31,5 @@ public class BarChartData extends ChartData {
 
         public void setPercentageOfSubcategory(Double percentageOfSubcategory) {
             this.percentageOfSubcategory = percentageOfSubcategory;
-        }
-
-        public LocalDate getLocalDate() {
-            return localDate;
-        }
-
-        public void setLocalDate(LocalDate localDate) {
-            this.localDate = localDate;
         }
 }

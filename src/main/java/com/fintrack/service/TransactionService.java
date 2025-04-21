@@ -1,14 +1,14 @@
 package com.fintrack.service;
 
 import com.fintrack.model.Transaction;
-import com.fintrack.component.OverviewTransaction;
 import com.fintrack.repository.TransactionRepository;
 import com.fintrack.repository.HoldingsMonthlyRepository;
 import com.fintrack.repository.AssetRepository;
 import com.fintrack.model.Asset;
 import com.fintrack.model.HoldingsMonthly;
-import com.fintrack.component.PreviewTransaction;
-import com.fintrack.component.TransactionTable;
+import com.fintrack.component.transaction.OverviewTransaction;
+import com.fintrack.component.transaction.PreviewTransaction;
+import com.fintrack.component.transaction.TransactionTable;
 import com.fintrack.constants.KafkaTopics;
 
 import org.springframework.stereotype.Service;

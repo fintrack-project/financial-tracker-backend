@@ -1,4 +1,4 @@
-package com.fintrack.component;
+package com.fintrack.component.chart;
 
 public class PieChartData extends ChartData {
     Double percentageOfSubcategory;

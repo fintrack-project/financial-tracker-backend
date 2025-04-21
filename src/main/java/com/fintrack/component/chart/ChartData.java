@@ -1,4 +1,4 @@
-package com.fintrack.component;
+package com.fintrack.component.chart;
 
 public class ChartData implements Comparable<ChartData> {
     private String assetName;

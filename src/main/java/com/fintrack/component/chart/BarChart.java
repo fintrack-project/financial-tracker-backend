@@ -1,4 +1,4 @@
-package com.fintrack.component;
+package com.fintrack.component.chart;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,6 +8,7 @@ import com.fintrack.model.MarketData;
 import com.fintrack.model.Category;
 import com.fintrack.model.Holdings;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -15,6 +16,7 @@ public class BarChart extends Chart {
     private static final Logger logger = LoggerFactory.getLogger(BarChart.class);
     
     private List<BarChartData> barChartData;
+            LocalDate localDate;
 
     public BarChart(List<Holdings> holdings, List<MarketData> marketData) {
         super(holdings, marketData);
@@ -31,7 +33,15 @@ public class BarChart extends Chart {
         this.barChartData = generateBarChartDataByCategoryName(categoryName);
     }
 
-        public List<Map<String, Object>> getData() {
+    public LocalDate getLocalDate() {
+        return localDate;
+    }
+
+    public void setLocalDate(LocalDate localDate) {
+        this.localDate = localDate;
+    }
+
+    public Map<String, Object> getDataByDate() {
         List<Map<String, Object>> data = new ArrayList<>();
         for (BarChartData barChart : barChartData) {
             Map<String, Object> map = new HashMap<>();
@@ -47,7 +57,9 @@ public class BarChart extends Chart {
             map.put("percentageOfSubcategory", barChart.getPercentageOfSubcategory());
             data.add(map);
         }
-        return data;
+        Map<String, Object> totalMap = new HashMap<>();
+        totalMap.put(getLocalDate().toString(), data);
+        return totalMap;
     }
 
     private List<BarChartData> generateBarChartData() {

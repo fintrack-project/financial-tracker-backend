@@ -1,4 +1,4 @@
-package com.fintrack.component;
+package com.fintrack.component.chart;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
