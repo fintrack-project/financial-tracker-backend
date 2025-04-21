@@ -7,7 +7,6 @@ import com.fintrack.constants.Color;
 import com.fintrack.model.Category;
 import com.fintrack.model.Holdings;
 import com.fintrack.model.HoldingsCategory;
-import com.fintrack.model.HoldingsMonthly;
 import com.fintrack.model.MarketData;
 
 import java.util.*;

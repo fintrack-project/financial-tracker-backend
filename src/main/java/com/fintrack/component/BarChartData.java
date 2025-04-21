@@ -1,34 +1,44 @@
 package com.fintrack.component;
 
-import org.springframework.cglib.core.Local;
-
 import java.time.LocalDate;
 
 public class BarChartData extends ChartData {
-      Double percentageOfSubcategory;
-      LocalDate localDate;
+        Double percentageOfSubcategory;
+        LocalDate localDate;
 
-      public BarChartData(String assetName, String symbol, String subcategory, double value, Integer priority, String color) {
-          super(assetName, symbol, subcategory, value, priority, color);
-      }
+        public BarChartData(ChartData chartData) {
+            super(
+                chartData.getAssetName(), 
+                chartData.getSymbol(), 
+                chartData.getSubcategory(), 
+                chartData.getValue(), 
+                chartData.getPriority(), 
+                chartData.getColor(), 
+                chartData.getPercentage()
+            );
+        }
 
-      public BarChartData(String assetName, String symbol, String subcategory, double value, Integer priority, String color, Double percentage) {
-          super(assetName, symbol, subcategory, value, priority, color, percentage);
-      }
+        public BarChartData(String assetName, String symbol, String subcategory, double value, Integer priority, String color) {
+            super(assetName, symbol, subcategory, value, priority, color);
+        }
 
-      public Double getPercentageOfSubcategory() {
-          return percentageOfSubcategory;
-      }
+        public BarChartData(String assetName, String symbol, String subcategory, double value, Integer priority, String color, Double percentage) {
+            super(assetName, symbol, subcategory, value, priority, color, percentage);
+        }
 
-      public void setPercentageOfSubcategory(Double percentageOfSubcategory) {
-          this.percentageOfSubcategory = percentageOfSubcategory;
-      }
+        public Double getPercentageOfSubcategory() {
+            return percentageOfSubcategory;
+        }
 
-      public LocalDate getLocalDate() {
-          return localDate;
-      }
+        public void setPercentageOfSubcategory(Double percentageOfSubcategory) {
+            this.percentageOfSubcategory = percentageOfSubcategory;
+        }
 
-      public void setLocalDate(LocalDate localDate) {
-          this.localDate = localDate;
-      }
+        public LocalDate getLocalDate() {
+            return localDate;
+        }
+
+        public void setLocalDate(LocalDate localDate) {
+            this.localDate = localDate;
+        }
 }
