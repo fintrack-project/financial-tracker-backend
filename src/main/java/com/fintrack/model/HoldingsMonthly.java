@@ -40,6 +40,16 @@ public class HoldingsMonthly {
     @Column(name = "symbol")
     private String symbol;
 
+    public Holdings getHoldings() {
+        Holdings holdings = new Holdings();
+        holdings.setAccountId(getAccountId());
+        holdings.setAssetName(getAssetName());
+        holdings.setTotalBalance(getTotalBalance().doubleValue());
+        holdings.setUnit(getUnit());
+        holdings.setSymbol(getSymbol());
+        return holdings;
+    }
+
     // Getters and Setters
     public Long getId() {
         return id;

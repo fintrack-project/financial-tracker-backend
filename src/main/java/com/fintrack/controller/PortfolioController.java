@@ -27,4 +27,13 @@ public class PortfolioController {
         List<Map<String, Object>> pieChartData = portfolioService.calculatePortfolioPieChartData(accountId, category);
         return ResponseEntity.ok(pieChartData);
     }
+
+    @PostMapping("/barchart-data")
+    public ResponseEntity<List<Map<String, Object>>> getPortfolioBarChartsData(@RequestBody Map<String, Object> requestData) {
+        UUID accountId = UUID.fromString((String) requestData.get("accountId"));
+        String category = (String) requestData.get("category");
+
+        List<Map<String, Object>> barChartData = portfolioService.calculatePortfolioBarChartsData(accountId, category);
+        return ResponseEntity.ok(barChartData);
+    }
 }
