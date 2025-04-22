@@ -119,7 +119,7 @@ public abstract class Chart {
     }
 
     protected List<ChartData> generateChartData() {
-        logger.debug("Generating chart data for all holdings");
+        logger.trace("Generating chart data for all holdings");
         Map<String, Double> symbolToPriceMap = getSymbolToPriceMap();
         List<ChartData> chartData = holdings.stream()
                 .map(holding -> {
@@ -138,7 +138,7 @@ public abstract class Chart {
                         "None",
                         value, 
                         0, // Default priority
-                        getColor()); // Assign a random color
+                        assignColor()); // Assign a random color
                 })
                 .sorted(Comparator.comparing(ChartData::getValue).reversed()) // Sort by asset value in descending order
                 .collect(Collectors.toList()
@@ -147,7 +147,7 @@ public abstract class Chart {
     }
 
     private List<ChartData> generateChartDataByCategoryName(String categoryName) {
-        logger.debug("Generating chart data for category: " + categoryName);
+        logger.trace("Generating chart data for category: " + categoryName);
         // Generate pie chart data for a specific category
         Map<String, Double> symbolToPriceMap = getSymbolToPriceMap();
 
@@ -181,7 +181,7 @@ public abstract class Chart {
                     String subcategory = assetNamesSubcategoryMap.get(holding.getAssetName());
 
                     // Get or generate a color for the subcategory
-                    String color = subcategoryColorMap.computeIfAbsent(subcategory, key -> getColor());
+                    String color = subcategoryColorMap.computeIfAbsent(subcategory, key -> assignColor());
 
                     assetValueMap.put(holding.getAssetName(), value); // Store asset value
                     totalValue += value; // Accumulate total value
@@ -215,7 +215,7 @@ public abstract class Chart {
         return subcategoryPriorityMap;
     }
 
-    private String getColor() {
+    private String assignColor() {
       String color = COLORS.get(colorIndex).getHexCode(); // Get color from predefined list
       colorIndex = (colorIndex + 1) % COLORS.size(); // Cycle through colors
       return color; // Return color in hex format

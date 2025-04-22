@@ -2,8 +2,8 @@ package com.fintrack.service;
 
 import com.fintrack.repository.*;
 import com.fintrack.component.chart.BarChart;
+import com.fintrack.component.chart.CombinedBarChart;
 import com.fintrack.component.chart.PieChart;
-import com.fintrack.component.chart.PieChartData;
 import com.fintrack.model.*;
 
 import org.apache.logging.log4j.LogManager;
@@ -120,7 +120,8 @@ public class PortfolioService {
                 Collectors.mapping(HoldingsMonthly::getHoldings, Collectors.toList())
         ));
 
-        List<Map<String, Object>> combinedBarChartsData = new ArrayList<>();
+        List<BarChart> barCharts = new ArrayList<>();
+        // List<Map<String, Object>> combinedBarChartsData = new ArrayList<>(); 
 
         for (Map.Entry<LocalDate, List<Holdings>> entry : holdingsByDate.entrySet()) {
             LocalDate date = entry.getKey();
@@ -138,12 +139,13 @@ public class PortfolioService {
             if ("None".equalsIgnoreCase(categoryName)) {
                 BarChart barChart = new BarChart(holdings, marketDataList);
                 barChart.setLocalDate(date);
-                // Transform the result of getDataByDate to include "date" and "data" keys
-                Map<String, Object> transformedData = new HashMap<>();
-                transformedData.put("date", date.toString());
-                transformedData.put("data", barChart.getDataByDate().get(date.toString()));
+                barCharts.add(barChart);
+                // // Transform the result of getDataByDate to include "date" and "data" keys
+                // Map<String, Object> transformedData = new HashMap<>();
+                // transformedData.put("date", date.toString());
+                // transformedData.put("data", barChart.getDataByDate().get(date.toString()));
 
-                combinedBarChartsData.add(transformedData);
+                // combinedBarChartsData.add(transformedData);
                 continue;
             }
 
@@ -169,15 +171,19 @@ public class PortfolioService {
 
             BarChart barChart = new BarChart(holdings, marketDataList, holdingsCategories, subcategories, categoryName);
             barChart.setLocalDate(date);
+            barCharts.add(barChart);
 
-            // Transform the result of getDataByDate to include "date" and "data" keys
-            Map<String, Object> transformedData = new HashMap<>();
-            transformedData.put("date", date.toString());
-            transformedData.put("data", barChart.getDataByDate().get(date.toString()));
+            // // Transform the result of getDataByDate to include "date" and "data" keys
+            // Map<String, Object> transformedData = new HashMap<>();
+            // transformedData.put("date", date.toString());
+            // transformedData.put("data", barChart.getDataByDate().get(date.toString()));
 
-            combinedBarChartsData.add(transformedData);
+            // combinedBarChartsData.add(transformedData);
         }
-        return combinedBarChartsData;
+
+        CombinedBarChart combinedBarCharts = new CombinedBarChart(barCharts, categoryName);
+
+        return combinedBarCharts.getCombinedBarChartsData();
     }
 
 }

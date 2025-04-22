@@ -15,6 +15,7 @@
     </root>
 
     <logger name="com.fintrack.service" level="trace" />
+    <logger name="com.fintrack.component" level="debug" />
     <logger name="org.hibernate.SQL" level="debug" />
     <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="trace" />
 

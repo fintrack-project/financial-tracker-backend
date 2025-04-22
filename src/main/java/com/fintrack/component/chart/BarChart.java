@@ -15,22 +15,30 @@ import java.util.stream.Collectors;
 public class BarChart extends Chart {
     private static final Logger logger = LoggerFactory.getLogger(BarChart.class);
     
-    private List<BarChartData> barChartData;
-            LocalDate localDate;
+    private List<BarChartData> barChartDatas;
+    private LocalDate localDate;
 
     public BarChart(List<Holdings> holdings, List<MarketData> marketData) {
         super(holdings, marketData);
-        this.barChartData = generateBarChartData();
+        this.barChartDatas = generateBarChartData();
     }
 
     public BarChart(List<Holdings> holdings, List<MarketData> marketData, List<HoldingsCategory> holdingsCategories, String categoryName) {
         super(holdings, marketData, holdingsCategories, categoryName);
-        this.barChartData = generateBarChartDataByCategoryName(categoryName);
+        this.barChartDatas = generateBarChartDataByCategoryName(categoryName);
     }
 
     public BarChart(List<Holdings> holdings, List<MarketData> marketData, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, String categoryName) {
         super(holdings, marketData, holdingsCategories, subcategories, categoryName);
-        this.barChartData = generateBarChartDataByCategoryName(categoryName);
+        this.barChartDatas = generateBarChartDataByCategoryName(categoryName);
+    }
+
+    public List<BarChartData> getBarChartDatas() {
+        return barChartDatas;
+    }
+
+    public void setBarChartDatas(List<BarChartData> barChartDatas) {
+        this.barChartDatas = barChartDatas;
     }
 
     public LocalDate getLocalDate() {
@@ -43,18 +51,18 @@ public class BarChart extends Chart {
 
     public Map<String, Object> getDataByDate() {
         List<Map<String, Object>> data = new ArrayList<>();
-        for (BarChartData barChart : barChartData) {
+        for (BarChartData barChartData : barChartDatas) {
             Map<String, Object> map = new HashMap<>();
-            map.put("assetName", barChart.getAssetName());
-            map.put("symbol", barChart.getSymbol());
-            map.put("subcategory", barChart.getSubcategory());
-            map.put("value", barChart.getValue());
-            map.put("color", barChart.getColor());
-            map.put("priority", barChart.getPriority());
+            map.put("assetName", barChartData.getAssetName());
+            map.put("symbol", barChartData.getSymbol());
+            map.put("subcategory", barChartData.getSubcategory());
+            map.put("value", barChartData.getValue());
+            map.put("color", barChartData.getColor());
+            map.put("priority", barChartData.getPriority());
             map.put("totalValue", getTotalValue());
-            map.put("subcategoryValue", getSubcategoryValueMap().getOrDefault(barChart.getSubcategory(), 0.0));
-            map.put("percentage", barChart.getPercentage());
-            map.put("percentageOfSubcategory", barChart.getPercentageOfSubcategory());
+            map.put("subcategoryValue", getSubcategoryValueMap().getOrDefault(barChartData.getSubcategory(), 0.0));
+            map.put("percentage", barChartData.getPercentage());
+            map.put("percentageOfSubcategory", barChartData.getPercentageOfSubcategory());
             data.add(map);
         }
         Map<String, Object> totalMap = new HashMap<>();
