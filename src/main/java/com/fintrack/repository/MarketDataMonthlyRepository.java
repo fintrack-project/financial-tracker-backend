@@ -17,7 +17,4 @@ public interface MarketDataMonthlyRepository extends JpaRepository<MarketDataMon
 
     @Query(value = "SELECT * FROM market_data_monthly WHERE symbol = :symbol AND date BETWEEN :startDate AND :endDate", nativeQuery = true)
     List<MarketDataMonthly> findBySymbolAndDateRange(@Param("symbol") String symbol, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
-
-    @Query(value = "SELECT * FROM market_data_monthly WHERE symbol IN :symbols AND date BETWEEN :startDate AND :endDate", nativeQuery = true)
-    List<MarketDataMonthly> findBySymbolsAndDateRange(@Param("symbol") String symbol, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 }

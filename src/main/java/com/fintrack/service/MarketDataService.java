@@ -1,6 +1,7 @@
 package com.fintrack.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fintrack.constants.AssetType;
 import com.fintrack.constants.KafkaTopics;
 import com.fintrack.model.HoldingDto;
 import com.fintrack.model.MarketData;
@@ -106,7 +107,7 @@ public class MarketDataService {
                 Map<String, String> asset = new HashMap<>();
                 asset.put("symbol", symbol);
                 // TODO: Replace with actual asset type retrieval logic
-                asset.put("asset_type", "stock"); // Hardcoded asset type
+                asset.put("asset_type", AssetType.STOCK.toString()); // Hardcoded asset type
                 assets.add(asset);
             }
     

@@ -1,12 +1,12 @@
 package com.fintrack.constants;
 
 public enum AssetType {
-    STOCK("stock"),
-    CRYPTO("crypto"),
-    COMMODITY("commodity"),
-    FOREX("forex"),
-    UNKNOWN("unknown");
-    
+    STOCK("STOCK"),
+    CRYPTO("CRYPTO"),
+    COMMODITY("COMMODITY"),
+    FOREX("FOREX"),
+    UNKNOWN("UNKNOWN");
+
     private final String assetTypeName;
 
     AssetType(String assetTypeName) {

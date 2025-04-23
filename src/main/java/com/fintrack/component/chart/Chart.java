@@ -8,6 +8,7 @@ import com.fintrack.model.Category;
 import com.fintrack.model.Holdings;
 import com.fintrack.model.HoldingsCategory;
 import com.fintrack.model.MarketData;
+import com.fintrack.model.MarketDataDto;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -21,7 +22,7 @@ public abstract class Chart {
     private int colorIndex = 0;
 
     private List<Holdings> holdings;
-    private List<MarketData> marketData;
+    private List<MarketDataDto> marketDataDto;
     private List<HoldingsCategory> holdingsCategories;
     private List<Category> subcategories;
     private List<ChartData> chartData;
@@ -31,23 +32,23 @@ public abstract class Chart {
     private Map<String, Double> assetValueMap = new HashMap<>();
     private Map<String, Double> subcategoryValueMap = new HashMap<>();
 
-    public Chart(List<Holdings> holdings, List<MarketData> marketData) {
+    public Chart(List<Holdings> holdings, List<MarketDataDto> marketDataDto) {
         this.holdings = holdings;
-        this.marketData = marketData;
+        this.marketDataDto = marketDataDto;
         this.chartData = generateChartData();
     }
 
-    public Chart(List<Holdings> holdings, List<MarketData> marketData, List<HoldingsCategory> holdingsCategories, String categoryName) {
+    public Chart(List<Holdings> holdings, List<MarketDataDto> marketDataDto, List<HoldingsCategory> holdingsCategories, String categoryName) {
         this.holdings = holdings;
-        this.marketData = marketData;
+        this.marketDataDto = marketDataDto;
         this.holdingsCategories = holdingsCategories;
         this.categoryName = categoryName;
         this.chartData = generateChartDataByCategoryName(categoryName);
     }
 
-    public Chart(List<Holdings> holdings, List<MarketData> marketData, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, String categoryName) {
+    public Chart(List<Holdings> holdings, List<MarketDataDto> marketDataDto, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, String categoryName) {
         this.holdings = holdings;
-        this.marketData = marketData;
+        this.marketDataDto = marketDataDto;
         this.holdingsCategories = holdingsCategories;
         this.subcategories = subcategories;
         this.categoryName = categoryName;
@@ -70,12 +71,12 @@ public abstract class Chart {
         this.holdings = holdings;
     }
 
-    public List<MarketData> getMarketData() {
-        return marketData;
+    public List<MarketDataDto> getMarketDataDto() {
+        return marketDataDto;
     }
 
-    public void setMarketData(List<MarketData> marketData) {
-        this.marketData = marketData;
+    public void setMarketDataDto(List<MarketDataDto> marketDataDto) {
+        this.marketDataDto = marketDataDto;
     }
 
     public List<HoldingsCategory> getHoldingsCategories() {
@@ -204,8 +205,8 @@ public abstract class Chart {
     }
 
     private Map<String, Double> getSymbolToPriceMap() {
-        return marketData.stream()
-                .collect(Collectors.toMap(MarketData::getSymbol, marketData -> marketData.getPrice().doubleValue()));
+        return marketDataDto.stream()
+                .collect(Collectors.toMap(MarketDataDto::getSymbol, marketDataDto -> marketDataDto.getPrice().doubleValue()));
     }
 
     private Map<String, Integer> getSubcategoryPriorityMap() {
