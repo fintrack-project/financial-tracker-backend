@@ -20,14 +20,13 @@ public class MarketDataController {
     }
 
     @GetMapping("/fetch")
-    public ResponseEntity<List<MarketData>> fetchMarketData(@RequestParam List<String> symbols) {
+    public ResponseEntity<List<MarketData>> fetchMarketData(@RequestParam UUID accountId, @RequestParam List<String> symbols) {
         try {
-            List<MarketData> marketData = marketDataService.fetchMarketData(symbols);
+            List<MarketData> marketData = marketDataService.fetchMarketData(accountId, symbols);
             return ResponseEntity.ok(marketData);
         } catch (Exception e) {
             e.printStackTrace(); // Log the error for debugging
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
         }
-        
     }
 }
