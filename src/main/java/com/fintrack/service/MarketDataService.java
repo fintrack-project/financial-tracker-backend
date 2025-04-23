@@ -2,7 +2,9 @@ package com.fintrack.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fintrack.constants.KafkaTopics;
+import com.fintrack.model.HoldingDto;
 import com.fintrack.model.MarketData;
+import com.fintrack.repository.HoldingsMonthlyRepository;
 import com.fintrack.repository.MarketDataRepository;
 
 import org.slf4j.Logger;
@@ -11,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.*;
 
 @Service
@@ -19,16 +22,20 @@ public class MarketDataService {
     private static final Logger logger = LoggerFactory.getLogger(MarketDataService.class);
 
     private final MarketDataRepository marketDataRepository;
+    private final HoldingsMonthlyRepository holdingsMonthlyRepository;
     private final KafkaProducerService kafkaProducerService;
 
-    public MarketDataService(MarketDataRepository marketDataRepository, KafkaProducerService kafkaProducerService) {
+    public MarketDataService(MarketDataRepository marketDataRepository, 
+        HoldingsMonthlyRepository holdingsMonthlyRepository,
+        KafkaProducerService kafkaProducerService) {
         this.marketDataRepository = marketDataRepository;
+        this.holdingsMonthlyRepository = holdingsMonthlyRepository;
         this.kafkaProducerService = kafkaProducerService;
     }
 
-    public List<MarketData> fetchMarketData(List<String> symbols) {
+    public List<MarketData> fetchMarketData(UUID accountId, List<String> symbols) {
         // Send a Kafka message to request an update
-        sendMarketDataUpdateRequest(symbols);
+        sendMarketDataUpdateRequest(accountId, symbols);
 
         // Retry mechanism to fetch data until all symbols are available
         List<MarketData> result = new ArrayList<>();
@@ -70,21 +77,52 @@ public class MarketDataService {
         return result;
     }
 
-    public void sendMarketDataUpdateRequest(List<String> symbols) {
+    public void sendMarketDataUpdateRequest(UUID accountId, List<String> symbols) {
         try {
-            // Create the payload as a Map
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("symbols", symbols);
-
+            // Create the payload for MARKET_DATA_UPDATE_REQUEST
+            Map<String, Object> updateRequestPayload = new HashMap<>();
+            updateRequestPayload.put("symbols", symbols);
+    
             // Convert the payload to a JSON string
             ObjectMapper objectMapper = new ObjectMapper();
-            String jsonPayload = objectMapper.writeValueAsString(payload);
+            String updateRequestJson = objectMapper.writeValueAsString(updateRequestPayload);
+    
+            // Publish the JSON payload to the MARKET_DATA_UPDATE_REQUEST topic
+            kafkaProducerService.publishEvent(KafkaTopics.MARKET_DATA_UPDATE_REQUEST.getTopicName(), updateRequestJson);
+            logger.info("Sent market data update request: " + updateRequestJson);
 
-            // Publish the JSON payload to the Kafka topic
-            kafkaProducerService.publishEvent(KafkaTopics.MARKET_DATA_UPDATE_REQUEST.getTopicName(), jsonPayload);
-            logger.info("Sent market data update request: " + jsonPayload);
+            // Fetch the start_date and end_date from HoldingsMonthlyRepository
+            LocalDate startDate = holdingsMonthlyRepository.findEarliestDateByAccountId(accountId);
+            LocalDate endDate = holdingsMonthlyRepository.findLatestDateByAccountId(accountId);
+
+            if (startDate == null || endDate == null) {
+                logger.warn("No holdings found for accountId: " + accountId + ". Skipping MARKET_DATA_MONTHLY_REQUEST.");
+                return;
+            }
+    
+            // Create the payload for MARKET_DATA_MONTHLY_REQUEST
+            List<Map<String, String>> assets = new ArrayList<>();
+            for (String symbol : symbols) {
+                Map<String, String> asset = new HashMap<>();
+                asset.put("symbol", symbol);
+                // TODO: Replace with actual asset type retrieval logic
+                asset.put("asset_type", "stock"); // Hardcoded asset type
+                assets.add(asset);
+            }
+    
+            Map<String, Object> monthlyRequestPayload = new HashMap<>();
+            monthlyRequestPayload.put("assets", assets);
+            monthlyRequestPayload.put("start_date", startDate.toString());
+            monthlyRequestPayload.put("end_date", endDate.toString());
+    
+            // Convert the payload to a JSON string
+            String monthlyRequestJson = objectMapper.writeValueAsString(monthlyRequestPayload);
+    
+            // Publish the JSON payload to the MARKET_DATA_MONTHLY_REQUEST topic
+            kafkaProducerService.publishEvent(KafkaTopics.MARKET_DATA_MONTHLY_REQUEST.getTopicName(), monthlyRequestJson);
+            logger.info("Sent market data monthly request: " + monthlyRequestJson);
         } catch (Exception e) {
-            logger.error("Failed to send market data update request: " + e.getMessage());
+            logger.error("Failed to send market data update or monthly request: " + e.getMessage());
         }
     }
 
