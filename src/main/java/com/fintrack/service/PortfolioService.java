@@ -140,12 +140,6 @@ public class PortfolioService {
                 BarChart barChart = new BarChart(holdings, marketDataList);
                 barChart.setLocalDate(date);
                 barCharts.add(barChart);
-                // // Transform the result of getDataByDate to include "date" and "data" keys
-                // Map<String, Object> transformedData = new HashMap<>();
-                // transformedData.put("date", date.toString());
-                // transformedData.put("data", barChart.getDataByDate().get(date.toString()));
-
-                // combinedBarChartsData.add(transformedData);
                 continue;
             }
 
@@ -172,13 +166,6 @@ public class PortfolioService {
             BarChart barChart = new BarChart(holdings, marketDataList, holdingsCategories, subcategories, categoryName);
             barChart.setLocalDate(date);
             barCharts.add(barChart);
-
-            // // Transform the result of getDataByDate to include "date" and "data" keys
-            // Map<String, Object> transformedData = new HashMap<>();
-            // transformedData.put("date", date.toString());
-            // transformedData.put("data", barChart.getDataByDate().get(date.toString()));
-
-            // combinedBarChartsData.add(transformedData);
         }
 
         CombinedBarChart combinedBarCharts = new CombinedBarChart(barCharts, categoryName);
