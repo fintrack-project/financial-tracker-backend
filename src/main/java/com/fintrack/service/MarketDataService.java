@@ -119,7 +119,7 @@ public class MarketDataService {
             String monthlyRequestJson = objectMapper.writeValueAsString(monthlyRequestPayload);
     
             // Publish the JSON payload to the MARKET_DATA_MONTHLY_REQUEST topic
-            kafkaProducerService.publishEvent(KafkaTopics.MARKET_DATA_MONTHLY_REQUEST.getTopicName(), monthlyRequestJson);
+            kafkaProducerService.publishEvent(KafkaTopics.HISTORICAL_MARKET_DATA_REQUEST.getTopicName(), monthlyRequestJson);
             logger.info("Sent market data monthly request: " + monthlyRequestJson);
         } catch (Exception e) {
             logger.error("Failed to send market data update or monthly request: " + e.getMessage());
