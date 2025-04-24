@@ -27,6 +27,4 @@ public class ForexDataController {
         List<ForexData> forexData = forexDataService.fetchForexData(symbols);
         return ResponseEntity.ok(forexData);
     }
-} {
-  
 }
