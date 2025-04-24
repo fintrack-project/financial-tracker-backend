@@ -18,8 +18,8 @@ public class ForexData {
     @Column(name = "price", precision = 15, scale = 6, nullable = false)
     private BigDecimal price;
 
-    @Column(name = "price_change", precision = 15, scale = 6)
-    private BigDecimal priceChange;
+    @Column(name = "change", precision = 15, scale = 6)
+    private BigDecimal change;
 
     @Column(name = "percent_change", precision = 10, scale = 4)
     private BigDecimal percentChange;
@@ -58,12 +58,12 @@ public class ForexData {
         this.price = price;
     }
 
-    public BigDecimal getPriceChange() {
-        return priceChange;
+    public BigDecimal getChange() {
+        return change;
     }
 
-    public void setPriceChange(BigDecimal priceChange) {
-        this.priceChange = priceChange;
+    public void setChange(BigDecimal change) {
+        this.change = change;
     }
 
     public BigDecimal getPercentChange() {
