@@ -81,8 +81,16 @@ public class MarketDataService {
     public void sendMarketDataUpdateRequest(UUID accountId, List<String> symbols) {
         try {
             // Create the payload for MARKET_DATA_UPDATE_REQUEST
+            List<Map<String, String>> assets = new ArrayList<>();
+            for (String symbol : symbols) {
+                Map<String, String> asset = new HashMap<>();
+                asset.put("symbol", symbol);
+                asset.put("asset_type", AssetType.STOCK.toString()); // Hardcoded asset type
+                assets.add(asset);
+            }
+    
             Map<String, Object> updateRequestPayload = new HashMap<>();
-            updateRequestPayload.put("symbols", symbols);
+            updateRequestPayload.put("assets", assets);
     
             // Convert the payload to a JSON string
             ObjectMapper objectMapper = new ObjectMapper();
@@ -102,17 +110,16 @@ public class MarketDataService {
             }
     
             // Create the payload for MARKET_DATA_MONTHLY_REQUEST
-            List<Map<String, String>> assets = new ArrayList<>();
+            List<Map<String, String>> monthlyAssets = new ArrayList<>();
             for (String symbol : symbols) {
                 Map<String, String> asset = new HashMap<>();
                 asset.put("symbol", symbol);
-                // TODO: Replace with actual asset type retrieval logic
                 asset.put("asset_type", AssetType.STOCK.toString()); // Hardcoded asset type
-                assets.add(asset);
+                monthlyAssets.add(asset);
             }
     
             Map<String, Object> monthlyRequestPayload = new HashMap<>();
-            monthlyRequestPayload.put("assets", assets);
+            monthlyRequestPayload.put("assets", monthlyAssets);
             monthlyRequestPayload.put("start_date", startDate.toString());
             monthlyRequestPayload.put("end_date", endDate.toString());
     
