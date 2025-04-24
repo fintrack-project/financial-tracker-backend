@@ -62,7 +62,7 @@ public class PieChart extends Chart {
                 Double value = getAssetValueMap().get(data.getAssetName());
                 Double percentage = (value / getTotalValue()) * 100; // Calculate percentage
                 pieChartDatum.setPercentage(percentage); // Set percentage in PieChartData
-                pieChartDatum.setPercentageOfSubcategory(1.0); // Set percentage of subcategory to 1.0
+                pieChartDatum.setPercentageOfSubcategory(100.0); // Set percentage of subcategory to 1.0
                 return pieChartDatum;
             }
         ).collect(Collectors.toList());
@@ -76,7 +76,7 @@ public class PieChart extends Chart {
                 Double value = getAssetValueMap().get(data.getAssetName());
                 Double percentage = (value / getTotalValue()) * 100; // Calculate percentage
                 pieChartDatum.setPercentage(percentage); // Set percentage in PieChartData
-                pieChartDatum.setPercentageOfSubcategory(1.0); // Set percentage of subcategory to 1.0
+                pieChartDatum.setPercentageOfSubcategory((getSubcategoryValueMap().getOrDefault(pieChartDatum.getSubcategory(), 0.0)/getTotalValue()) * 100); // Set percentage of subcategory
                 return pieChartDatum;
             }
         ).collect(Collectors.toList());
