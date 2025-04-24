@@ -3,6 +3,7 @@ package com.fintrack.model;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import com.fintrack.constants.AssetType;
 
 @Entity
 @Table(name = "market_data", uniqueConstraints = @UniqueConstraint(columnNames = "symbol"))
@@ -23,6 +24,10 @@ public class MarketData {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "asset_type", nullable = false)
+    private AssetType assetType;
 
     // Getters and Setters
     public Long getId() {
@@ -63,5 +68,13 @@ public class MarketData {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public AssetType getAssetType() {
+        return assetType;
+    }
+
+    public void setAssetType(AssetType assetType) {
+        this.assetType = assetType;
     }
 }

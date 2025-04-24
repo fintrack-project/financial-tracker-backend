@@ -27,18 +27,21 @@ public class PortfolioService {
     private final MarketDataRepository marketDataRepository;
     private final CategoriesRepository categoriesRepository;
     private final SubcategoriesRepository subcategoriesRepository;
+    private final MarketDataMonthlyRepository marketDataMonthlyRepository;
 
     public PortfolioService(
             HoldingsRepository holdingsRepository,
             HoldingsMonthlyRepository holdingsMonthlyRepository,
             HoldingsCategoriesRepository holdingsCategoriesRepository,
             MarketDataRepository marketDataRepository,
+            MarketDataMonthlyRepository marketDataMonthlyRepository,
             CategoriesRepository categoriesRepository,
             SubcategoriesRepository subcategoriesRepository) {
         this.holdingsRepository = holdingsRepository;
         this.holdingsMonthlyRepository = holdingsMonthlyRepository;
         this.holdingsCategoriesRepository = holdingsCategoriesRepository;
         this.marketDataRepository = marketDataRepository;
+        this.marketDataMonthlyRepository = marketDataMonthlyRepository;
         this.categoriesRepository = categoriesRepository;
         this.subcategoriesRepository = subcategoriesRepository;
     }
@@ -64,14 +67,18 @@ public class PortfolioService {
                 .map(Holdings::getSymbol)
                 .distinct()
                 .collect(Collectors.toList());
-        List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbols(symbols);        // Handle the case when categoryName is "None"
+        List<MarketDataDto> marketDataDtoList = marketDataRepository.findMarketDataBySymbols(symbols).stream()
+            .map(marketData -> new MarketDataDto(marketData))
+            .collect(Collectors.toList());        
+        
+        // Handle the case when categoryName is "None"
         if ("None".equalsIgnoreCase(categoryName)) {
-            PieChart pieChart = new PieChart(holdings, marketDataList);
+            PieChart pieChart = new PieChart(holdings, marketDataDtoList);
             return pieChart.getData();
         }
 
-        marketDataList.forEach(marketData -> {
-            logger.trace("Market Data: " + marketData.getSymbol() + ", Price: " + marketData.getPrice());
+        marketDataDtoList.forEach(marketDtoData -> {
+            logger.trace("Market Data: " + marketDtoData.getSymbol() + ", Price: " + marketDtoData.getPrice());
         });
 
         // Fetch the category ID for the given account and category name
@@ -92,7 +99,7 @@ public class PortfolioService {
         // Fetch holdings categories for the given account ID
         List<HoldingsCategory> holdingsCategories = holdingsCategoriesRepository.findHoldingsCategoryByAccountId(accountId);
 
-        PieChart pieChart = new PieChart(holdings, marketDataList, holdingsCategories, subcategories, categoryName);
+        PieChart pieChart = new PieChart(holdings, marketDataDtoList, holdingsCategories, subcategories, categoryName);
         return pieChart.getData();
     }
 
@@ -121,7 +128,6 @@ public class PortfolioService {
         ));
 
         List<BarChart> barCharts = new ArrayList<>();
-        // List<Map<String, Object>> combinedBarChartsData = new ArrayList<>(); 
 
         for (Map.Entry<LocalDate, List<Holdings>> entry : holdingsByDate.entrySet()) {
             LocalDate date = entry.getKey();
@@ -133,24 +139,20 @@ public class PortfolioService {
                     .distinct()
                     .collect(Collectors.toList());
 
-            List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbols(symbols);        
+            List<MarketDataDto> marketDataDtoList = marketDataMonthlyRepository.findBySymbolsAndDate(symbols, date).stream()
+                    .map(marketDataMonthly -> new MarketDataDto(marketDataMonthly))
+                    .collect(Collectors.toList());
             
             // Handle the case when categoryName is "None"
             if ("None".equalsIgnoreCase(categoryName)) {
-                BarChart barChart = new BarChart(holdings, marketDataList);
+                BarChart barChart = new BarChart(holdings, marketDataDtoList);
                 barChart.setLocalDate(date);
                 barCharts.add(barChart);
-                // // Transform the result of getDataByDate to include "date" and "data" keys
-                // Map<String, Object> transformedData = new HashMap<>();
-                // transformedData.put("date", date.toString());
-                // transformedData.put("data", barChart.getDataByDate().get(date.toString()));
-
-                // combinedBarChartsData.add(transformedData);
                 continue;
             }
 
-            marketDataList.forEach(marketData -> {
-                logger.trace("Market Data: " + marketData.getSymbol() + ", Price: " + marketData.getPrice() + ", Date: " + date);
+            marketDataDtoList.forEach(marketDtoData -> {
+                logger.trace("Market Data: " + marketDtoData.getSymbol() + ", Price: " + marketDtoData.getPrice() + ", Date: " + date);
             });
 
             // Fetch the category ID for the given account and category name
@@ -169,16 +171,9 @@ public class PortfolioService {
             // Fetch holdings categories for the given account ID
             List<HoldingsCategory> holdingsCategories = holdingsCategoriesRepository.findHoldingsCategoryByAccountId(accountId);
 
-            BarChart barChart = new BarChart(holdings, marketDataList, holdingsCategories, subcategories, categoryName);
+            BarChart barChart = new BarChart(holdings, marketDataDtoList, holdingsCategories, subcategories, categoryName);
             barChart.setLocalDate(date);
             barCharts.add(barChart);
-
-            // // Transform the result of getDataByDate to include "date" and "data" keys
-            // Map<String, Object> transformedData = new HashMap<>();
-            // transformedData.put("date", date.toString());
-            // transformedData.put("data", barChart.getDataByDate().get(date.toString()));
-
-            // combinedBarChartsData.add(transformedData);
         }
 
         CombinedBarChart combinedBarCharts = new CombinedBarChart(barCharts, categoryName);

@@ -23,11 +23,11 @@ public class CombinedBarChart {
     private int colorIndex = 0;
 
     public CombinedBarChart(List<BarChart> barCharts, String categoryName) {
-      this.barCharts = barCharts;
-      this.combinedBarChartsData = generateCombinedBarChartsData();
-      this.categoryName = categoryName;
-      reassignColor();
-  }
+        this.barCharts = barCharts;
+        this.combinedBarChartsData = generateCombinedBarChartsData();
+        this.categoryName = categoryName;
+        reassignColor();
+    }
 
     public List<BarChart> getBarCharts() {
         return barCharts;
