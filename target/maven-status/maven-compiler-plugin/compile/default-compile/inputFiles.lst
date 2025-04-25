@@ -3,7 +3,6 @@
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/controller/CategoriesController.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/AssetRepository.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/component/transaction/TransactionTable.java
-/Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/service/MarketAverageDataService.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/config/WebConfig.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/service/UserService.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/model/Category.java
@@ -12,7 +11,6 @@
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/service/ForexDataService.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/component/transaction/OverviewTransaction.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/component/chart/BarChart.java
-/Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/model/MarketAverageData.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/FinTrackApplication.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/controller/TransactionController.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/model/Transaction.java
@@ -23,16 +21,17 @@
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/component/transaction/PreviewTransaction.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/controller/HoldingsCategoriesController.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/model/HoldingsCategory.java
+/Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/model/MarketIndexData.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/component/chart/BarChartData.java
-/Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/MarketAverageDataRepository.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/component/chart/Chart.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/config/SecurityConfig.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/service/PortfolioService.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/controller/SubcategoriesController.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/HoldingsMonthlyRepository.java
-/Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/controller/MarketAverageDataController.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/model/User.java
+/Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/MarketIndexDataRepository.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/MarketDataMonthlyRepository.java
+/Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/service/MarketIndexDataService.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/model/Account.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/constants/AssetType.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/controller/AccountController.java
@@ -62,6 +61,7 @@
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/component/chart/PieChart.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/model/ForexData.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/component/chart/CombinedBarChart.java
+/Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/controller/MarketIndexDataController.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/HoldingsCategoriesRepository.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/service/HoldingsCategoriesService.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/ForexDataRepository.java
