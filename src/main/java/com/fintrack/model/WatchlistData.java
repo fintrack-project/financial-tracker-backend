@@ -60,6 +60,10 @@ public class WatchlistData {
         this.assetType = assetType;
     }
 
+    public void setAssetType(String assetType) {
+        this.assetType = AssetType.valueOf(assetType);
+    }
+
     public LocalDateTime getDeletedAt() {
         return deletedAt;
     }

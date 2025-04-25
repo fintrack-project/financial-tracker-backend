@@ -47,9 +47,9 @@ public class MarketDataService {
             assets.add(asset);
             symbolAssetTypePairs.add(new Object[]{symbol, assetType});
         }
-
-        // Send a Kafka message to request an update
-        sendMarketDataUpdateRequest(accountId, assets);
+        // Mute this for now
+        // // Send a Kafka message to request an update
+        // sendMarketDataUpdateRequest(accountId, assets);
 
         // Retry mechanism to fetch data until all symbols are available
         List<MarketData> result = new ArrayList<>();
@@ -58,7 +58,18 @@ public class MarketDataService {
 
         while (retryCount < maxRetries) {
             result.clear();
-            List<MarketData> recentMarketData = marketDataRepository.findMarketDataBySymbolAndAssetType(symbolAssetTypePairs);
+
+            // Fetch market data for the given symbols and asset type pairs
+            // TODO : we need to optimise this query to fetch all data in one go
+            List<MarketData> recentMarketData = new ArrayList<>();
+            symbolAssetTypePairs.stream().forEach(pair -> {
+                String symbol = (String) pair[0];
+                String assetType = (String) pair[1];
+                MarketData marketData = marketDataRepository.findMarketDataBySymbol(symbol);
+                if (marketData != null && marketData.getAssetType().equals(AssetType.valueOf(assetType))) {
+                    recentMarketData.add(marketData);
+                }
+            });
 
             if (recentMarketData.isEmpty()) {
                 logger.error("No data found for symbolAssetTypePairs: " + symbolAssetTypePairs);
