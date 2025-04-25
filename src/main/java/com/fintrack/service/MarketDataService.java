@@ -33,9 +33,23 @@ public class MarketDataService {
         this.kafkaProducerService = kafkaProducerService;
     }
 
-    public List<MarketData> fetchMarketData(UUID accountId, List<String> symbols) {
+    public List<MarketData> fetchMarketData(UUID accountId, List<Map<String, String>> entities ) {
+
+        // Create the payload for MARKET_DATA_UPDATE_REQUEST
+        List<Map<String, String>> assets = new ArrayList<>();
+        List<Object[]> symbolAssetTypePairs = new ArrayList<>();
+        for (Map<String, String> entity : entities) {
+            Map<String, String> asset = new HashMap<>();
+            String symbol = entity.get("symbol");
+            String assetType = entity.get("assetType");
+            asset.put("symbol", symbol);
+            asset.put("asset_type", assetType);
+            assets.add(asset);
+            symbolAssetTypePairs.add(new Object[]{symbol, assetType});
+        }
+
         // Send a Kafka message to request an update
-        sendMarketDataUpdateRequest(accountId, symbols);
+        sendMarketDataUpdateRequest(accountId, assets);
 
         // Retry mechanism to fetch data until all symbols are available
         List<MarketData> result = new ArrayList<>();
@@ -44,17 +58,17 @@ public class MarketDataService {
 
         while (retryCount < maxRetries) {
             result.clear();
-            List<MarketData> recentMarketData = marketDataRepository.findMarketDataBySymbols(symbols);
+            List<MarketData> recentMarketData = marketDataRepository.findMarketDataBySymbolAndAssetType(symbolAssetTypePairs);
 
             if (recentMarketData.isEmpty()) {
-                logger.error("No data found for symbols: " + symbols);
+                logger.error("No data found for symbolAssetTypePairs: " + symbolAssetTypePairs);
                 break; // Exit if no data is found
             }
 
             result.addAll(recentMarketData);
 
-            // Check if all symbols have data
-            if (result.size() == symbols.size()) {
+            // Check if all symbolAssetTypePairs have data
+            if (result.size() == symbolAssetTypePairs.size()) {
                 break;
             }
 
@@ -70,24 +84,15 @@ public class MarketDataService {
             retryCount++;
         }
 
-        if (result.size() < symbols.size()) {
-            logger.error("Failed to fetch data for all symbols after " + maxRetries + " retries.");
+        if (result.size() < symbolAssetTypePairs.size()) {
+            logger.error("Failed to fetch data for all symbolAssetTypePairs after " + maxRetries + " retries.");
         }
 
         return result;
     }
 
-    public void sendMarketDataUpdateRequest(UUID accountId, List<String> symbols) {
-        try {
-            // Create the payload for MARKET_DATA_UPDATE_REQUEST
-            List<Map<String, String>> assets = new ArrayList<>();
-            for (String symbol : symbols) {
-                Map<String, String> asset = new HashMap<>();
-                asset.put("symbol", symbol);
-                asset.put("asset_type", AssetType.STOCK.toString()); // Hardcoded asset type
-                assets.add(asset);
-            }
-    
+    public void sendMarketDataUpdateRequest(UUID accountId, List<Map<String, String>> assets) {
+        try {    
             Map<String, Object> updateRequestPayload = new HashMap<>();
             updateRequestPayload.put("assets", assets);
     
@@ -109,16 +114,8 @@ public class MarketDataService {
             }
     
             // Create the payload for MARKET_DATA_MONTHLY_REQUEST
-            List<Map<String, String>> monthlyAssets = new ArrayList<>();
-            for (String symbol : symbols) {
-                Map<String, String> asset = new HashMap<>();
-                asset.put("symbol", symbol);
-                asset.put("asset_type", AssetType.STOCK.toString()); // Hardcoded asset type
-                monthlyAssets.add(asset);
-            }
-    
             Map<String, Object> monthlyRequestPayload = new HashMap<>();
-            monthlyRequestPayload.put("assets", monthlyAssets);
+            monthlyRequestPayload.put("assets", assets);
             monthlyRequestPayload.put("start_date", startDate.toString());
             monthlyRequestPayload.put("end_date", endDate.toString());
     

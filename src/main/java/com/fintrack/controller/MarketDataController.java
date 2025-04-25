@@ -19,10 +19,14 @@ public class MarketDataController {
         this.marketDataService = marketDataService;
     }
 
-    @GetMapping("/fetch")
-    public ResponseEntity<List<MarketData>> fetchMarketData(@RequestParam UUID accountId, @RequestParam List<String> symbols) {
+    // POST endpoint to fetch market data
+    @PostMapping("/fetch")
+    public ResponseEntity<List<MarketData>> fetchMarketData(@RequestBody Map<String, Object> payload) {
         try {
-            List<MarketData> marketData = marketDataService.fetchMarketData(accountId, symbols);
+            UUID accountId = UUID.fromString((String) payload.get("accountId"));
+            List<Map<String, String>> assets = (List<Map<String, String>>) payload.get("assets");
+
+            List<MarketData> marketData = marketDataService.fetchMarketData(accountId, assets);
             return ResponseEntity.ok(marketData);
         } catch (Exception e) {
             e.printStackTrace(); // Log the error for debugging

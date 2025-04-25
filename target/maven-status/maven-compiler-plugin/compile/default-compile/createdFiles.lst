@@ -20,7 +20,6 @@ com/fintrack/config/KafkaConfig.class
 com/fintrack/component/chart/PieChartData.class
 com/fintrack/repository/TransactionRepository.class
 com/fintrack/service/MarketDataService.class
-com/fintrack/model/ForexData.class
 com/fintrack/component/chart/PieChart.class
 com/fintrack/repository/CategoriesRepository.class
 com/fintrack/controller/AccountController.class
@@ -33,11 +32,9 @@ com/fintrack/model/HoldingDto.class
 com/fintrack/controller/SubcategoriesController.class
 com/fintrack/FinTrackApplication.class
 com/fintrack/constants/AssetType.class
-com/fintrack/service/ForexDataService.class
 com/fintrack/model/MarketData.class
 com/fintrack/repository/MarketIndexDataRepository.class
 com/fintrack/repository/MarketDataRepository.class
-com/fintrack/controller/ForexDataController.class
 com/fintrack/repository/AccountRepository.class
 com/fintrack/model/MarketIndexData.class
 com/fintrack/service/MarketIndexDataService.class
@@ -46,7 +43,6 @@ com/fintrack/controller/TransactionController.class
 com/fintrack/service/TransactionService.class
 com/fintrack/repository/HoldingsCategoriesRepository.class
 com/fintrack/controller/HoldingsCategoriesController.class
-com/fintrack/repository/ForexDataRepository.class
 com/fintrack/model/HoldingsCategory.class
 com/fintrack/model/Transaction.class
 com/fintrack/service/HoldingsMonthlyService.class
