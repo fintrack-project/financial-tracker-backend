@@ -29,6 +29,15 @@ public class MarketData {
     @Column(name = "asset_type", nullable = false)
     private AssetType assetType;
 
+    @Column(name = "change", precision = 15, scale = 6)
+    private BigDecimal change;
+
+    @Column(name = "high", precision = 15, scale = 6)
+    private BigDecimal high;
+
+    @Column(name = "low", precision = 15, scale = 6)
+    private BigDecimal low;
+
     // Getters and Setters
     public Long getId() {
         return id;
@@ -76,5 +85,29 @@ public class MarketData {
 
     public void setAssetType(AssetType assetType) {
         this.assetType = assetType;
+    }
+
+    public BigDecimal getChange() {
+        return change;
+    }
+
+    public void setChange(BigDecimal change) {
+        this.change = change;
+    }
+
+    public BigDecimal getHigh() {
+        return high;
+    }
+
+    public void setHigh(BigDecimal high) {
+        this.high = high;
+    }
+
+    public BigDecimal getLow() {
+        return low;
+    }
+
+    public void setLow(BigDecimal low) {
+        this.low = low;
     }
 }
