@@ -28,14 +28,6 @@ public class MarketDataMonthly {
     @Column(name = "asset_type", nullable = false)
     private AssetType assetType;
 
-    public MarketData getMarketData() {
-        MarketData marketData = new MarketData();
-        marketData.setSymbol(this.symbol);
-        marketData.setPrice(this.price);
-        marketData.setAssetType(this.assetType);
-        return marketData;
-    }
-
     // Getters and Setters
     public Long getId() {
         return id;

@@ -3,7 +3,6 @@ package com.fintrack.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fintrack.constants.AssetType;
 import com.fintrack.constants.KafkaTopics;
-import com.fintrack.model.HoldingDto;
 import com.fintrack.model.MarketData;
 import com.fintrack.repository.HoldingsMonthlyRepository;
 import com.fintrack.repository.MarketDataRepository;
