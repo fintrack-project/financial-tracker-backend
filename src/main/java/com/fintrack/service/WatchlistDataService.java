@@ -33,7 +33,6 @@ public class WatchlistDataService {
         watchlistData.setAccountId(accountId);
         watchlistData.setSymbol(symbol);
         watchlistData.setAssetType(assetType);
-        watchlistData.setDeletedAt(null); // Ensure the item is active
 
         watchlistDataRepository.save(watchlistData);
     }
@@ -43,8 +42,7 @@ public class WatchlistDataService {
 
         WatchlistData watchlistData = watchlistDataRepository.findByAccountIdAndSymbolAndAssetType(accountId, symbol, assetType);
         if (watchlistData != null) {
-            watchlistData.setDeletedAt(new java.sql.Timestamp(System.currentTimeMillis())); // Soft delete
-            watchlistDataRepository.save(watchlistData);
+            watchlistDataRepository.delete(watchlistData); // Perform a hard delete
         } else {
             throw new IllegalArgumentException("Item not found in watchlist.");
         }

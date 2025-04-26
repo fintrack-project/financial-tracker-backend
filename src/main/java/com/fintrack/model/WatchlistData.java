@@ -24,9 +24,6 @@ public class WatchlistData {
     @Column(name = "asset_type", nullable = false)
     private AssetType assetType;
 
-    @Column(name = "deleted_at")
-    private LocalDateTime deletedAt;
-
     // Getters and Setters
     public Long getId() {
         return id;
@@ -62,13 +59,5 @@ public class WatchlistData {
 
     public void setAssetType(String assetType) {
         this.assetType = AssetType.valueOf(assetType);
-    }
-
-    public LocalDateTime getDeletedAt() {
-        return deletedAt;
-    }
-
-    public void setDeletedAt(LocalDateTime deletedAt) {
-        this.deletedAt = deletedAt;
     }
 }

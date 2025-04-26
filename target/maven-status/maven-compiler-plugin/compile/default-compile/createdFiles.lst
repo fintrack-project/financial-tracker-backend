@@ -25,10 +25,12 @@ com/fintrack/repository/CategoriesRepository.class
 com/fintrack/controller/AccountController.class
 com/fintrack/model/Asset.class
 com/fintrack/model/MarketDataMonthly.class
+com/fintrack/service/WatchlistDataService.class
 com/fintrack/component/transaction/OverviewTransaction.class
 com/fintrack/controller/HoldingsController.class
 com/fintrack/constants/KafkaTopics.class
 com/fintrack/model/HoldingDto.class
+com/fintrack/controller/WatchlistDataController.class
 com/fintrack/controller/SubcategoriesController.class
 com/fintrack/FinTrackApplication.class
 com/fintrack/constants/AssetType.class
@@ -49,6 +51,8 @@ com/fintrack/service/HoldingsMonthlyService.class
 com/fintrack/repository/UserRepository.class
 com/fintrack/repository/SubcategoriesRepository.class
 com/fintrack/component/chart/CombinedBarChart.class
+com/fintrack/repository/WatchlistDataRepository.class
+com/fintrack/model/WatchlistData.class
 com/fintrack/model/Holdings.class
 com/fintrack/constants/Color.class
 com/fintrack/component/chart/BarChart.class
