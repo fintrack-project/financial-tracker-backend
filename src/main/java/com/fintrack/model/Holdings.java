@@ -2,7 +2,10 @@ package com.fintrack.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
 import java.util.*;
+
+import com.fintrack.constants.AssetType;
 
 @Entity
 @Table(name = "holdings", uniqueConstraints = @UniqueConstraint(columnNames = {"account_id", "asset_name"}))
@@ -33,6 +36,13 @@ public class Holdings {
 
     @Column(name = "total_balance", nullable = false)
     private double totalBalance;
+
+    @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private LocalDateTime updatedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "asset_type", nullable = false, columnDefinition = "asset_type DEFAULT 'UNKNOWN'")
+    private AssetType assetType;
 
     // Getters and Setters
     public Long getId() {
@@ -89,5 +99,21 @@ public class Holdings {
 
     public void setTotalBalance(double totalBalance) {
         this.totalBalance = totalBalance;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public AssetType getAssetType() {
+        return assetType;
+    }
+
+    public void setAssetType(AssetType assetType) {
+        this.assetType = assetType;
     }
 }

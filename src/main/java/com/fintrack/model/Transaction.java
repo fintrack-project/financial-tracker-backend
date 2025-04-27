@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import com.fintrack.constants.AssetType;
 
 @Entity
 @Table(name = "transactions")
@@ -45,6 +46,10 @@ public class Transaction {
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "asset_type", nullable = false, columnDefinition = "asset_type DEFAULT 'UNKNOWN'")
+    private AssetType assetType;
 
     // Getters and Setters
     public Long getTransactionId() {
@@ -125,5 +130,13 @@ public class Transaction {
 
     public void setDeletedAt(LocalDateTime deletedAt) {
         this.deletedAt = deletedAt;
+    }
+
+    public AssetType getAssetType() {
+        return assetType;
+    }
+
+    public void setAssetType(AssetType assetType) {
+        this.assetType = assetType;
     }
 }

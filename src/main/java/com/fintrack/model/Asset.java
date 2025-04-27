@@ -3,6 +3,7 @@ package com.fintrack.model;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import com.fintrack.constants.AssetType;
 
 @Entity
 @Table(name = "asset", uniqueConstraints = @UniqueConstraint(columnNames = {"account_id", "asset_name"}))
@@ -24,8 +25,12 @@ public class Asset {
     @Column(name = "unit", nullable = false)
     private String unit;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "asset_type", nullable = false, columnDefinition = "asset_type DEFAULT 'UNKNOWN'")
+    private AssetType assetType;
 
     // Getters and Setters
     public Long getId() {

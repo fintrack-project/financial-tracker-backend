@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
+import com.fintrack.constants.AssetType;
 
 @Entity
 @Table(name = "holdings_monthly", uniqueConstraints = {
@@ -37,7 +38,11 @@ public class HoldingsMonthly {
     @Column(name = "unit", nullable = false, length = 50)
     private String unit;
 
-    @Column(name = "symbol")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "asset_type", nullable = false, columnDefinition = "asset_type DEFAULT 'UNKNOWN'")
+    private AssetType assetType;
+    
+    @Column(name = "symbol", nullable = false)
     private String symbol;
 
     public Holdings getHoldings() {
@@ -97,6 +102,14 @@ public class HoldingsMonthly {
 
     public void setUnit(String unit) {
         this.unit = unit;
+    }
+
+    public AssetType getAssetType() {
+        return assetType;
+    }
+
+    public void setAssetType(AssetType assetType) {
+        this.assetType = assetType;
     }
 
     public String getSymbol() {
