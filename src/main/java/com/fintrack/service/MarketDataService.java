@@ -47,9 +47,8 @@ public class MarketDataService {
             assets.add(asset);
             symbolAssetTypePairs.add(new Object[]{symbol, assetType});
         }
-        // TODO: unmute this. Mute this for now
-        // // Send a Kafka message to request an update
-        // sendMarketDataUpdateRequest(accountId, assets);
+        // Send a Kafka message to request an update
+        sendMarketDataUpdateRequest(accountId, assets);
 
         // Retry mechanism to fetch data until all symbols are available
         List<MarketData> result = new ArrayList<>();
