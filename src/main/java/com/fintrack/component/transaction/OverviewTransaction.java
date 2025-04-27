@@ -20,6 +20,7 @@ public class OverviewTransaction extends Transaction {
         setAsset(transaction.getAsset());
         setAssetName(transaction.getAssetName());
         setSymbol(transaction.getSymbol());
+        setAssetType(transaction.getAssetType());
         setUnit(transaction.getUnit());
         setCredit(transaction.getCredit());
         setDebit(transaction.getDebit());
@@ -34,6 +35,7 @@ public class OverviewTransaction extends Transaction {
         transaction.setAsset(getAsset());
         transaction.setAssetName(getAssetName());
         transaction.setSymbol(getSymbol());
+        transaction.setAssetType(getAssetType());
         transaction.setUnit(getUnit());
         transaction.setCredit(getCredit());
         transaction.setDebit(getDebit());
