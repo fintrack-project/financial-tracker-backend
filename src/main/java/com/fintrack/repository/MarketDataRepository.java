@@ -15,6 +15,9 @@ public interface MarketDataRepository extends JpaRepository<MarketData, Long> {
     @Query(value = "SELECT * FROM market_data WHERE symbol IN :symbols", nativeQuery = true)
     List<MarketData> findMarketDataBySymbols(@Param("symbols") List<String> symbols);
 
+    @Query(value = "SELECT * FROM market_data WHERE symbol IN :symbols AND asset_type = :assetType", nativeQuery = true)
+    List<MarketData> findMarketDataBySymbolAndAssetType(@Param("symbol") String symbol, @Param("assetType") String assetType);
+
     @Query(value = "SELECT * FROM market_data WHERE symbol = :symbol", nativeQuery = true)
     MarketData findMarketDataBySymbol(@Param("symbol") String symbol);
 }
