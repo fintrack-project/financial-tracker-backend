@@ -126,6 +126,27 @@ public class TransactionService {
         return transactionTable.getTransactions();
     }
 
+    public List<Transaction> processPreviewTransactions(List<Transaction> transactions) {
+        for (Transaction transaction : transactions) {
+            switch (transaction.getAssetType()) {
+                case STOCK:
+                    transaction.setUnit("SHARE");
+                    break;
+                case CRYPTO:
+                case FOREX:
+                    transaction.setUnit(transaction.getSymbol());
+                    break;
+                case COMMODITY:
+                    transaction.setUnit("UNIT");
+                    break;
+                default:
+                    logger.warn("Unknown asset type for transaction: {}", transaction);
+                    transaction.setUnit("UNKNOWN");
+            }
+        }
+        return transactions;
+    }
+
     @Transactional
     public void saveAllTransactions(UUID accountId, List<Transaction> transactions) {
         for (Transaction transaction : transactions) {

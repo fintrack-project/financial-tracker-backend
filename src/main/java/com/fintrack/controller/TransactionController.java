@@ -45,9 +45,18 @@ public class TransactionController {
     @PostMapping("/{accountId}/upload-preview-transactions")
     public ResponseEntity<List<Transaction>> uploadPreviewTransactions(
             @RequestBody List<Transaction> transactions,
+            @PathVariable UUID accountId,
             HttpSession session) {
-        session.setAttribute("previewTransactions", transactions); // Store transactions in session
-        return ResponseEntity.ok(transactions); // Return the stored transactions
+        logger.info("Processing uploaded preview transactions for account ID: {}", accountId);
+    
+        // Delegate the logic to transactionService to process and set the unit
+        List<Transaction> processedTransactions = transactionService.processPreviewTransactions(transactions);
+    
+        // Store the processed transactions in the session
+        session.setAttribute("previewTransactions", processedTransactions);
+    
+        // Return the processed transactions
+        return ResponseEntity.ok(processedTransactions);
     }
 
     @GetMapping("/{accountId}/preview-transactions")
