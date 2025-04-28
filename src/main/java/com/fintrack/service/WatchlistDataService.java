@@ -4,6 +4,7 @@ import com.fintrack.constants.AssetType;
 import com.fintrack.model.AccountCurrency;
 import com.fintrack.model.WatchlistData;
 import com.fintrack.repository.WatchlistDataRepository;
+import com.fintrack.repository.AccountCurrenciesRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,25 +70,40 @@ public class WatchlistDataService {
             return;
         }
 
-        String currency1 = currencies[0];
-        String currency2 = currencies[1];
+        String currencyFrom = currencies[0];
+        String currencyTo = currencies[1];
 
-        List<String> existingCurrencies = accountCurrenciesRepository.findCurrenciesByAccountId(accountId);
+        logger.info("Handling FOREX currencies for accountId: {}, currencyFrom: {}, currencyTo: {}", accountId, currencyFrom, currencyTo);
 
-        boolean currency1Exists = existingCurrencies.contains(currency1);
-        boolean currency2Exists = existingCurrencies.contains(currency2);
+        // Fetch existing currencies for the account
+        List<AccountCurrency> existingCurrencies = accountCurrenciesRepository.findByAccountId(accountId);
+        List<String> existingCurrencyCodes = existingCurrencies.stream()
+                .map(AccountCurrency::getCurrency)
+                .toList();
+    
+        logger.info("Existing currencies for account {}: {}", accountId, existingCurrencyCodes);
+    
+        // Filter out currencies that need to be added
+        List<String> currenciesToAdd = List.of(currencyFrom, currencyTo).stream()
+                .filter(currency -> !existingCurrencyCodes.contains(currency))
+                .toList();
 
-        if (!currency1Exists) {
-            accountCurrenciesRepository.save(new AccountCurrency(accountId, currency1, false));
+        logger.info("Currencies to add for account {}: {}", accountId, currenciesToAdd);
+
+        // Add the filtered currencies
+        for (String currency : currenciesToAdd) {
+            try {
+                accountCurrenciesRepository.save(new AccountCurrency(accountId, currency, false));
+                logger.info("Added currency {} for account {}", currency, accountId);
+            } catch (Exception e) {
+                logger.error("Failed to add currency {} for account {}: {}", currency, accountId, e.getMessage());
+            }
         }
-        if (!currency2Exists) {
-            accountCurrenciesRepository.save(new AccountCurrency(accountId, currency2, false));
-        }
 
-        // Case 3: If neither currency is linked to existing currencies, send a Kafka message
-        if (!currency1Exists && !currency2Exists) {
+        // If both currencies are new, send a Kafka message
+        if (currenciesToAdd.contains(currencyFrom) && currenciesToAdd.contains(currencyTo)) {
             logger.info("No link between {} and existing currencies. Sending Kafka message for update.", symbol);
-            // kafkaProducerService.sendCurrencyUpdateMessage(accountId, List.of(currency1, currency2));
+            // kafkaProducerService.sendCurrencyUpdateMessage(accountId, List.of(currencyFrom, currencyTo));
             // TODO: Handle Kafka response and update logic in the future
         }
     }
@@ -99,8 +115,8 @@ public class WatchlistDataService {
             return;
         }
 
-        String currency1 = currencies[0];
-        String currency2 = currencies[1];
+        String currencyFrom = currencies[0];
+        String currencyTo = currencies[1];
 
         // Fetch all remaining FOREX watchlist items for the account
         List<WatchlistData> remainingForexData = watchlistDataRepository.findWatchlistDataByAccountIdAndAssetTypes(accountId, List.of(AssetType.FOREX.getAssetTypeName()));
@@ -108,20 +124,23 @@ public class WatchlistDataService {
                 .map(WatchlistData::getSymbol)
                 .toList();
 
-        boolean currency1StillUsed = remainingSymbols.stream().anyMatch(s -> s.contains(currency1));
-        boolean currency2StillUsed = remainingSymbols.stream().anyMatch(s -> s.contains(currency2));
+        logger.info("Remaining FOREX symbols for account {}: {}", accountId, remainingSymbols);
+
+        boolean currencyFromStillUsed = remainingSymbols.stream().anyMatch(s -> s.contains(currencyFrom));
+        boolean currencyToStillUsed = remainingSymbols.stream().anyMatch(s -> s.contains(currencyTo));
 
         // Remove currencies that are no longer used
-        if (!currency1StillUsed) {
-            removeCurrencyIfNotDefault(accountId, currency1);
+        if (!currencyFromStillUsed) {
+            removeCurrencyIfNotDefault(accountId, currencyFrom);
         }
-        if (!currency2StillUsed) {
-            removeCurrencyIfNotDefault(accountId, currency2);
+        if (!currencyToStillUsed) {
+            removeCurrencyIfNotDefault(accountId, currencyTo);
         }
     }
 
     private void removeCurrencyIfNotDefault(UUID accountId, String currency) {
-        AccountCurrency accountCurrency = accountCurrenciesRepository.findByAccountIdAndCurrency(accountId, currency);
+        AccountCurrency accountCurrency = accountCurrenciesRepository.findByAccountIdAndCurrency(accountId, currency)
+                .orElse(null);
         if (accountCurrency != null && !accountCurrency.isDefault()) {
             accountCurrenciesRepository.delete(accountCurrency);
         } else if (accountCurrency != null && accountCurrency.isDefault()) {

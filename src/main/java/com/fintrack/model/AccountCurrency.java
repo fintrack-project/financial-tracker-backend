@@ -6,8 +6,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "account_currencies", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"account_id", "currency"}),
-        @UniqueConstraint(columnNames = {"account_id", "is_default"})
+        @UniqueConstraint(columnNames = {"account_id", "currency"})
 })
 public class AccountCurrency {
 
