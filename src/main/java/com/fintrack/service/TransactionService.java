@@ -10,6 +10,7 @@ import com.fintrack.component.transaction.OverviewTransaction;
 import com.fintrack.component.transaction.PreviewTransaction;
 import com.fintrack.component.transaction.TransactionTable;
 import com.fintrack.constants.KafkaTopics;
+import com.fintrack.constants.AssetType;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -166,6 +167,7 @@ public class TransactionService {
             String assetName = previewTransaction.getAssetName();
             String symbol = previewTransaction.getSymbol();
             String unit = previewTransaction.getUnit();
+            AssetType assetType = previewTransaction.getAssetType();
     
             // Check if the Asset exists
             Optional<Asset> assetOptional = assetRepository.findByAccountIdAndAssetName(accountId, assetName);
@@ -176,6 +178,7 @@ public class TransactionService {
                 asset.setAssetName(assetName);
                 asset.setSymbol(symbol);
                 asset.setUnit(unit);
+                asset.setAssetType(assetType);
                 assetRepository.save(asset);
             }
         }
