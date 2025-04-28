@@ -3,7 +3,6 @@ package com.fintrack.model;
 import com.fintrack.constants.AssetType;
 import jakarta.persistence.*;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity

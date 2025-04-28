@@ -13,6 +13,7 @@
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/FinTrackApplication.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/controller/TransactionController.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/model/Transaction.java
+/Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/controller/AccountCurrenciesController.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/constants/KafkaTopics.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/service/HoldingsMonthlyService.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/model/WatchlistData.java
@@ -53,10 +54,12 @@
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/UserRepository.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/service/AccountService.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/TransactionRepository.java
+/Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/model/AccountCurrency.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/model/MarketData.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/component/chart/ChartData.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/component/chart/PieChartData.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/SubcategoriesRepository.java
+/Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/AccountCurrenciesRepository.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/AccountRepository.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/controller/UserController.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/component/chart/PieChart.java
