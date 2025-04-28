@@ -15,6 +15,8 @@ public interface AccountCurrenciesRepository extends JpaRepository<AccountCurren
     @Query(value = "SELECT * FROM account_currencies WHERE account_id = :accountId", nativeQuery = true)
     List<AccountCurrency> findByAccountId(@Param("accountId") UUID accountId);
 
+    Optional<AccountCurrency> findByAccountIdAndIsDefault(UUID accountId, boolean isDefault);
+
     @Query(value = "SELECT * FROM account_currencies WHERE account_id = :accountId AND currency = :currency", nativeQuery = true)
     Optional<AccountCurrency> findByAccountIdAndCurrency(@Param("accountId") UUID accountId, @Param("currency") String currency);
 }
