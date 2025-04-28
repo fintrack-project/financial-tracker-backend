@@ -20,7 +20,7 @@ public class AccountCurrenciesController {
     }
 
     @GetMapping("/fetch")
-    public ResponseEntity<List<String>> getCurrenciesByAccountId(@PathVariable UUID accountId) {
+    public ResponseEntity<List<String>> getCurrenciesByAccountId(@RequestParam(name = "accountId") UUID accountId) {
         List<String> currencies = accountCurrenciesRepository.findByAccountId(accountId)
                 .stream()
                 .map(accountCurrency -> accountCurrency.getCurrency())
