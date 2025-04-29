@@ -154,53 +154,18 @@ public class PortfolioService {
                 .map(holding -> new Object[]{holding.getSymbol(), holding.getAssetType()})
                 .distinct()
                 .collect(Collectors.toList());
-    
+
         List<MarketDataDto> marketDataDtoList = new ArrayList<>();
+
         symbolAssetTypePairs.forEach(pair -> {
             String symbol = (String) pair[0];
             AssetType assetType = (AssetType) pair[1];
-        
-            if (assetType == AssetType.FOREX) {
-                if (symbol.equals(baseCurrency)) {
-                    // If the FOREX symbol is the same as the base currency, set price to 1
-                    logger.trace("FOREX symbol matches base currency: symbol={}, priceInBaseCurrency=1", symbol);
-                    marketDataDtoList.add(new MarketDataDto(symbol + "/" + symbol, BigDecimal.ONE, assetType));
-                } else {
-                    // Fetch the correct FOREX market data
-                    String forexPair = symbol + "/" + baseCurrency;
-                    List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(forexPair, assetType.name());
-                    if (marketDataList.isEmpty()) {
-                        // Try the reverse pair (e.g., USD/AUD instead of AUD/USD)
-                        forexPair = baseCurrency + "/" + symbol;
-                        marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(forexPair, assetType.name());
-                        if (!marketDataList.isEmpty()) {
-                            // If reverse pair exists, calculate the inverse price
-                            MarketData marketData = marketDataList.get(0);
-                            BigDecimal inversePrice = BigDecimal.ONE.divide(marketData.getPrice(), 4, RoundingMode.HALF_UP);
-                            logger.trace("Reverse FOREX pair found: forexPair={}, inversePrice={}", forexPair, inversePrice);
-                            marketDataDtoList.add(new MarketDataDto(forexPair, inversePrice, assetType));
-                        } else {
-                            logger.warn("No FOREX market data found for symbol={}, baseCurrency={}", symbol, baseCurrency);
-                        }
-                    } else {
-                        MarketData marketData = marketDataList.get(0);
-                        logger.trace("FOREX market data found: forexPair={}, price={}", forexPair, marketData.getPrice());
-                        marketDataDtoList.add(new MarketDataDto(forexPair, marketData.getPrice(), assetType));
-                    }
-                }
-            } else {
-                // Handle non-FOREX symbols
-                logger.info("Fetching market data for symbol: {}, assetType: {}", symbol, assetType);
-                List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(symbol, assetType.name());
-                marketDataList.forEach(marketData -> {
-                    marketDataDtoList.add(new MarketDataDto(marketData));
-                });
-            }
-        });
 
-        logger.trace("Distinct symbol and asset type pairs: {}", symbolAssetTypePairs);
-        marketDataDtoList.forEach(marketData -> {
-            logger.trace("Market Data: symbol={}, assetType={}, price={}", marketData.getSymbol(), marketData.getAssetType(), marketData.getPrice());
+            if (assetType == AssetType.FOREX) {
+                marketDataDtoList.addAll(fetchForexMarketData(symbol, baseCurrency, assetType));
+            } else {
+                marketDataDtoList.addAll(fetchNonForexMarketData(symbol, assetType));
+            }
         });
     
         // Create marketDataMap: String (symbol-assetType) -> MarketDataDto
@@ -322,5 +287,53 @@ public class PortfolioService {
 
         return combinedBarCharts.getCombinedBarChartsData();
     }
-
+    
+    private List<MarketDataDto> fetchForexMarketData(String symbol, String baseCurrency, AssetType assetType) {
+        List<MarketDataDto> forexMarketDataList = new ArrayList<>();
+    
+        if (symbol.equals(baseCurrency)) {
+            // If the FOREX symbol is the same as the base currency, set price to 1
+            logger.trace("FOREX symbol matches base currency: symbol={}, priceInBaseCurrency=1", symbol);
+            forexMarketDataList.add(new MarketDataDto(symbol + "/" + symbol, BigDecimal.ONE, assetType));
+        } else {
+            // Fetch the correct FOREX market data
+            String forexPair = symbol + "/" + baseCurrency;
+            List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(forexPair, assetType.name());
+    
+            if (marketDataList.isEmpty()) {
+                // Try the reverse pair (e.g., USD/AUD instead of AUD/USD)
+                forexPair = baseCurrency + "/" + symbol;
+                marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(forexPair, assetType.name());
+    
+                if (!marketDataList.isEmpty()) {
+                    // If reverse pair exists, calculate the inverse price
+                    MarketData marketData = marketDataList.get(0);
+                    BigDecimal inversePrice = BigDecimal.ONE.divide(marketData.getPrice(), 4, RoundingMode.HALF_UP);
+                    logger.trace("Reverse FOREX pair found: forexPair={}, inversePrice={}", forexPair, inversePrice);
+                    forexMarketDataList.add(new MarketDataDto(forexPair, inversePrice, assetType));
+                } else {
+                    logger.warn("No FOREX market data found for symbol={}, baseCurrency={}", symbol, baseCurrency);
+                }
+            } else {
+                MarketData marketData = marketDataList.get(0);
+                logger.trace("FOREX market data found: forexPair={}, price={}", forexPair, marketData.getPrice());
+                forexMarketDataList.add(new MarketDataDto(forexPair, marketData.getPrice(), assetType));
+            }
+        }
+    
+        return forexMarketDataList;
+    }
+    
+    private List<MarketDataDto> fetchNonForexMarketData(String symbol, AssetType assetType) {
+        List<MarketDataDto> nonForexMarketDataList = new ArrayList<>();
+    
+        logger.info("Fetching market data for symbol: {}, assetType: {}", symbol, assetType);
+        List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(symbol, assetType.name());
+    
+        marketDataList.forEach(marketData -> {
+            nonForexMarketDataList.add(new MarketDataDto(marketData));
+        });
+    
+        return nonForexMarketDataList;
+    }
 }
