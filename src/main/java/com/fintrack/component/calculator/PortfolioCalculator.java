@@ -123,10 +123,25 @@ public class PortfolioCalculator {
                 }
             } else {
                 // Handle non-FOREX symbols
-                MarketDataDto marketData = marketDataMap.get(symbol+ "-" + assetType.getAssetTypeName());
+                MarketDataDto marketData = marketDataMap.get(symbol + "-" + assetType.getAssetTypeName());
                 if (marketData != null) {
                     priceInBaseCurrency = marketData.getPrice();
                     logger.trace("Market data found: symbol={}, assetType={}, priceInBaseCurrency={}", symbol, assetType, priceInBaseCurrency);
+                
+                    // Convert price to base currency if baseCurrency is not USD
+                    if (!baseCurrency.equals("USD")) {
+                        String forexKey = "USD/" + baseCurrency + "-" + AssetType.FOREX.getAssetTypeName();
+                        MarketDataDto forexMarketData = marketDataMap.get(forexKey);
+                
+                        if (forexMarketData != null) {
+                            BigDecimal usdToBaseCurrencyRate = forexMarketData.getPrice();
+                            priceInBaseCurrency = priceInBaseCurrency.multiply(usdToBaseCurrencyRate);
+                            logger.trace("Converted price to base currency: forexKey={}, usdToBaseCurrencyRate={}, priceInBaseCurrency={}",
+                                    forexKey, usdToBaseCurrencyRate, priceInBaseCurrency);
+                        } else {
+                            logger.warn("No FOREX market data found for USD/{} conversion. Using price in USD.", baseCurrency);
+                        }
+                    }
                 }
             }
 
