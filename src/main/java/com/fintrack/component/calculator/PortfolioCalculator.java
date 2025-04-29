@@ -30,6 +30,22 @@ public class PortfolioCalculator {
         this.assetValuesMap = calculateAssetValues();
     }
 
+    public UUID getAccountId() {
+        return accountId;
+    }
+
+    public List<Holdings> getHoldings() {
+        return holdings;
+    }
+
+    public Map<String, MarketDataDto> getMarketDataMap() {
+        return marketDataMap;
+    }
+
+    public String getBaseCurrency() {
+        return baseCurrency;
+    }
+
     public Map<String, Object[]> getAssetDetailsMap() {
         return assetDetailsMap;
     }
@@ -77,91 +93,108 @@ public class PortfolioCalculator {
 
         return assetDetails;
     }
-
+    
     /**
-     * Calculates a map of (asset name) -> (price in base currency, total value in base currency).
+     * Calculates a map of (asset name) -> Map<String, BigDecimal> (price in base currency, total value in base currency).
      */
     public Map<String, Map<String, BigDecimal>> calculateAssetValues() {
         Map<String, Map<String, BigDecimal>> assetValues = new HashMap<>();
-
+    
         for (Holdings holding : holdings) {
             String assetName = holding.getAssetName();
             Object[] symbolAssetTypePair = assetDetailsMap.get(assetName);
             String symbol = (String) symbolAssetTypePair[0];
             AssetType assetType = (AssetType) symbolAssetTypePair[1];
             BigDecimal quantity = BigDecimal.valueOf(holding.getTotalBalance());
-
-            BigDecimal priceInBaseCurrency = BigDecimal.ZERO;
-
-            // Handle FOREX symbols
-            if (assetType == AssetType.FOREX) {
-                if (symbol.equals(baseCurrency)) {
-                    // If the FOREX symbol is the same as the base currency, set price to 1
-                    priceInBaseCurrency = BigDecimal.ONE;
-                    logger.trace("FOREX symbol matches base currency: symbol={}, priceInBaseCurrency={}", symbol, priceInBaseCurrency);
-                } else {
-                    // Fetch the correct FOREX market data
-                    String forexKey = symbol + "/" + baseCurrency + "-" + AssetType.FOREX.getAssetTypeName();
-                    MarketDataDto marketData = marketDataMap.get(forexKey);
-
-                    logger.trace("FOREX market data lookup: forexKey={}, marketData={}", forexKey, marketData);
-
-                    if (marketData == null) {
-                        // Try the reverse pair (e.g., USD/AUD instead of AUD/USD)
-                        forexKey = baseCurrency + "/" + symbol + "-" + AssetType.FOREX.getAssetTypeName();
-                        marketData = marketDataMap.get(forexKey);
-
-                        if (marketData != null) {
-                            // If reverse pair exists, calculate the inverse price
-                            priceInBaseCurrency = BigDecimal.ONE.divide(marketData.getPrice(), 4, RoundingMode.HALF_UP);
-                            logger.trace("Reverse FOREX pair found: forexKey={}, priceInBaseCurrency={}", forexKey, priceInBaseCurrency);
-                        }
-                    } else {
-                        priceInBaseCurrency = marketData.getPrice();
-                        logger.trace("FOREX market data found: forexKey={}, priceInBaseCurrency={}", forexKey, priceInBaseCurrency);
-                    }
-                }
-            } else {
-                // Handle non-FOREX symbols
-                MarketDataDto marketData = marketDataMap.get(symbol + "-" + assetType.getAssetTypeName());
-                if (marketData != null) {
-                    priceInBaseCurrency = marketData.getPrice();
-                    logger.trace("Market data found: symbol={}, assetType={}, priceInBaseCurrency={}", symbol, assetType, priceInBaseCurrency);
-                
-                    // Convert price to base currency if baseCurrency is not USD
-                    if (!baseCurrency.equals("USD")) {
-                        String forexKey = "USD/" + baseCurrency + "-" + AssetType.FOREX.getAssetTypeName();
-                        MarketDataDto forexMarketData = marketDataMap.get(forexKey);
-                
-                        if (forexMarketData != null) {
-                            BigDecimal usdToBaseCurrencyRate = forexMarketData.getPrice();
-                            priceInBaseCurrency = priceInBaseCurrency.multiply(usdToBaseCurrencyRate);
-                            logger.trace("Converted price to base currency: forexKey={}, usdToBaseCurrencyRate={}, priceInBaseCurrency={}",
-                                    forexKey, usdToBaseCurrencyRate, priceInBaseCurrency);
-                        } else {
-                            logger.warn("No FOREX market data found for USD/{} conversion. Using price in USD.", baseCurrency);
-                        }
-                    }
-                }
-            }
-
-            logger.trace("Calculating asset values: assetName={}, symbol={}, assetType={}, quantity={}, priceInBaseCurrency={}",
-                    assetName, symbol, assetType, quantity, priceInBaseCurrency);
-
+    
+            // Get price in base currency
+            BigDecimal priceInBaseCurrency = getPriceInBaseCurrency(symbol, assetType);
+    
             // Calculate total value in base currency
             BigDecimal totalValueInBaseCurrency = priceInBaseCurrency.multiply(quantity);
-
+    
             // Store the results
             Map<String, BigDecimal> values = new HashMap<>();
             values.put("priceInBaseCurrency", priceInBaseCurrency);
             values.put("totalValueInBaseCurrency", totalValueInBaseCurrency);
-
+    
             assetValues.put(assetName, values);
-
+    
             logger.trace("Asset values calculated: assetName={}, priceInBaseCurrency={}, totalValueInBaseCurrency={}",
                     assetName, priceInBaseCurrency, totalValueInBaseCurrency);
         }
-
+    
         return assetValues;
+    }
+
+    private BigDecimal getPriceInBaseCurrency(String symbol, AssetType assetType) {
+        BigDecimal priceInBaseCurrency = BigDecimal.ZERO;
+    
+        if (assetType == AssetType.FOREX) {
+            priceInBaseCurrency = getForexPriceInBaseCurrency(symbol);
+        } else {
+            priceInBaseCurrency = getNonForexPriceInBaseCurrency(symbol, assetType);
+        }
+    
+        return priceInBaseCurrency;
+    }
+
+    private BigDecimal getForexPriceInBaseCurrency(String symbol) {
+        if (symbol.equals(baseCurrency)) {
+            logger.trace("FOREX symbol matches base currency: symbol={}, priceInBaseCurrency=1", symbol);
+            return BigDecimal.ONE;
+        }
+    
+        // Try direct pair
+        String forexKey = symbol + "/" + baseCurrency + "-" + AssetType.FOREX.getAssetTypeName();
+        MarketDataDto marketData = marketDataMap.get(forexKey);
+    
+        if (marketData == null) {
+            // Try reverse pair
+            forexKey = baseCurrency + "/" + symbol + "-" + AssetType.FOREX.getAssetTypeName();
+            marketData = marketDataMap.get(forexKey);
+    
+            if (marketData != null) {
+                BigDecimal inversePrice = BigDecimal.ONE.divide(marketData.getPrice(), 4, RoundingMode.HALF_UP);
+                logger.trace("Reverse FOREX pair found: forexKey={}, priceInBaseCurrency={}", forexKey, inversePrice);
+                return inversePrice;
+            } else {
+                logger.warn("No FOREX market data found for symbol={}, baseCurrency={}", symbol, baseCurrency);
+                return BigDecimal.ZERO;
+            }
+        }
+    
+        logger.trace("FOREX market data found: forexKey={}, priceInBaseCurrency={}", forexKey, marketData.getPrice());
+        return marketData.getPrice();
+    }
+
+    private BigDecimal getNonForexPriceInBaseCurrency(String symbol, AssetType assetType) {
+        String key = symbol + "-" + assetType.getAssetTypeName();
+        MarketDataDto marketData = marketDataMap.get(key);
+    
+        if (marketData == null) {
+            logger.warn("No market data found for symbol={}, assetType={}", symbol, assetType);
+            return BigDecimal.ZERO;
+        }
+    
+        BigDecimal priceInBaseCurrency = marketData.getPrice();
+        logger.trace("Market data found: symbol={}, assetType={}, priceInBaseCurrency={}", symbol, assetType, priceInBaseCurrency);
+    
+        // Convert price to base currency if baseCurrency is not USD
+        if (!baseCurrency.equals("USD")) {
+            String forexKey = "USD/" + baseCurrency + "-" + AssetType.FOREX.getAssetTypeName();
+            MarketDataDto forexMarketData = marketDataMap.get(forexKey);
+    
+            if (forexMarketData != null) {
+                BigDecimal usdToBaseCurrencyRate = forexMarketData.getPrice();
+                priceInBaseCurrency = priceInBaseCurrency.multiply(usdToBaseCurrencyRate);
+                logger.trace("Converted price to base currency: forexKey={}, usdToBaseCurrencyRate={}, priceInBaseCurrency={}",
+                        forexKey, usdToBaseCurrencyRate, priceInBaseCurrency);
+            } else {
+                logger.warn("No FOREX market data found for USD/{} conversion. Using price in USD.", baseCurrency);
+            }
+        }
+    
+        return priceInBaseCurrency;
     }
 }

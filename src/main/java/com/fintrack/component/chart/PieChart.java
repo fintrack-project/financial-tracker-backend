@@ -6,8 +6,11 @@ import com.fintrack.model.Holdings;
 import com.fintrack.model.HoldingsCategory;
 import com.fintrack.model.MarketDataDto;
 import com.fintrack.model.Category;
+import com.fintrack.component.calculator.PortfolioCalculator;
 
 import java.util.stream.Collectors;
+
+import javax.sound.sampled.Port;
 
 public class PieChart extends Chart {
 
@@ -25,6 +28,21 @@ public class PieChart extends Chart {
 
     public PieChart(List<Holdings> holdings, List<MarketDataDto> marketDataDto, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, String categoryName) {
         super(holdings, marketDataDto, holdingsCategories, subcategories, categoryName);
+        this.pieChartData = generatePieChartDataByCategoryName(categoryName);
+    }
+
+    public PieChart(PortfolioCalculator portfolioCalculator) {
+        super(portfolioCalculator);
+        this.pieChartData = generatePieChartData();
+    }
+
+    public PieChart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, String categoryName) {
+        super(portfolioCalculator, holdingsCategories, categoryName);
+        this.pieChartData = generatePieChartDataByCategoryName(categoryName);
+    }
+
+    public PieChart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, String categoryName) {
+        super(portfolioCalculator, holdingsCategories, subcategories, categoryName);
         this.pieChartData = generatePieChartDataByCategoryName(categoryName);
     }
 

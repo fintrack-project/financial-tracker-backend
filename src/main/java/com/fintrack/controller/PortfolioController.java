@@ -28,12 +28,22 @@ public class PortfolioController {
         return ResponseEntity.ok(portfolioData);
     }
 
+    // @PostMapping("/piechart-data")
+    // public ResponseEntity<List<Map<String, Object>>> getPortfolioPieChartData(@RequestBody Map<String, Object> requestData) {
+    //     UUID accountId = UUID.fromString((String) requestData.get("accountId"));
+    //     String category = (String) requestData.get("category");
+
+    //     List<Map<String, Object>> pieChartData = portfolioService.calculatePortfolioPieChartData(accountId, category);
+    //     return ResponseEntity.ok(pieChartData);
+    // }
+
     @PostMapping("/piechart-data")
     public ResponseEntity<List<Map<String, Object>>> getPortfolioPieChartData(@RequestBody Map<String, Object> requestData) {
         UUID accountId = UUID.fromString((String) requestData.get("accountId"));
         String category = (String) requestData.get("category");
+        String baseCurrency = (String) requestData.get("baseCurrency");
 
-        List<Map<String, Object>> pieChartData = portfolioService.calculatePortfolioPieChartData(accountId, category);
+        List<Map<String, Object>> pieChartData = portfolioService.calculatePortfolioPieChartDataEXP(accountId, category, baseCurrency);
         return ResponseEntity.ok(pieChartData);
     }
 
