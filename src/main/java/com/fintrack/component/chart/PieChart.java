@@ -6,6 +6,7 @@ import com.fintrack.model.Holdings;
 import com.fintrack.model.HoldingsCategory;
 import com.fintrack.model.MarketDataDto;
 import com.fintrack.model.Category;
+import com.fintrack.component.calculator.PortfolioCalculator;
 
 import java.util.stream.Collectors;
 
@@ -13,18 +14,18 @@ public class PieChart extends Chart {
 
     private List<PieChartData> pieChartData;
 
-    public PieChart(List<Holdings> holdings, List<MarketDataDto> marketDataDto) {
-        super(holdings, marketDataDto);
+    public PieChart(PortfolioCalculator portfolioCalculator) {
+        super(portfolioCalculator);
         this.pieChartData = generatePieChartData();
     }
 
-    public PieChart(List<Holdings> holdings, List<MarketDataDto> marketDataDto, List<HoldingsCategory> holdingsCategories, String categoryName) {
-        super(holdings, marketDataDto, holdingsCategories, categoryName);
+    public PieChart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, String categoryName) {
+        super(portfolioCalculator, holdingsCategories, categoryName);
         this.pieChartData = generatePieChartDataByCategoryName(categoryName);
     }
 
-    public PieChart(List<Holdings> holdings, List<MarketDataDto> marketDataDto, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, String categoryName) {
-        super(holdings, marketDataDto, holdingsCategories, subcategories, categoryName);
+    public PieChart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, String categoryName) {
+        super(portfolioCalculator, holdingsCategories, subcategories, categoryName);
         this.pieChartData = generatePieChartDataByCategoryName(categoryName);
     }
 

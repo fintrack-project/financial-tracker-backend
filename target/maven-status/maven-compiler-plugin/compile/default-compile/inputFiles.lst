@@ -32,6 +32,7 @@
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/model/User.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/MarketIndexDataRepository.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/repository/MarketDataMonthlyRepository.java
+/Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/component/calculator/PortfolioCalculator.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/service/MarketIndexDataService.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/model/Account.java
 /Users/johnkim1216/VSCodeProjects/fintrack-project/financial-tracker-backend/src/main/java/com/fintrack/constants/AssetType.java

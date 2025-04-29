@@ -65,10 +65,8 @@ public class MarketDataService {
                 String symbol = (String) pair[0];
                 String assetType = (String) pair[1];
                 logger.info("Fetching market data for symbol: " + symbol + ", assetType: " + assetType);
-                MarketData marketData = marketDataRepository.findMarketDataBySymbol(symbol);
-                if (marketData != null && marketData.getAssetType().equals(AssetType.valueOf(assetType))) {
-                    recentMarketData.add(marketData);
-                }
+                List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(symbol, assetType);
+                recentMarketData.addAll(marketDataList);
             });
 
             if (recentMarketData.isEmpty()) {
