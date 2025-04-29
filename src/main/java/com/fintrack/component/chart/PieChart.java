@@ -10,26 +10,9 @@ import com.fintrack.component.calculator.PortfolioCalculator;
 
 import java.util.stream.Collectors;
 
-import javax.sound.sampled.Port;
-
 public class PieChart extends Chart {
 
     private List<PieChartData> pieChartData;
-
-    public PieChart(List<Holdings> holdings, List<MarketDataDto> marketDataDto) {
-        super(holdings, marketDataDto);
-        this.pieChartData = generatePieChartData();
-    }
-
-    public PieChart(List<Holdings> holdings, List<MarketDataDto> marketDataDto, List<HoldingsCategory> holdingsCategories, String categoryName) {
-        super(holdings, marketDataDto, holdingsCategories, categoryName);
-        this.pieChartData = generatePieChartDataByCategoryName(categoryName);
-    }
-
-    public PieChart(List<Holdings> holdings, List<MarketDataDto> marketDataDto, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, String categoryName) {
-        super(holdings, marketDataDto, holdingsCategories, subcategories, categoryName);
-        this.pieChartData = generatePieChartDataByCategoryName(categoryName);
-    }
 
     public PieChart(PortfolioCalculator portfolioCalculator) {
         super(portfolioCalculator);

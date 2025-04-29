@@ -133,63 +133,6 @@ public class PortfolioService {
         return portfolioCalculator.getPortfolioData();
     }
 
-    // @Transactional(readOnly = true)
-    // public List<Map<String, Object>> calculatePortfolioPieChartData(UUID accountId, String categoryName) {
-    //     // Validate input
-    //     if (accountId == null || categoryName == null || categoryName.isEmpty()) {
-    //         throw new IllegalArgumentException("Account ID and category name must not be null or empty.");
-    //     }
-
-    //     logger.debug("Calculating portfolio pie chart data for account ID: " + accountId + " and category name: " + categoryName);
-
-    //     // Fetch holdings for the given account ID
-    //     List<Holdings> holdings = holdingsRepository.findHoldingsByAccount(accountId);
-
-    //     holdings.forEach(holding -> {
-    //         logger.trace("Holding: " + holding.getSymbol() + ", Quantity: " + holding.getTotalBalance());
-    //     });
-
-    //     // Fetch market data for the symbols
-    //     List<String> symbols = holdings.stream()
-    //             .map(Holdings::getSymbol)
-    //             .distinct()
-    //             .collect(Collectors.toList());
-    //     List<MarketDataDto> marketDataDtoList = marketDataRepository.findMarketDataBySymbols(symbols).stream()
-    //         .map(marketData -> new MarketDataDto(marketData))
-    //         .collect(Collectors.toList());        
-        
-    //     // Handle the case when categoryName is "None"
-    //     if ("None".equalsIgnoreCase(categoryName)) {
-    //         PieChart pieChart = new PieChart(holdings, marketDataDtoList);
-    //         return pieChart.getData();
-    //     }
-
-    //     marketDataDtoList.forEach(marketDtoData -> {
-    //         logger.trace("Market Data: " + marketDtoData.getSymbol() + ", Price: " + marketDtoData.getPrice());
-    //     });
-
-    //     // Fetch the category ID for the given account and category name
-    //     Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
-    //     if (categoryId == null) {
-    //         throw new IllegalArgumentException("Category not found for the given account and category name.");
-    //     }        
-    //     // Fetch subcategories for the given account ID and category ID
-    //     List<Category> subcategories = subcategoriesRepository.findSubcategoriesByParentId(accountId, categoryId);
-    //     if (subcategories.isEmpty()) {
-    //         throw new IllegalArgumentException("No subcategories found for the given account and category ID.");
-    //     }
-
-    //     subcategories.forEach(subcategory -> {
-    //         logger.trace("Subcategory: " + subcategory.getCategoryName());
-    //     });
-
-    //     // Fetch holdings categories for the given account ID
-    //     List<HoldingsCategory> holdingsCategories = holdingsCategoriesRepository.findHoldingsCategoryByAccountId(accountId);
-
-    //     PieChart pieChart = new PieChart(holdings, marketDataDtoList, holdingsCategories, subcategories, categoryName);
-    //     return pieChart.getData();
-    // }
-
     @Transactional(readOnly = true)
     public List<Map<String, Object>> calculatePortfolioPieChartDataEXP(UUID accountId, String categoryName, String baseCurrency) {
         // Validate input
