@@ -44,7 +44,7 @@ public class PortfolioController {
         String category = (String) requestData.get("category");
         String baseCurrency = (String) requestData.get("baseCurrency");
 
-        List<Map<String, Object>> barChartData = portfolioService.calculatePortfolioBarChartsDataEXP(accountId, category, baseCurrency);
+        List<Map<String, Object>> barChartData = portfolioService.calculatePortfolioBarChartsData(accountId, category, baseCurrency);
         return ResponseEntity.ok(barChartData);
     }
 }
