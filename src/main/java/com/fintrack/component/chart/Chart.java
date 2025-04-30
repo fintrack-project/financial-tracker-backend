@@ -35,33 +35,10 @@ public abstract class Chart {
 
     private PortfolioCalculator portfolioCalculator;
 
-    public Chart(List<Holdings> holdings, List<MarketDataDto> marketDataDto) {
-        this.holdings = holdings;
-        this.marketDataDto = marketDataDto;
-        this.chartData = generateChartData();
-    }
-
-    public Chart(List<Holdings> holdings, List<MarketDataDto> marketDataDto, List<HoldingsCategory> holdingsCategories, String categoryName) {
-        this.holdings = holdings;
-        this.marketDataDto = marketDataDto;
-        this.holdingsCategories = holdingsCategories;
-        this.categoryName = categoryName;
-        this.chartData = generateChartDataByCategoryName(categoryName);
-    }
-
-    public Chart(List<Holdings> holdings, List<MarketDataDto> marketDataDto, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, String categoryName) {
-        this.holdings = holdings;
-        this.marketDataDto = marketDataDto;
-        this.holdingsCategories = holdingsCategories;
-        this.subcategories = subcategories;
-        this.categoryName = categoryName;
-        this.chartData = generateChartDataByCategoryName(categoryName);
-    }
-
     public Chart(PortfolioCalculator portfolioCalculator) {
         this.portfolioCalculator = portfolioCalculator;
         this.holdings = portfolioCalculator.getHoldings();
-        this.chartData = generateChartDataEXP();
+        this.chartData = generateChartData();
     }
 
     public Chart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, String categoryName) {
@@ -69,7 +46,7 @@ public abstract class Chart {
         this.holdings = portfolioCalculator.getHoldings();
         this.holdingsCategories = holdingsCategories;
         this.categoryName = categoryName;
-        this.chartData = generateChartDataByCategoryNameEXP(categoryName);
+        this.chartData = generateChartDataByCategoryName(categoryName);
     }
 
     public Chart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, String categoryName) {
@@ -78,7 +55,7 @@ public abstract class Chart {
         this.holdingsCategories = holdingsCategories;
         this.subcategories = subcategories;
         this.categoryName = categoryName;
-        this.chartData = generateChartDataByCategoryNameEXP(categoryName);
+        this.chartData = generateChartDataByCategoryName(categoryName);
     }
 
     public String getCategoryName() {
@@ -146,91 +123,6 @@ public abstract class Chart {
     }
 
     protected List<ChartData> generateChartData() {
-        logger.trace("Generating chart data for all holdings");
-        Map<String, Double> symbolToPriceMap = getSymbolToPriceMap();
-        List<ChartData> chartData = holdings.stream()
-                .map(holding -> {
-                    String symbol = holding.getSymbol();
-                    Double totalBalance = holding.getTotalBalance();
-                    Double price = symbolToPriceMap.getOrDefault(symbol, 0.0); // Default price to 0.0 if not found
-                    Double value = totalBalance * price; // Calculate value using price and total balance
-
-                    assetValueMap.put(holding.getAssetName(), value); // Store asset value
-                    totalValue += value; // Accumulate total value
-                    subcategoryValueMap.put("None", subcategoryValueMap.getOrDefault("None", 0.0) + value); // Update subcategory value
-
-                    return new ChartData(
-                        holding.getAssetName(), 
-                        symbol,
-                        "None",
-                        value, 
-                        0, // Default priority
-                        assignColor()); // Assign a random color
-                })
-                .sorted(Comparator.comparing(ChartData::getValue).reversed()) // Sort by asset value in descending order
-                .collect(Collectors.toList()
-                );
-        return chartData;
-    }
-
-    private List<ChartData> generateChartDataByCategoryName(String categoryName) {
-        logger.trace("Generating chart data for category: " + categoryName);
-        // Generate pie chart data for a specific category
-        Map<String, Double> symbolToPriceMap = getSymbolToPriceMap();
-
-        List<HoldingsCategory> filteredHoldingsCategories = holdingsCategories.stream()
-        .filter(category -> category.getCategory() != null && category.getCategory().equals(categoryName)) // Filter by category
-        .collect(Collectors.toList());
-
-        filteredHoldingsCategories.forEach(category -> 
-            logger.trace("Filtered HoldingsCategory: " + category.getAssetName() + ", " + category.getSubcategory())
-        );
-
-        Map<String, String> assetNamesSubcategoryMap = filteredHoldingsCategories.stream()
-            .collect(Collectors.toMap(
-                HoldingsCategory::getAssetName,
-                category -> category.getSubcategory() != null ? category.getSubcategory() : "None", // Assign "None" if subcategory is null
-                (existing, replacement) -> existing // Handle duplicate keys by keeping the existing value
-            ));
-        
-        assetNamesSubcategoryMap.forEach((key, value) ->
-            logger.trace("Asset Name: " + key + ", Subcategory: " + value)
-        );
-
-        List<ChartData> chartData = holdings.stream()
-                .filter(holding -> assetNamesSubcategoryMap.containsKey(holding.getAssetName())) // Ensure filtering by valid keys
-                .map(holding -> {
-                    String symbol = holding.getSymbol();
-                    Double totalBalance = holding.getTotalBalance();
-                    Double price = symbolToPriceMap.getOrDefault(symbol, 0.0); // Default price to 0.0 if not found
-                    Double value = totalBalance * price; // Calculate value using price and total balance
-
-                    String subcategory = assetNamesSubcategoryMap.get(holding.getAssetName());
-
-                    // Get or generate a color for the subcategory
-                    String color = subcategoryColorMap.computeIfAbsent(subcategory, key -> assignColor());
-
-                    assetValueMap.put(holding.getAssetName(), value); // Store asset value
-                    totalValue += value; // Accumulate total value
-                    subcategoryValueMap.put(subcategory, subcategoryValueMap.getOrDefault(subcategory, 0.0) + value); // Update subcategory value
-
-                    return new ChartData(
-                        holding.getAssetName(),
-                        symbol,
-                        subcategory, 
-                        value, 
-                        getSubcategoryPriorityMap().getOrDefault(subcategory, 0), // Get priority from subcategory map
-                        color); // Use subcategory as name
-                })
-                .sorted(Comparator
-                    .comparing(ChartData::getPriority) // Sort by priority
-                    .thenComparing(ChartData::getValue).reversed()) // Sort by asset value
-                .collect(Collectors.toList());
-        
-        return chartData;
-    }
-
-    protected List<ChartData> generateChartDataEXP() {
         logger.trace("Generating chart data using PortfolioCalculator");
     
         // Get pre-calculated asset values from PortfolioCalculator
@@ -275,7 +167,7 @@ public abstract class Chart {
         return chartData;
     }
 
-    private List<ChartData> generateChartDataByCategoryNameEXP(String categoryName) {
+    private List<ChartData> generateChartDataByCategoryName(String categoryName) {
         logger.trace("Generating chart data for category: {}", categoryName);
     
         // Get pre-calculated asset values from PortfolioCalculator

@@ -4,9 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fintrack.model.HoldingsCategory;
-import com.fintrack.model.MarketDataDto;
+import com.fintrack.component.calculator.PortfolioCalculator;
 import com.fintrack.model.Category;
-import com.fintrack.model.Holdings;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -18,18 +17,18 @@ public class BarChart extends Chart {
     private List<BarChartData> barChartDatas;
     private LocalDate localDate;
 
-    public BarChart(List<Holdings> holdings, List<MarketDataDto> marketDataDto) {
-        super(holdings, marketDataDto);
+    public BarChart(PortfolioCalculator portfolioCalculator) {
+        super(portfolioCalculator);
         this.barChartDatas = generateBarChartData();
     }
 
-    public BarChart(List<Holdings> holdings, List<MarketDataDto> marketDataDto, List<HoldingsCategory> holdingsCategories, String categoryName) {
-        super(holdings, marketDataDto, holdingsCategories, categoryName);
+    public BarChart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, String categoryName) {
+        super(portfolioCalculator, holdingsCategories, categoryName);
         this.barChartDatas = generateBarChartDataByCategoryName(categoryName);
     }
 
-    public BarChart(List<Holdings> holdings, List<MarketDataDto> marketDataDto, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, String categoryName) {
-        super(holdings, marketDataDto, holdingsCategories, subcategories, categoryName);
+    public BarChart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, String categoryName) {
+        super(portfolioCalculator, holdingsCategories, subcategories, categoryName);
         this.barChartDatas = generateBarChartDataByCategoryName(categoryName);
     }
 

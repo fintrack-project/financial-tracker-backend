@@ -2,9 +2,7 @@ package com.fintrack.component.chart;
 
 import java.util.*;
 
-import com.fintrack.model.Holdings;
 import com.fintrack.model.HoldingsCategory;
-import com.fintrack.model.MarketDataDto;
 import com.fintrack.model.Category;
 import com.fintrack.component.calculator.PortfolioCalculator;
 

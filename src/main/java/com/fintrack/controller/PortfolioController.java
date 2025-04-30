@@ -34,7 +34,7 @@ public class PortfolioController {
         String category = (String) requestData.get("category");
         String baseCurrency = (String) requestData.get("baseCurrency");
 
-        List<Map<String, Object>> pieChartData = portfolioService.calculatePortfolioPieChartDataEXP(accountId, category, baseCurrency);
+        List<Map<String, Object>> pieChartData = portfolioService.calculatePortfolioPieChartData(accountId, category, baseCurrency);
         return ResponseEntity.ok(pieChartData);
     }
 
@@ -42,8 +42,9 @@ public class PortfolioController {
     public ResponseEntity<List<Map<String, Object>>> getPortfolioBarChartsData(@RequestBody Map<String, Object> requestData) {
         UUID accountId = UUID.fromString((String) requestData.get("accountId"));
         String category = (String) requestData.get("category");
+        String baseCurrency = (String) requestData.get("baseCurrency");
 
-        List<Map<String, Object>> barChartData = portfolioService.calculatePortfolioBarChartsData(accountId, category);
+        List<Map<String, Object>> barChartData = portfolioService.calculatePortfolioBarChartsData(accountId, category, baseCurrency);
         return ResponseEntity.ok(barChartData);
     }
 }

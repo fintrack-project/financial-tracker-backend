@@ -30,7 +30,6 @@ com/fintrack/service/WatchlistDataService.class
 com/fintrack/component/transaction/OverviewTransaction.class
 com/fintrack/controller/HoldingsController.class
 com/fintrack/constants/KafkaTopics.class
-com/fintrack/model/HoldingDto.class
 com/fintrack/controller/WatchlistDataController.class
 com/fintrack/controller/SubcategoriesController.class
 com/fintrack/FinTrackApplication.class

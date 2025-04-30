@@ -1,17 +1,20 @@
 package com.fintrack.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fintrack.constants.AssetType;
+import com.fintrack.constants.KafkaTopics;
 import com.fintrack.model.AccountCurrency;
 import com.fintrack.model.WatchlistData;
 import com.fintrack.repository.WatchlistDataRepository;
 import com.fintrack.repository.AccountCurrenciesRepository;
+import com.fintrack.repository.HoldingsMonthlyRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.UUID;
+import java.time.LocalDate;
+import java.util.*;
 
 @Service
 public class WatchlistDataService {
@@ -20,12 +23,17 @@ public class WatchlistDataService {
 
     private final WatchlistDataRepository watchlistDataRepository;
     private final AccountCurrenciesRepository accountCurrenciesRepository;
-    // private final KafkaProducerService kafkaProducerService;
+    private final HoldingsMonthlyRepository holdingsMonthlyRepository;
+    private final KafkaProducerService kafkaProducerService;
 
     public WatchlistDataService(WatchlistDataRepository watchlistDataRepository
-        , AccountCurrenciesRepository accountCurrenciesRepository) {
+        , AccountCurrenciesRepository accountCurrenciesRepository
+        , HoldingsMonthlyRepository holdingsMonthlyRepository
+        , KafkaProducerService kafkaProducerService) {
         this.watchlistDataRepository = watchlistDataRepository;
         this.accountCurrenciesRepository = accountCurrenciesRepository;
+        this.holdingsMonthlyRepository = holdingsMonthlyRepository;
+        this.kafkaProducerService = kafkaProducerService;
     }
 
     public List<WatchlistData> fetchWatchlistData(UUID accountId, List<String> assetTypes) {
@@ -103,8 +111,7 @@ public class WatchlistDataService {
         // If both currencies are new, send a Kafka message
         if (currenciesToAdd.contains(currencyFrom) && currenciesToAdd.contains(currencyTo)) {
             logger.info("No link between {} and existing currencies. Sending Kafka message for update.", symbol);
-            // kafkaProducerService.sendCurrencyUpdateMessage(accountId, List.of(currencyFrom, currencyTo));
-            // TODO: Handle Kafka response and update logic in the future
+            sendMarketDataUpdateRequest(accountId, List.of(symbol));
         }
     }
 
@@ -145,6 +152,49 @@ public class WatchlistDataService {
             accountCurrenciesRepository.delete(accountCurrency);
         } else if (accountCurrency != null && accountCurrency.isDefault()) {
             logger.info("Currency {} is the default currency for account {} and will not be removed.", currency, accountId);
+        }
+    }
+
+    private void sendMarketDataUpdateRequest(UUID accountId, List<String> currencies) {
+        List<Map<String, String>> assets = currencies.stream()
+                .map(currency -> Map.of("symbol", currency, "assetType", AssetType.FOREX.getAssetTypeName()))
+                .toList();
+        
+        try {    
+            Map<String, Object> updateRequestPayload = new HashMap<>();
+            updateRequestPayload.put("assets", assets);
+    
+            // Convert the payload to a JSON string
+            ObjectMapper objectMapper = new ObjectMapper();
+            String updateRequestJson = objectMapper.writeValueAsString(updateRequestPayload);
+    
+            // Publish the JSON payload to the MARKET_DATA_UPDATE_REQUEST topic
+            kafkaProducerService.publishEvent(KafkaTopics.MARKET_DATA_UPDATE_REQUEST.getTopicName(), updateRequestJson);
+            logger.info("Sent market data update request: " + updateRequestJson);
+
+            // Fetch the start_date and end_date from HoldingsMonthlyRepository
+            LocalDate startDate = holdingsMonthlyRepository.findEarliestDateByAccountId(accountId);
+            LocalDate endDate = holdingsMonthlyRepository.findLatestDateByAccountId(accountId);
+
+            if (startDate == null || endDate == null) {
+                logger.warn("No holdings found for accountId: " + accountId + ". Skipping MARKET_DATA_MONTHLY_REQUEST.");
+                return;
+            }
+    
+            // Create the payload for MARKET_DATA_MONTHLY_REQUEST
+            Map<String, Object> monthlyRequestPayload = new HashMap<>();
+            monthlyRequestPayload.put("assets", assets);
+            monthlyRequestPayload.put("start_date", startDate.toString());
+            monthlyRequestPayload.put("end_date", endDate.toString());
+    
+            // Convert the payload to a JSON string
+            String monthlyRequestJson = objectMapper.writeValueAsString(monthlyRequestPayload);
+    
+            // Publish the JSON payload to the MARKET_DATA_MONTHLY_REQUEST topic
+            kafkaProducerService.publishEvent(KafkaTopics.HISTORICAL_MARKET_DATA_REQUEST.getTopicName(), monthlyRequestJson);
+            logger.info("Sent market data monthly request: " + monthlyRequestJson);
+        } catch (Exception e) {
+            logger.error("Failed to send market data update or monthly request: " + e.getMessage());
         }
     }
 
