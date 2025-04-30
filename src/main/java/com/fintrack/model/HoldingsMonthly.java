@@ -52,6 +52,7 @@ public class HoldingsMonthly {
         holdings.setTotalBalance(getTotalBalance().doubleValue());
         holdings.setUnit(getUnit());
         holdings.setSymbol(getSymbol());
+        holdings.setAssetType(getAssetType());
         return holdings;
     }
 

@@ -63,7 +63,7 @@ public class PortfolioService {
         List<Holdings> holdings = holdingsRepository.findHoldingsByAccount(accountId);
     
         holdings.forEach(holding -> {
-            logger.trace("Holding: symbol={}, quantity={}", holding.getSymbol(), holding.getTotalBalance());
+            logger.trace("Holding: symbol={}, assetType = {}, quantity={}", holding.getSymbol(), holding.getAssetType().getAssetTypeName(), holding.getTotalBalance());
         });
     
         // Fetch market data for the symbols and asset types
@@ -75,45 +75,15 @@ public class PortfolioService {
         logger.trace("Distinct symbol and asset type pairs: {}", symbolAssetTypePairs);
 
         List<MarketDataDto> marketDataDtoList = new ArrayList<>();
-        symbolAssetTypePairs.stream().forEach(pair -> {
+
+        symbolAssetTypePairs.forEach(pair -> {
             String symbol = (String) pair[0];
             AssetType assetType = (AssetType) pair[1];
 
             if (assetType == AssetType.FOREX) {
-                // Handle FOREX symbols
-                if (symbol.equals(baseCurrency)) {
-                    // If the FOREX symbol is the same as the base currency, set price to 1
-                    logger.trace("FOREX symbol matches base currency: symbol={}, priceInBaseCurrency=1", symbol);
-                    marketDataDtoList.add(new MarketDataDto(symbol + "/" + symbol, BigDecimal.ONE, assetType));
-                } else {
-                    // Fetch the correct FOREX market data
-                    String forexPair = symbol + "/" + baseCurrency;
-                    List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(forexPair, assetType.name());
-                    if (marketDataList.isEmpty()) {
-                        // Try the reverse pair (e.g., USD/AUD instead of AUD/USD)
-                        forexPair = baseCurrency + "/" + symbol;
-                        marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(forexPair, assetType.name());
-                        if (!marketDataList.isEmpty()) {
-                            // If reverse pair exists, calculate the inverse price
-                            MarketData marketData = marketDataList.get(0);
-                            logger.trace("Reverse FOREX pair found: forexPair={}, inversePrice={}", forexPair, marketData.getPrice());
-                            marketDataDtoList.add(new MarketDataDto(forexPair, marketData.getPrice(), assetType));
-                        } else {
-                            logger.warn("No FOREX market data found for symbol={}, baseCurrency={}", symbol, baseCurrency);
-                        }
-                    } else {
-                        MarketData marketData = marketDataList.get(0);
-                        logger.trace("FOREX market data found: forexPair={}, price={}", forexPair, marketData.getPrice());
-                        marketDataDtoList.add(new MarketDataDto(forexPair, marketData.getPrice(), assetType));
-                    }
-                }
+                marketDataDtoList.addAll(fetchForexMarketData(symbol, baseCurrency, assetType));
             } else {
-                // Handle non-FOREX symbols
-                logger.info("Fetching market data for symbol: {}, assetType: {}", symbol, assetType);
-                List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(symbol, assetType.name());
-                marketDataList.forEach(marketData -> {
-                    marketDataDtoList.add(new MarketDataDto(marketData));
-                });
+                marketDataDtoList.addAll(fetchNonForexMarketData(symbol, assetType));
             }
         });
     
@@ -134,7 +104,7 @@ public class PortfolioService {
     }
 
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> calculatePortfolioPieChartDataEXP(UUID accountId, String categoryName, String baseCurrency) {
+    public List<Map<String, Object>> calculatePortfolioPieChartData(UUID accountId, String categoryName, String baseCurrency) {
         // Validate input
         if (accountId == null || categoryName == null || categoryName.isEmpty() || baseCurrency == null || baseCurrency.isEmpty()) {
             throw new IllegalArgumentException("Account ID, category name and baseCurrency must not be null or empty.");
@@ -146,7 +116,7 @@ public class PortfolioService {
         List<Holdings> holdings = holdingsRepository.findHoldingsByAccount(accountId);
     
         holdings.forEach(holding -> {
-            logger.trace("Holding: symbol={}, quantity={}", holding.getSymbol(), holding.getTotalBalance());
+            logger.trace("Holding: symbol={}, assetType={}, quantity={}", holding.getSymbol(), holding.getAssetType().getAssetTypeName(), holding.getTotalBalance());
         });
     
         // Fetch market data for the symbols and asset types
@@ -210,8 +180,86 @@ public class PortfolioService {
         return pieChart.getData();
     }
 
+    // @Transactional(readOnly = true)
+    // public List<Map<String, Object>> calculatePortfolioBarChartsData(UUID accountId, String categoryName) {
+    //     // Validate input
+    //     if (accountId == null || categoryName == null || categoryName.isEmpty()) {
+    //         throw new IllegalArgumentException("Account ID and category name must not be null or empty.");
+    //     }
+
+    //     logger.debug("Calculating portfolio bar chart data for account ID: " + accountId + " and category name: " + categoryName);
+
+    //     // Fetch monthly holdings for the given account ID
+    //     List<HoldingsMonthly> monthlyHoldings = holdingsMonthlyRepository.findByAccountId(accountId);
+
+    //     monthlyHoldings.forEach(monthlyHolding -> {
+    //         logger.trace("Monthly Holding: " + monthlyHolding.getSymbol() + ", Quantity: " + monthlyHolding.getTotalBalance() + ", Date: " + monthlyHolding.getDate());
+    //     });
+
+    //     // Use TreeMap to ensure the keys (dates) are sorted in ascending order
+    //     Map<LocalDate, List<Holdings>> holdingsByDate = monthlyHoldings.stream()
+    //     .collect(Collectors.groupingBy(
+    //             HoldingsMonthly::getDate,
+    //             () -> new TreeMap<>(), // Use TreeMap to ensure sorted keys
+    //             Collectors.mapping(HoldingsMonthly::getHoldings, Collectors.toList())
+    //     ));
+
+    //     List<BarChart> barCharts = new ArrayList<>();
+
+    //     for (Map.Entry<LocalDate, List<Holdings>> entry : holdingsByDate.entrySet()) {
+    //         LocalDate date = entry.getKey();
+    //         List<Holdings> holdings = entry.getValue();
+
+    //         // Fetch market data for the symbols
+    //         List<String> symbols = holdings.stream()
+    //                 .map(Holdings::getSymbol)
+    //                 .distinct()
+    //                 .collect(Collectors.toList());
+
+    //         List<MarketDataDto> marketDataDtoList = marketDataMonthlyRepository.findBySymbolsAndDate(symbols, date).stream()
+    //                 .map(marketDataMonthly -> new MarketDataDto(marketDataMonthly))
+    //                 .collect(Collectors.toList());
+            
+    //         // Handle the case when categoryName is "None"
+    //         if ("None".equalsIgnoreCase(categoryName)) {
+    //             BarChart barChart = new BarChart(holdings, marketDataDtoList);
+    //             barChart.setLocalDate(date);
+    //             barCharts.add(barChart);
+    //             continue;
+    //         }
+
+    //         marketDataDtoList.forEach(marketDtoData -> {
+    //             logger.trace("Market Data: " + marketDtoData.getSymbol() + ", Price: " + marketDtoData.getPrice() + ", Date: " + date);
+    //         });
+
+    //         // Fetch the category ID for the given account and category name
+    //         Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
+    //         if (categoryId == null) {
+    //             throw new IllegalArgumentException("Category not found for the given account and category name.");
+    //         }
+    //         // Fetch subcategories for the given account ID and category ID
+    //         List<Category> subcategories = subcategoriesRepository.findSubcategoriesByParentId(accountId, categoryId);
+    //         if (subcategories.isEmpty()) {
+    //             throw new IllegalArgumentException("No subcategories found for the given account and category ID.");
+    //         }
+    //         subcategories.forEach(subcategory -> {
+    //             logger.trace("Subcategory: " + subcategory.getCategoryName());
+    //         });
+    //         // Fetch holdings categories for the given account ID
+    //         List<HoldingsCategory> holdingsCategories = holdingsCategoriesRepository.findHoldingsCategoryByAccountId(accountId);
+
+    //         BarChart barChart = new BarChart(holdings, marketDataDtoList, holdingsCategories, subcategories, categoryName);
+    //         barChart.setLocalDate(date);
+    //         barCharts.add(barChart);
+    //     }
+
+    //     CombinedBarChart combinedBarCharts = new CombinedBarChart(barCharts, categoryName);
+
+    //     return combinedBarCharts.getCombinedBarChartsData();
+    // }
+
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> calculatePortfolioBarChartsData(UUID accountId, String categoryName) {
+    public List<Map<String, Object>> calculatePortfolioBarChartsDataEXP(UUID accountId, String categoryName, String baseCurrency) {
         // Validate input
         if (accountId == null || categoryName == null || categoryName.isEmpty()) {
             throw new IllegalArgumentException("Account ID and category name must not be null or empty.");
@@ -223,7 +271,7 @@ public class PortfolioService {
         List<HoldingsMonthly> monthlyHoldings = holdingsMonthlyRepository.findByAccountId(accountId);
 
         monthlyHoldings.forEach(monthlyHolding -> {
-            logger.trace("Monthly Holding: " + monthlyHolding.getSymbol() + ", Quantity: " + monthlyHolding.getTotalBalance() + ", Date: " + monthlyHolding.getDate());
+            logger.trace("Monthly Holding, Date: " + monthlyHolding.getDate() + ", Symbol: " + monthlyHolding.getSymbol() + ", Asset Type: " + monthlyHolding.getAssetType().getAssetTypeName() + ", Quantity: " + monthlyHolding.getTotalBalance());
         });
 
         // Use TreeMap to ensure the keys (dates) are sorted in ascending order
@@ -234,33 +282,62 @@ public class PortfolioService {
                 Collectors.mapping(HoldingsMonthly::getHoldings, Collectors.toList())
         ));
 
+        holdingsByDate.forEach((date, holdings) -> {
+            holdings.forEach(holding -> {
+                logger.trace("Date: {}, Holding: symbol={}, assetType = {}, quantity={}", date, holding.getSymbol(), holding.getAssetType().getAssetTypeName(), holding.getTotalBalance());
+            });
+        });
+
         List<BarChart> barCharts = new ArrayList<>();
 
         for (Map.Entry<LocalDate, List<Holdings>> entry : holdingsByDate.entrySet()) {
             LocalDate date = entry.getKey();
             List<Holdings> holdings = entry.getValue();
 
+            holdings.forEach(holding -> {
+                logger.trace("Holding: date={}, symbol={}, assetType = {}, quantity={}", date, holding.getSymbol(), holding.getAssetType().getAssetTypeName(), holding.getTotalBalance());
+            });
+
             // Fetch market data for the symbols
-            List<String> symbols = holdings.stream()
-                    .map(Holdings::getSymbol)
+            List<Object[]> symbolAssetTypePairs = holdings.stream()
+                    .map(holding -> new Object[]{holding.getSymbol(), holding.getAssetType()})
                     .distinct()
                     .collect(Collectors.toList());
 
-            List<MarketDataDto> marketDataDtoList = marketDataMonthlyRepository.findBySymbolsAndDate(symbols, date).stream()
-                    .map(marketDataMonthly -> new MarketDataDto(marketDataMonthly))
-                    .collect(Collectors.toList());
+            logger.trace("Distinct symbol and asset type pairs: {}", symbolAssetTypePairs);
+
+            List<MarketDataDto> marketDataDtoList = new ArrayList<>();
+
+            symbolAssetTypePairs.forEach(pair -> {
+                String symbol = (String) pair[0];
+                AssetType assetType = (AssetType) pair[1];
+    
+                if (assetType == AssetType.FOREX) {
+                    marketDataDtoList.addAll(fetchForexMarketDataByDate(symbol, baseCurrency, assetType, date));
+                } else {
+                    marketDataDtoList.addAll(fetchNonForexMarketDataByDate(symbol, assetType, date));
+                }
+            });
+
+            // Create marketDataMap: String (symbol-assetType) -> MarketDataDto
+            Map<String, MarketDataDto> marketDataMap = new HashMap<>();
+            for (MarketDataDto marketDataDto : marketDataDtoList) {
+                String key = marketDataDto.getSymbol() + "-" + marketDataDto.getAssetType();
+                marketDataMap.put(key, marketDataDto);
+            }
+
+            logger.trace("Date = {}, Market Data Map: {}", date, marketDataMap);
+
+            // Use PortfolioCalculator to calculate asset values
+            PortfolioCalculator portfolioCalculator = new PortfolioCalculator(accountId, holdings, marketDataMap, baseCurrency);
             
             // Handle the case when categoryName is "None"
             if ("None".equalsIgnoreCase(categoryName)) {
-                BarChart barChart = new BarChart(holdings, marketDataDtoList);
+                BarChart barChart = new BarChart(portfolioCalculator);
                 barChart.setLocalDate(date);
                 barCharts.add(barChart);
                 continue;
             }
-
-            marketDataDtoList.forEach(marketDtoData -> {
-                logger.trace("Market Data: " + marketDtoData.getSymbol() + ", Price: " + marketDtoData.getPrice() + ", Date: " + date);
-            });
 
             // Fetch the category ID for the given account and category name
             Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
@@ -278,7 +355,7 @@ public class PortfolioService {
             // Fetch holdings categories for the given account ID
             List<HoldingsCategory> holdingsCategories = holdingsCategoriesRepository.findHoldingsCategoryByAccountId(accountId);
 
-            BarChart barChart = new BarChart(holdings, marketDataDtoList, holdingsCategories, subcategories, categoryName);
+            BarChart barChart = new BarChart(portfolioCalculator, holdingsCategories, subcategories, categoryName);
             barChart.setLocalDate(date);
             barCharts.add(barChart);
         }
@@ -287,7 +364,7 @@ public class PortfolioService {
 
         return combinedBarCharts.getCombinedBarChartsData();
     }
-    
+
     private List<MarketDataDto> fetchForexMarketData(String symbol, String baseCurrency, AssetType assetType) {
         List<MarketDataDto> forexMarketDataList = new ArrayList<>();
     
@@ -298,12 +375,12 @@ public class PortfolioService {
         } else {
             // Fetch the correct FOREX market data
             String forexPair = symbol + "/" + baseCurrency;
-            List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(forexPair, assetType.name());
+            List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(forexPair, assetType.getAssetTypeName());
     
             if (marketDataList.isEmpty()) {
                 // Try the reverse pair (e.g., USD/AUD instead of AUD/USD)
                 forexPair = baseCurrency + "/" + symbol;
-                marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(forexPair, assetType.name());
+                marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(forexPair, assetType.getAssetTypeName());
     
                 if (!marketDataList.isEmpty()) {
                     // If reverse pair exists, calculate the inverse price
@@ -328,7 +405,57 @@ public class PortfolioService {
         List<MarketDataDto> nonForexMarketDataList = new ArrayList<>();
     
         logger.info("Fetching market data for symbol: {}, assetType: {}", symbol, assetType);
-        List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(symbol, assetType.name());
+        List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(symbol, assetType.getAssetTypeName());
+    
+        marketDataList.forEach(marketData -> {
+            nonForexMarketDataList.add(new MarketDataDto(marketData));
+        });
+    
+        return nonForexMarketDataList;
+    }
+
+    private List<MarketDataDto> fetchForexMarketDataByDate(String symbol, String baseCurrency, AssetType assetType, LocalDate date) {
+        List<MarketDataDto> forexMarketDataList = new ArrayList<>();
+        logger.info("Fetching market data for symbol: {}, assetType: {}, date: {}", symbol, assetType, date);
+    
+        if (symbol.equals(baseCurrency)) {
+            // If the FOREX symbol is the same as the base currency, set price to 1
+            logger.trace("FOREX symbol matches base currency: symbol={}, priceInBaseCurrency=1", symbol);
+            forexMarketDataList.add(new MarketDataDto(symbol + "/" + symbol, BigDecimal.ONE, assetType));
+        } else {
+            // Fetch the correct FOREX market data
+            String forexPair = symbol + "/" + baseCurrency;
+            List<MarketDataMonthly> marketDataList = marketDataMonthlyRepository.findMarketDataBySymbolAndAssetTypeAndDate(forexPair, assetType.getAssetTypeName(), date);
+    
+            if (marketDataList.isEmpty()) {
+                // Try the reverse pair (e.g., USD/AUD instead of AUD/USD)
+                forexPair = baseCurrency + "/" + symbol;
+                marketDataList = marketDataMonthlyRepository.findMarketDataBySymbolAndAssetTypeAndDate(forexPair, assetType.getAssetTypeName(), date);
+    
+                if (!marketDataList.isEmpty()) {
+                    // If reverse pair exists, calculate the inverse price
+                    MarketDataMonthly marketData = marketDataList.get(0);
+                    BigDecimal inversePrice = BigDecimal.ONE.divide(marketData.getPrice(), 4, RoundingMode.HALF_UP);
+                    logger.trace("Reverse FOREX pair found: forexPair={}, inversePrice={}", forexPair, inversePrice);
+                    forexMarketDataList.add(new MarketDataDto(forexPair, inversePrice, assetType));
+                } else {
+                    logger.warn("No FOREX market data found for symbol={}, baseCurrency={}", symbol, baseCurrency);
+                }
+            } else {
+                MarketDataMonthly marketData = marketDataList.get(0);
+                logger.trace("FOREX market data found: forexPair={}, price={}", forexPair, marketData.getPrice());
+                forexMarketDataList.add(new MarketDataDto(forexPair, marketData.getPrice(), assetType));
+            }
+        }
+    
+        return forexMarketDataList;
+    }
+    
+    private List<MarketDataDto> fetchNonForexMarketDataByDate(String symbol, AssetType assetType, LocalDate date) {
+        List<MarketDataDto> nonForexMarketDataList = new ArrayList<>();
+    
+        logger.info("Fetching market data for symbol: {}, assetType: {}, date: {}", symbol, assetType, date);
+        List<MarketDataMonthly> marketDataList = marketDataMonthlyRepository.findMarketDataBySymbolAndAssetTypeAndDate(symbol, assetType.getAssetTypeName(), date);
     
         marketDataList.forEach(marketData -> {
             nonForexMarketDataList.add(new MarketDataDto(marketData));
