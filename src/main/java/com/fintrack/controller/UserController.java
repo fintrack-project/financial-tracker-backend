@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/user")
 public class UserController {
 
     private UserRepository userRepository;
@@ -50,6 +50,17 @@ public class UserController {
             return ResponseEntity.ok(result);
         } else {
             return ResponseEntity.badRequest().body(result);
+        }
+    }
+
+    @PostMapping("/fetch")
+    public ResponseEntity<?> fetchUserDetails(@RequestParam UUID accountId) {
+        Optional<User> user = userService.fetchUserDetails(accountId);
+
+        if (user.isPresent()) {
+            return ResponseEntity.ok(user.get());
+        } else {
+            return ResponseEntity.status(404).body("User not found.");
         }
     }
 }

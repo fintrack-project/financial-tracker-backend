@@ -7,6 +7,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.*;
+
 @Service
 public class UserService {
 
@@ -37,5 +39,10 @@ public class UserService {
         userRepository.save(user);
 
         return "User registered successfully.";
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<User> fetchUserDetails(UUID accountId) {
+        return userRepository.findByAccountId(accountId);
     }
 }

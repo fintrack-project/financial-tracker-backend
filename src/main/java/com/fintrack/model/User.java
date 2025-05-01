@@ -12,16 +12,19 @@ public class User {
     @Column(name = "account_id", nullable = false, updatable = false)
     private UUID accountId; // Primary key
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "user_id", nullable = false, unique = true)
     private String userId;
 
-    @Column(nullable = false)
+    @Column(name = "password", nullable = false)
     private String password;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "email", nullable = false, unique = true)
     private String email;
 
+    @Column(name = "phone")
     private String phone;
+
+    @Column(name = "address")
     private String address;
 
     // Getters and Setters
