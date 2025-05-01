@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/user")
 public class UserController {
 
     private UserRepository userRepository;
@@ -50,6 +50,27 @@ public class UserController {
             return ResponseEntity.ok(result);
         } else {
             return ResponseEntity.badRequest().body(result);
+        }
+    }
+
+    @PostMapping("/fetch")
+    public ResponseEntity<?> fetchUserDetails(@RequestBody Map<String, String> requestBody) {
+        String accountIdStr = requestBody.get("accountId");
+        if (accountIdStr == null) {
+            return ResponseEntity.badRequest().body("Missing accountId in the request body.");
+        }
+    
+        try {
+            UUID accountId = UUID.fromString(accountIdStr);
+            Optional<User> user = userService.fetchUserDetails(accountId);
+    
+            if (user.isPresent()) {
+                return ResponseEntity.ok(user.get());
+            } else {
+                return ResponseEntity.status(404).body("User not found.");
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid accountId format.");
         }
     }
 }
