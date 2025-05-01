@@ -54,13 +54,23 @@ public class UserController {
     }
 
     @PostMapping("/fetch")
-    public ResponseEntity<?> fetchUserDetails(@RequestParam UUID accountId) {
-        Optional<User> user = userService.fetchUserDetails(accountId);
-
-        if (user.isPresent()) {
-            return ResponseEntity.ok(user.get());
-        } else {
-            return ResponseEntity.status(404).body("User not found.");
+    public ResponseEntity<?> fetchUserDetails(@RequestBody Map<String, String> requestBody) {
+        String accountIdStr = requestBody.get("accountId");
+        if (accountIdStr == null) {
+            return ResponseEntity.badRequest().body("Missing accountId in the request body.");
+        }
+    
+        try {
+            UUID accountId = UUID.fromString(accountIdStr);
+            Optional<User> user = userService.fetchUserDetails(accountId);
+    
+            if (user.isPresent()) {
+                return ResponseEntity.ok(user.get());
+            } else {
+                return ResponseEntity.status(404).body("User not found.");
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid accountId format.");
         }
     }
 }
