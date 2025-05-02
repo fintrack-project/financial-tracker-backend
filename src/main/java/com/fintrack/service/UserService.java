@@ -2,8 +2,11 @@ package com.fintrack.service;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.MessagingException;
+
+import javax.crypto.SecretKey;
 
 import com.fintrack.model.User;
 import com.fintrack.repository.UserRepository;
@@ -24,8 +27,8 @@ public class UserService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final JavaMailSender mailSender; // For sending emails
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
+    private final SecretKey signingKey;
+
     @Value("${jwt.expiration}")
     private long jwtExpiration; // JWT expiration time
     @Value("${app.base-url}")
@@ -38,6 +41,7 @@ public class UserService {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.mailSender = mailSender;
+        this.signingKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
     }
 
     @Transactional
@@ -71,11 +75,13 @@ public class UserService {
     }
 
     private String generateVerificationToken(User user) {
+
         return Jwts.builder()
                 .setSubject(user.getAccountId().toString())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
-                .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                // .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                .signWith(signingKey)
                 .compact();
     }
 
@@ -101,7 +107,7 @@ public class UserService {
         try {
             // Parse the JWT
             String accountId = Jwts.parser()
-                    .setSigningKey(jwtSecret)
+                    .setSigningKey(signingKey)
                     .parseClaimsJws(token)
                     .getBody()
                     .getSubject();

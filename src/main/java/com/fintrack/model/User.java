@@ -1,7 +1,8 @@
 package com.fintrack.model;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.*;
+import com.fintrack.utils.JsonToMapConverter;
 
 import jakarta.persistence.*;
 
@@ -86,7 +87,8 @@ public class User {
     private Integer apiUsageLimit;
 
     @Column(name = "feature_flags", columnDefinition = "jsonb")
-    private String featureFlags;
+    @Convert(converter = JsonToMapConverter.class)
+    private Map<String, Object> featureFlags;
 
     @Column(name = "email_verified", columnDefinition = "boolean default false")
     private Boolean emailVerified;
@@ -292,11 +294,11 @@ public class User {
         this.apiUsageLimit = apiUsageLimit;
     }
 
-    public String getFeatureFlags() {
+    public Map<String, Object> getFeatureFlags() {
         return featureFlags;
     }
 
-    public void setFeatureFlags(String featureFlags) {
+    public void setFeatureFlags(Map<String, Object> featureFlags) {
         this.featureFlags = featureFlags;
     }
 

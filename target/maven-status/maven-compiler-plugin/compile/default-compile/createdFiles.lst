@@ -21,6 +21,7 @@ com/fintrack/component/chart/PieChartData.class
 com/fintrack/component/calculator/PortfolioCalculator.class
 com/fintrack/repository/TransactionRepository.class
 com/fintrack/service/MarketDataService.class
+com/fintrack/utils/JsonToMapConverter.class
 com/fintrack/component/chart/PieChart.class
 com/fintrack/repository/CategoriesRepository.class
 com/fintrack/controller/AccountController.class
@@ -44,6 +45,7 @@ com/fintrack/service/MarketIndexDataService.class
 com/fintrack/repository/MarketDataMonthlyRepository.class
 com/fintrack/controller/TransactionController.class
 com/fintrack/service/TransactionService.class
+com/fintrack/utils/JsonToMapConverter$1.class
 com/fintrack/repository/HoldingsCategoriesRepository.class
 com/fintrack/controller/HoldingsCategoriesController.class
 com/fintrack/repository/AccountCurrenciesRepository.class
