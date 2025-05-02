@@ -73,4 +73,19 @@ public class UserController {
             return ResponseEntity.badRequest().body("Invalid accountId format.");
         }
     }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@RequestBody Map<String, String> requestBody) {
+        String token = requestBody.get("token");
+        if (token == null) {
+            return ResponseEntity.badRequest().body("Missing token in the request body.");
+        }
+    
+        String result = userService.verifyEmail(token);
+        if (result.equals("Email verified successfully.")) {
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.badRequest().body(result);
+        }
+    }
 }

@@ -88,6 +88,9 @@ public class User {
     @Column(name = "feature_flags", columnDefinition = "jsonb")
     private String featureFlags;
 
+    @Column(name = "email_verified", columnDefinition = "boolean default false")
+    private Boolean emailVerified;
+
     // Getters and Setters
     public UUID getAccountId() {
         return accountId;
@@ -295,5 +298,13 @@ public class User {
 
     public void setFeatureFlags(String featureFlags) {
         this.featureFlags = featureFlags;
+    }
+
+    public Boolean getEmailVerified() {
+        return emailVerified;
+    }
+    
+    public void setEmailVerified(Boolean emailVerified) {
+        this.emailVerified = emailVerified;
     }
 }
