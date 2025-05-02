@@ -23,9 +23,11 @@ public class UserService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JavaMailSender mailSender; // For sending emails
-    private final String jwtSecret = "your-secret-key"; // Replace with a secure key
-    private final long jwtExpirationMs = 3600000; // 1 hour
 
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+    @Value("${jwt.expiration}")
+    private long jwtExpiration; // JWT expiration time
     @Value("${app.base-url}")
     private String baseUrl; // Base URL for email verification link
 
@@ -72,7 +74,7 @@ public class UserService {
         return Jwts.builder()
                 .setSubject(user.getAccountId().toString())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
                 .signWith(SignatureAlgorithm.HS512, jwtSecret)
                 .compact();
     }
