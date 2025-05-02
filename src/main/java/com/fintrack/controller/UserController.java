@@ -88,4 +88,52 @@ public class UserController {
             return ResponseEntity.badRequest().body(result);
         }
     }
+
+    @PostMapping("/update-phone")
+    public ResponseEntity<Void> updateUserPhone(@RequestBody Map<String, Object> request) {
+        String accountIdString = (String) request.get("accountId");
+        String phone = (String) request.get("phone");
+
+        UUID accountId = UUID.fromString(accountIdString);
+        userService.updateUserPhone(accountId, phone);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/update-address")
+    public ResponseEntity<Void> updateUserAddress(@RequestBody Map<String, Object> request) {
+        String accountIdString = (String) request.get("accountId");
+        String address = (String) request.get("address");
+
+        UUID accountId = UUID.fromString(accountIdString);
+        userService.updateUserAddress(accountId, address);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/update-email")
+    public ResponseEntity<Void> updateUserEmail(@RequestBody Map<String, Object> request) {
+        String accountIdString = (String) request.get("accountId");
+        String email = (String) request.get("email");
+
+        UUID accountId = UUID.fromString(accountIdString);
+        userService.updateUserEmail(accountId, email);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/send-email-verification")
+    public ResponseEntity<Void> sendEmailVerification(@RequestBody Map<String, Object> request) {
+        // Extract accountId and email from the request
+        String accountIdString = (String) request.get("accountId");
+        String email = (String) request.get("email");
+
+        // Convert accountId to UUID
+        UUID accountId = UUID.fromString(accountIdString);
+
+        // Call the service to send the email verification
+        userService.sendEmailVerification(accountId, email);
+
+        return ResponseEntity.ok().build();
+    }
 }

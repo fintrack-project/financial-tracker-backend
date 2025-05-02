@@ -68,11 +68,8 @@ public class UserService {
         // Save the user
         userRepository.save(user);
 
-        // Generate a JWT for email verification
-        String token = generateVerificationToken(user);
-
         // Send the verification email
-        sendVerificationEmail(user.getEmail(), token);
+        sendVerificationEmail(user.getEmail(), user);
 
         return "User registered successfully.";
     }
@@ -93,7 +90,9 @@ public class UserService {
                 .compact();
     }
 
-    private void sendVerificationEmail(String email, String token) {
+    private void sendVerificationEmail(String email, User user) {
+        // Generate a JWT for email verification
+        String token = generateVerificationToken(user);
         String verificationLink = baseUrl + "/verify-email?token=" + token;
 
         try {
@@ -108,6 +107,11 @@ public class UserService {
         } catch (MessagingException e) {
             throw new RuntimeException("Failed to send email", e);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<User> fetchUserDetails(UUID accountId) {
+        return userRepository.findByAccountId(accountId);
     }
 
     @Transactional
@@ -141,8 +145,49 @@ public class UserService {
         }
     }
 
-    @Transactional(readOnly = true)
-    public Optional<User> fetchUserDetails(UUID accountId) {
-        return userRepository.findByAccountId(accountId);
+    public void updateUserPhone(UUID accountId, String phone) {
+        Optional<User> userOptional = userRepository.findById(accountId);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            user.setPhone(phone);
+            userRepository.save(user);
+        } else {
+            throw new IllegalArgumentException("User not found with accountId: " + accountId);
+        }
+    }
+
+    public void updateUserAddress(UUID accountId, String address) {
+        Optional<User> userOptional = userRepository.findById(accountId);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            user.setAddress(address);
+            userRepository.save(user);
+        } else {
+            throw new IllegalArgumentException("User not found with accountId: " + accountId);
+        }
+    }
+
+    public void updateUserEmail(UUID accountId, String email) {
+        Optional<User> userOptional = userRepository.findById(accountId);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            user.setEmail(email);
+            user.setEmailVerified(false); // Reset email verification status
+            userRepository.save(user);
+        } else {
+            throw new IllegalArgumentException("User not found with accountId: " + accountId);
+        }
+    }
+
+    public void sendEmailVerification(UUID accountId, String email) {
+        // Validate that the user exists
+        Optional<User> userOptional = userRepository.findById(accountId);
+        if (userOptional.isEmpty()) {
+            throw new IllegalArgumentException("User not found with accountId: " + accountId);
+        }
+
+        // Send the verification email
+        User user = userOptional.get();
+        sendVerificationEmail(email, user);
     }
 }

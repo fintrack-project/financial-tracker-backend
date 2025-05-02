@@ -89,6 +89,9 @@ public class User {
     @Column(name = "email_verified", nullable = false, columnDefinition = "boolean default false")
     private boolean emailVerified;
 
+    @Column(name = "phone_verified", nullable = false, columnDefinition = "boolean default false")
+    private boolean phoneVerified;
+
     // Getters and Setters
     public UUID getAccountId() {
         return accountId;
@@ -288,5 +291,13 @@ public class User {
     
     public void setEmailVerified(Boolean emailVerified) {
         this.emailVerified = emailVerified;
+    }
+
+    public Boolean getPhoneVerified() {
+        return phoneVerified;
+    }
+
+    public void setPhoneVerified(Boolean phoneVerified) {
+        this.phoneVerified = phoneVerified;
     }
 }
