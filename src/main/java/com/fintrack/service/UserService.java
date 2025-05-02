@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -59,6 +60,8 @@ public class UserService {
         // Hash the password before saving
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
+        setDefaultValues(user);
+
         // Set emailVerified to false
         user.setEmailVerified(false);
 
@@ -72,6 +75,11 @@ public class UserService {
         sendVerificationEmail(user.getEmail(), token);
 
         return "User registered successfully.";
+    }
+
+    private void setDefaultValues(User user) {
+        user.setAccountTier("free");
+        user.setSignupDate(LocalDateTime.now());
     }
 
     private String generateVerificationToken(User user) {
