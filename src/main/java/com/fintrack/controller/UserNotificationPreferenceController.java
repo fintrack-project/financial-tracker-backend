@@ -1,5 +1,6 @@
 package com.fintrack.controller;
 
+import com.fintrack.constants.UserNotificationType;
 import com.fintrack.model.UserNotificationPreference;
 import com.fintrack.service.UserNotificationPreferenceService;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.*;
 
 @RestController
-@RequestMapping("/api/user/notification-preferences")
+@RequestMapping("/api/user/notification-preference")
 public class UserNotificationPreferenceController {
 
     private UserNotificationPreferenceService service;
@@ -60,7 +61,7 @@ public class UserNotificationPreferenceController {
         boolean isEnabled = (boolean) request.get("isEnabled");
 
         // Call the service to update the preference
-        service.updateNotificationPreference(accountId, notificationType, isEnabled);
+        service.updateNotificationPreference(UUID.fromString(accountId), UserNotificationType.valueOf(notificationType), isEnabled);
 
         return ResponseEntity.ok().build();
     }

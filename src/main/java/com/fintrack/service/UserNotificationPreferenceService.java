@@ -18,7 +18,7 @@ public class UserNotificationPreferenceService {
         return repository.findByAccountId(accountId);
     }
 
-    public void updateNotificationPreference(UUID accountId, String notificationType, boolean isEnabled) {
+    public void updateNotificationPreference(UUID accountId, UserNotificationType notificationType, boolean isEnabled) {
       // Find the existing preference
       Optional<UserNotificationPreference> existingPreference = repository.findByAccountIdAndNotificationType(accountId, notificationType);
 
@@ -31,7 +31,7 @@ public class UserNotificationPreferenceService {
           // Create a new preference if it doesn't exist
           UserNotificationPreference newPreference = new UserNotificationPreference();
           newPreference.setAccountId(accountId);
-          newPreference.setNotificationType(UserNotificationType.valueOf(notificationType));
+          newPreference.setNotificationType(notificationType);
           newPreference.setEnabled(isEnabled);
           repository.save(newPreference);
       }
