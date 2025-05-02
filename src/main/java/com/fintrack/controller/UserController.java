@@ -30,16 +30,12 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@RequestBody User loginRequest, HttpServletRequest request) {
-        Optional<User> user = userRepository.findByUserId(loginRequest.getUserId());
+    public ResponseEntity<Map<String, String>> loginUser(@RequestBody Map<String, String> loginRequest) {
+        // Authenticate the user and generate a JWT token
+        String token = userService.authenticateAndGenerateToken(loginRequest.get("userId"), loginRequest.get("password"));
 
-        if (user.isPresent() && passwordEncoder.matches(loginRequest.getPassword(), user.get().getPassword())) {
-            // Store userId in the session
-            request.getSession().setAttribute("userId", loginRequest.getUserId());
-            return ResponseEntity.ok("Login successful!");
-        } else {
-            return ResponseEntity.status(401).body("Invalid user ID or password.");
-        }
+        // Return the token in the response
+        return ResponseEntity.ok(Map.of("token", token));
     }
 
     @PostMapping("/register")
