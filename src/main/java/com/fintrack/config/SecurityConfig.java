@@ -20,8 +20,9 @@ public class SecurityConfig {
             .cors() // Enable CORS
             .and()
             .csrf().disable() // Disable CSRF for simplicity (not recommended for production)
-            .authorizeHttpRequests()
-            .anyRequest().permitAll(); // Allow all requests (adjust as needed)
+            .authorizeHttpRequests(auth -> auth
+                .anyRequest().permitAll() // Allow all requests (adjust as needed)
+            );
 
         return http.build();
     }

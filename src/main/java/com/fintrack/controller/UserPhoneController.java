@@ -12,21 +12,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/user/phone")
-public class UserPhoneController {
-
-    @PostMapping("/send-verification")
-    public ResponseEntity<Void> sendVerificationCode(@RequestBody Map<String, String> request) {
-        String phoneNumber = request.get("phoneNumber");
-
-        try {
-            // Firebase handles sending the SMS verification code
-            FirebaseAuth.getInstance().createSessionCookie(phoneNumber);
-            return ResponseEntity.ok().build();
-        } catch (FirebaseAuthException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-    
+public class UserPhoneController {    
     @PostMapping("/verify")
     public ResponseEntity<Boolean> verifyCode(@RequestBody Map<String, String> request) {
         String verificationId = request.get("verificationId");
