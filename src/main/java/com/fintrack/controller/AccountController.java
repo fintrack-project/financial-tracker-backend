@@ -1,45 +1,40 @@
 package com.fintrack.controller;
 
 import com.fintrack.service.AccountService;
-
+import com.fintrack.service.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import com.fintrack.model.User; // Import the User class from the appropriate package
 
 @RestController
 @RequestMapping("/api/accounts")
 public class AccountController {
 
     private final AccountService accountService;
+    private final JwtService jwtService;
 
-    public AccountController(AccountService accountService) {
+    public AccountController(AccountService accountService, JwtService jwtService) {
         this.accountService = accountService;
+        this.jwtService = jwtService;
     }
 
     @GetMapping("/current")
-    public ResponseEntity<Map<String, String>> getCurrentAccountId(HttpServletRequest request) {
-        // Retrieve the userId from the session (or token)
-        String userId = (String) request.getSession().getAttribute("userId"); // Example: Retrieve userId from session
+    public ResponseEntity<User> getCurrentAccount(@RequestHeader("Authorization") String authorizationHeader) {
+        // Extract the token from the Authorization header
+        String token = authorizationHeader.replace("Bearer ", "");
 
-        if (userId == null) {
-            return ResponseEntity.badRequest()
-            .body(Map.of("error", "User not logged in"));
-        }
+        // Decode the token to get the userId
+        String userId = jwtService.decodeToken(token);
 
-        // Fetch the accountId associated with the userId
-        String accountId = accountService.getAccountIdByUserId(userId);
+        // Delegate to AccountService to fetch the current account
+        User user = accountService.getCurrentAccount(userId);
 
-
-        if (accountId == null) {
-            return ResponseEntity.status(404)
-            .body(Map.of("error", "Account ID not found"));
-        }
-
-        return ResponseEntity.ok()
-        .body(Map.of("accountId", accountId));
+        // Return the user details
+        return ResponseEntity.ok(user);
     }
 
     @PostMapping("/create")
