@@ -24,22 +24,19 @@ public class UserService {
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     private final UserRepository userRepository;
-    private final JwtService jwtService;
+    private final UserEmailService userEmailService;
     private final BCryptPasswordEncoder passwordEncoder;
-    private final JavaMailSender mailSender; // For sending emails
-
-    @Value("${app.base-url}")
-    private String baseUrl; // Base URL for email verification link
+    private final JwtService jwtService;
 
     public UserService(
-        UserRepository userRepository, 
-        JwtService jwtService,
+        UserRepository userRepository,
+        UserEmailService userEmailService,
         BCryptPasswordEncoder passwordEncoder,
-        JavaMailSender mailSender) {
+        JwtService jwtService) {
         this.userRepository = userRepository;
-        this.jwtService = jwtService;
+        this.userEmailService = userEmailService;
         this.passwordEncoder = passwordEncoder;
-        this.mailSender = mailSender;
+        this.jwtService = jwtService;
     }
 
     public String authenticateAndGenerateToken(String userId, String password) {
@@ -83,7 +80,7 @@ public class UserService {
         userRepository.save(user);
 
         // Send the verification email
-        sendVerificationEmail(user.getEmail(), user);
+        userEmailService.sendVerificationEmail(user.getEmail(), user);
 
         return "User registered successfully.";
     }
@@ -93,55 +90,9 @@ public class UserService {
         user.setSignupDate(LocalDateTime.now());
     }
 
-    private void sendVerificationEmail(String email, User user) {
-        // Generate a JWT for email verification
-        String token = jwtService.generateVerificationToken(user.getUserId().toString());
-        String verificationLink = baseUrl + "/verify-email?token=" + token;
-
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
-            helper.setTo(email);
-            helper.setSubject("Email Verification");
-            helper.setText("<p>Please verify your email by clicking the link below:</p>" +
-                    "<a href=\"" + verificationLink + "\">Verify Email</a>", true);
-
-            mailSender.send(message);
-        } catch (MessagingException e) {
-            throw new RuntimeException("Failed to send email", e);
-        }
-    }
-
     @Transactional(readOnly = true)
     public Optional<User> fetchUserDetails(UUID accountId) {
         return userRepository.findByAccountId(accountId);
-    }
-
-    @Transactional
-    public String verifyEmail(String token) {
-        try {
-            // Parse the JWT
-            String userId = jwtService.decodeToken(token);
-    
-            // Find the user by userId
-            Optional<User> user = userRepository.findByUserId(userId);
-            if (user.isEmpty()) {
-                return "Invalid token.";
-            }
-    
-            User existingUser = user.get();
-            if (existingUser.getEmailVerified()) {
-                return "Email already verified.";
-            }
-    
-            // Activate the user's account
-            existingUser.setEmailVerified(true);
-            userRepository.save(existingUser);
-    
-            return "Email verified successfully.";
-        } catch (Exception e) {
-            return "Invalid or expired token.";
-        }
     }
 
     public void updateUserPhone(UUID accountId, String phone, String countryCode) {
@@ -177,17 +128,5 @@ public class UserService {
         } else {
             throw new IllegalArgumentException("User not found with accountId: " + accountId);
         }
-    }
-
-    public void sendEmailVerification(UUID accountId, String email) {
-        // Validate that the user exists
-        Optional<User> userOptional = userRepository.findById(accountId);
-        if (userOptional.isEmpty()) {
-            throw new IllegalArgumentException("User not found with accountId: " + accountId);
-        }
-
-        // Send the verification email
-        User user = userOptional.get();
-        sendVerificationEmail(email, user);
     }
 }

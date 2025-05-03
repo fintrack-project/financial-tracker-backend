@@ -1,13 +1,10 @@
 package com.fintrack.controller;
 
 import com.fintrack.model.User;
+import com.fintrack.service.UserEmailService;
 import com.fintrack.service.UserService;
-import com.fintrack.repository.UserRepository;
-
-import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -16,16 +13,9 @@ import java.util.*;
 @RequestMapping("/api/user")
 public class UserController {
 
-    private UserRepository userRepository;
-    private BCryptPasswordEncoder passwordEncoder;
     private final UserService userService;
 
-    public UserController(
-        UserRepository userRepository, 
-        BCryptPasswordEncoder passwordEncoder, 
-        UserService userService) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
+    public UserController(UserService userService) {
         this.userService = userService;
     }
 
@@ -100,36 +90,6 @@ public class UserController {
 
         UUID accountId = UUID.fromString(accountIdString);
         userService.updateUserEmail(accountId, email);
-
-        return ResponseEntity.ok().build();
-    }
-
-    @PostMapping("/email/verify")
-    public ResponseEntity<?> verifyEmail(@RequestBody Map<String, String> requestBody) {
-        String token = requestBody.get("token");
-        if (token == null) {
-            return ResponseEntity.badRequest().body("Missing token in the request body.");
-        }
-    
-        String result = userService.verifyEmail(token);
-        if (result.equals("Email verified successfully.")) {
-            return ResponseEntity.ok(result);
-        } else {
-            return ResponseEntity.badRequest().body(result);
-        }
-    }
-
-    @PostMapping("/email/send-verification")
-    public ResponseEntity<Void> sendEmailVerification(@RequestBody Map<String, Object> request) {
-        // Extract accountId and email from the request
-        String accountIdString = (String) request.get("accountId");
-        String email = (String) request.get("email");
-
-        // Convert accountId to UUID
-        UUID accountId = UUID.fromString(accountIdString);
-
-        // Call the service to send the email verification
-        userService.sendEmailVerification(accountId, email);
 
         return ResponseEntity.ok().build();
     }
