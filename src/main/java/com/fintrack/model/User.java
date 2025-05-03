@@ -29,6 +29,9 @@ public class User {
     @Column(name = "phone")
     private String phone;
 
+    @Column(name = "country_code")
+    private String countryCode;
+
     @Column(name = "address")
     private String address;
 
@@ -89,6 +92,9 @@ public class User {
     @Column(name = "email_verified", nullable = false, columnDefinition = "boolean default false")
     private boolean emailVerified;
 
+    @Column(name = "phone_verified", nullable = false, columnDefinition = "boolean default false")
+    private boolean phoneVerified;
+
     // Getters and Setters
     public UUID getAccountId() {
         return accountId;
@@ -128,6 +134,14 @@ public class User {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getCountryCode() {
+        return countryCode;
+    }
+    
+    public void setCountryCode(String countryCode) {
+        this.countryCode = countryCode;
     }
 
     public String getAddress() {
@@ -288,5 +302,13 @@ public class User {
     
     public void setEmailVerified(Boolean emailVerified) {
         this.emailVerified = emailVerified;
+    }
+
+    public Boolean getPhoneVerified() {
+        return phoneVerified;
+    }
+
+    public void setPhoneVerified(Boolean phoneVerified) {
+        this.phoneVerified = phoneVerified;
     }
 }

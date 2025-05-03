@@ -1,7 +1,10 @@
 package com.fintrack.service;
 
 import com.fintrack.model.Account;
+import com.fintrack.model.User;
 import com.fintrack.repository.AccountRepository;
+import com.fintrack.repository.UserRepository;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,9 +15,23 @@ import java.util.UUID;
 public class AccountService {
 
     private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
 
-    public AccountService(AccountRepository accountRepository) {
+    public AccountService(
+        AccountRepository accountRepository,
+        UserRepository userRepository) {
         this.accountRepository = accountRepository;
+        this.userRepository = userRepository;
+    }
+
+    public User getCurrentAccount(String userId) {
+        // Fetch the user by userId
+        Optional<User> userOptional = userRepository.findByUserId(userId);
+        if (userOptional.isPresent()) {
+            return userOptional.get();
+        } else {
+            throw new IllegalArgumentException("User not found");
+        }
     }
 
     public String getAccountIdByUserId(String userId) {
