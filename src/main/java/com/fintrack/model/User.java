@@ -29,6 +29,9 @@ public class User {
     @Column(name = "phone")
     private String phone;
 
+    @Column(name = "country_code")
+    private String countryCode;
+
     @Column(name = "address")
     private String address;
 
@@ -131,6 +134,14 @@ public class User {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getCountryCode() {
+        return countryCode;
+    }
+    
+    public void setCountryCode(String countryCode) {
+        this.countryCode = countryCode;
     }
 
     public String getAddress() {

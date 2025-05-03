@@ -144,11 +144,12 @@ public class UserService {
         }
     }
 
-    public void updateUserPhone(UUID accountId, String phone) {
+    public void updateUserPhone(UUID accountId, String phone, String countryCode) {
         Optional<User> userOptional = userRepository.findById(accountId);
         if (userOptional.isPresent()) {
             User user = userOptional.get();
             user.setPhone(phone);
+            user.setCountryCode(countryCode);
             userRepository.save(user);
         } else {
             throw new IllegalArgumentException("User not found with accountId: " + accountId);

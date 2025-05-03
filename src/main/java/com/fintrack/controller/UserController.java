@@ -89,9 +89,10 @@ public class UserController {
     public ResponseEntity<Void> updateUserPhone(@RequestBody Map<String, Object> request) {
         String accountIdString = (String) request.get("accountId");
         String phone = (String) request.get("phone");
+        String countryCode = (String) request.get("countryCode");
 
         UUID accountId = UUID.fromString(accountIdString);
-        userService.updateUserPhone(accountId, phone);
+        userService.updateUserPhone(accountId, phone, countryCode);
 
         return ResponseEntity.ok().build();
     }
