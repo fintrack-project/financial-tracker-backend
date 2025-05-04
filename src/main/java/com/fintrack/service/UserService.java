@@ -202,7 +202,18 @@ public class UserService {
         }
     }
 
-    public void updateTwoFactorStatus(UUID accountId, boolean enabled) {
+    public void updateUserPassword(UUID accountId, String newPassword) {
+        Optional<User> userOptional = userRepository.findById(accountId);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            user.setPassword(passwordEncoder.encode(newPassword));
+            userRepository.save(user);
+        } else {
+            throw new IllegalArgumentException("User not found with accountId: " + accountId);
+        }
+    }
+
+    public void updateUserTwoFactorStatus(UUID accountId, boolean enabled) {
         Optional<User> userOptional = userRepository.findById(accountId);
     
         if (userOptional.isPresent()) {
