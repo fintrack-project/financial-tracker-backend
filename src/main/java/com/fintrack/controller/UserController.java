@@ -4,6 +4,8 @@ import com.fintrack.model.User;
 import com.fintrack.service.UserEmailService;
 import com.fintrack.service.UserService;
 
+import ch.qos.logback.classic.Logger;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,12 +22,18 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> loginUser(@RequestBody Map<String, String> loginRequest) {
+    public ResponseEntity<Map<String, Object>> loginUser(@RequestBody Map<String, String> loginRequest) {
+        String userId = loginRequest.get("userId");
+        String password = loginRequest.get("password");
+    
         // Authenticate the user and generate a JWT token
-        String token = userService.authenticateAndGenerateToken(loginRequest.get("userId"), loginRequest.get("password"));
-
-        // Return the token in the response
-        return ResponseEntity.ok(Map.of("token", token));
+        Map<String, Object> response = userService.authenticateAndGenerateToken(userId, password);
+    
+        if ((boolean) response.get("success")) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(401).body(response);
+        }
     }
 
     @PostMapping("/register")
