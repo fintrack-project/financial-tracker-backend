@@ -65,6 +65,9 @@ public class User {
     @Column(name = "timezone")
     private String timezone;
 
+    @Column(name = "two_factor_secret")
+    private String twoFactorSecret;
+
     @Column(name = "two_factor_enabled", nullable = false, columnDefinition = "boolean default false")
     private boolean twoFactorEnabled;
 
@@ -230,6 +233,14 @@ public class User {
 
     public void setTimezone(String timezone) {
         this.timezone = timezone;
+    }
+
+    public String getTwoFactorSecret() {
+        return twoFactorSecret;
+    }
+
+    public void setTwoFactorSecret(String twoFactorSecret) {
+        this.twoFactorSecret = twoFactorSecret;
     }
 
     public Boolean getTwoFactorEnabled() {

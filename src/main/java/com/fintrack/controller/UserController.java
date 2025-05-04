@@ -1,7 +1,6 @@
 package com.fintrack.controller;
 
 import com.fintrack.model.User;
-import com.fintrack.service.UserEmailService;
 import com.fintrack.service.UserService;
 
 import org.springframework.http.ResponseEntity;
@@ -20,12 +19,18 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> loginUser(@RequestBody Map<String, String> loginRequest) {
+    public ResponseEntity<Map<String, Object>> loginUser(@RequestBody Map<String, String> loginRequest) {
+        String userId = loginRequest.get("userId");
+        String password = loginRequest.get("password");
+    
         // Authenticate the user and generate a JWT token
-        String token = userService.authenticateAndGenerateToken(loginRequest.get("userId"), loginRequest.get("password"));
-
-        // Return the token in the response
-        return ResponseEntity.ok(Map.of("token", token));
+        Map<String, Object> response = userService.authenticateAndGenerateToken(userId, password);
+    
+        if ((boolean) response.get("success")) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(401).body(response);
+        }
     }
 
     @PostMapping("/register")
@@ -92,5 +97,23 @@ public class UserController {
         userService.updateUserEmail(accountId, email);
 
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/update-2fa")
+    public ResponseEntity<Void> updateTwoFactorStatus(@RequestBody Map<String, Object> request) {
+        String accountIdString = (String) request.get("accountId");
+        Boolean enabled = (Boolean) request.get("enabled");
+    
+        if (accountIdString == null || enabled == null) {
+            return ResponseEntity.badRequest().build(); // Return 400 if required fields are missing
+        }
+    
+        try {
+            UUID accountId = UUID.fromString(accountIdString);
+            userService.updateTwoFactorStatus(accountId, enabled);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build(); // Return 400 if accountId is invalid
+        }
     }
 }

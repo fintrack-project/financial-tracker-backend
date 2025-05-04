@@ -88,6 +88,18 @@ public class UserEmailService {
         }
     }
 
+    @Transactional(readOnly = true) 
+    public boolean isEmailVerified(UUID accountId) {
+        // Find the user by accountId
+        Optional<User> userOptional = userRepository.findByAccountId(accountId);
+        if (userOptional.isEmpty()) {
+            throw new IllegalArgumentException("User not found with accountId: " + accountId);
+        }
+    
+        User user = userOptional.get();
+        return user.getEmailVerified();
+    }
+
     public void sendEmailVerification(UUID accountId, String email) {
         // Validate that the user exists
         Optional<User> userOptional = userRepository.findById(accountId);

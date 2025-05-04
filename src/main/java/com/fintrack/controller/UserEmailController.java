@@ -47,4 +47,21 @@ public class UserEmailController {
 
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/verified")
+    public ResponseEntity<?> checkEmailVerified(@RequestBody Map<String, String> requestBody) {
+        String accountIdStr = requestBody.get("accountId");
+        if (accountIdStr == null) {
+            return ResponseEntity.badRequest().body("Missing accountId in the request body.");
+        }
+    
+        try {
+            UUID accountId = UUID.fromString(accountIdStr);
+            boolean isVerified = userEmailService.isEmailVerified(accountId);
+    
+            return ResponseEntity.ok(isVerified);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid accountId format.");
+        }
+    }
 }
