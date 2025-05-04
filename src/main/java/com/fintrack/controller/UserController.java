@@ -5,6 +5,7 @@ import com.fintrack.service.UserService;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 
 import java.util.*;
 
@@ -90,27 +91,42 @@ public class UserController {
 
     @PostMapping("/update-email")
     public ResponseEntity<Void> updateUserEmail(@RequestBody Map<String, Object> request) {
-        String accountIdString = (String) request.get("accountId");
+        String accountId = (String) request.get("accountId");
         String email = (String) request.get("email");
 
-        UUID accountId = UUID.fromString(accountIdString);
-        userService.updateUserEmail(accountId, email);
+        userService.updateUserEmail(UUID.fromString(accountId), email);
 
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/update-password")
+    public ResponseEntity<?> updateUserPassword(@RequestBody Map<String, String> requestBody) {
+        String accountId = requestBody.get("accountId");
+        String newPassword = requestBody.get("newPassword");
+
+        if (accountId == null || newPassword == null) {
+            return ResponseEntity.badRequest().body("Missing accountId or newPassword.");
+        }
+
+        try {
+            userService.updateUserPassword(UUID.fromString(accountId), newPassword); // Update the password in the database
+            return ResponseEntity.ok("Password updated successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update password.");
+        }
+    }
+
     @PostMapping("/update-2fa")
-    public ResponseEntity<Void> updateTwoFactorStatus(@RequestBody Map<String, Object> request) {
-        String accountIdString = (String) request.get("accountId");
+    public ResponseEntity<Void> updateUserTwoFactorStatus(@RequestBody Map<String, Object> request) {
+        String accountId = (String) request.get("accountId");
         Boolean enabled = (Boolean) request.get("enabled");
     
-        if (accountIdString == null || enabled == null) {
+        if (accountId == null || enabled == null) {
             return ResponseEntity.badRequest().build(); // Return 400 if required fields are missing
         }
     
         try {
-            UUID accountId = UUID.fromString(accountIdString);
-            userService.updateTwoFactorStatus(accountId, enabled);
+            userService.updateUserTwoFactorStatus(UUID.fromString(accountId), enabled);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build(); // Return 400 if accountId is invalid
