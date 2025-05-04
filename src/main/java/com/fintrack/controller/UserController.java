@@ -1,7 +1,6 @@
 package com.fintrack.controller;
 
 import com.fintrack.model.User;
-import com.fintrack.service.UserEmailService;
 import com.fintrack.service.UserService;
 
 import ch.qos.logback.classic.Logger;
@@ -100,5 +99,23 @@ public class UserController {
         userService.updateUserEmail(accountId, email);
 
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/update-2fa")
+    public ResponseEntity<Void> updateTwoFactorStatus(@RequestBody Map<String, Object> request) {
+        String accountIdString = (String) request.get("accountId");
+        Boolean enabled = (Boolean) request.get("enabled");
+    
+        if (accountIdString == null || enabled == null) {
+            return ResponseEntity.badRequest().build(); // Return 400 if required fields are missing
+        }
+    
+        try {
+            UUID accountId = UUID.fromString(accountIdString);
+            userService.updateTwoFactorStatus(accountId, enabled);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build(); // Return 400 if accountId is invalid
+        }
     }
 }

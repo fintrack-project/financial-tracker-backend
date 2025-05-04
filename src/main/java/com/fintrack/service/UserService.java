@@ -160,7 +160,20 @@ public class UserService {
             User user = userOptional.get();
             user.setPhone(phone);
             user.setCountryCode(countryCode);
+            user.setPhoneVerified(false); // Reset phone verification status
             userRepository.save(user);
+        } else {
+            throw new IllegalArgumentException("User not found with accountId: " + accountId);
+        }
+    }
+
+    public boolean setPhoneVerified(UUID accountId) {
+        Optional<User> userOptional = userRepository.findById(accountId);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            user.setPhoneVerified(true);
+            userRepository.save(user);
+            return true;
         } else {
             throw new IllegalArgumentException("User not found with accountId: " + accountId);
         }
@@ -189,15 +202,17 @@ public class UserService {
         }
     }
 
-    public boolean setPhoneVerified(UUID accountId) {
+    public void updateTwoFactorStatus(UUID accountId, boolean enabled) {
         Optional<User> userOptional = userRepository.findById(accountId);
+    
         if (userOptional.isPresent()) {
             User user = userOptional.get();
-            user.setPhoneVerified(true);
+            user.setTwoFactorEnabled(enabled);
             userRepository.save(user);
-            return true;
+            logger.info("Updated 2FA status for accountId: {} to {}", accountId, enabled);
         } else {
-            throw new IllegalArgumentException("User not found with accountId: " + accountId);
+            logger.warn("User not found for accountId: {}", accountId);
+            throw new IllegalArgumentException("User not found.");
         }
     }
 }
