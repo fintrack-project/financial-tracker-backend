@@ -1,29 +1,31 @@
 package com.fintrack.controller;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthException;
+import com.fintrack.service.UserService;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/user/phone")
 public class UserPhoneController {    
-    @PostMapping("/verify")
-    public ResponseEntity<Boolean> verifyCode(@RequestBody Map<String, String> request) {
-        String verificationId = request.get("verificationId");
-        String code = request.get("code");
-    
-        try {
-            // Verify the code using Firebase
-            FirebaseAuth.getInstance().verifyIdToken(code);
-            return ResponseEntity.ok(true);
-        } catch (FirebaseAuthException e) {
-            return ResponseEntity.ok(false);
-        }
+
+    private final UserService userService;
+    public UserPhoneController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/verified")
+    public ResponseEntity<Boolean> sendPhoneVerified(@RequestBody Map<String, String> request) {
+        String accountId = request.get("accountId");
+
+        // Call the service to update the phoneVerified field
+        boolean isUpdated = userService.setPhoneVerified(UUID.fromString(accountId));
+
+        return ResponseEntity.ok(isUpdated);
     }
 }

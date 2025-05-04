@@ -129,4 +129,16 @@ public class UserService {
             throw new IllegalArgumentException("User not found with accountId: " + accountId);
         }
     }
+
+    public boolean setPhoneVerified(UUID accountId) {
+        Optional<User> userOptional = userRepository.findById(accountId);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            user.setPhoneVerified(true);
+            userRepository.save(user);
+            return true;
+        } else {
+            throw new IllegalArgumentException("User not found with accountId: " + accountId);
+        }
+    }
 }
