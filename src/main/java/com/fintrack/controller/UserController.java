@@ -3,8 +3,6 @@ package com.fintrack.controller;
 import com.fintrack.model.User;
 import com.fintrack.service.UserService;
 
-import ch.qos.logback.classic.Logger;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
