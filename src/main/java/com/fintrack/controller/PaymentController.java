@@ -3,6 +3,8 @@ package com.fintrack.controller;
 import com.fintrack.model.PaymentIntent;
 import com.fintrack.model.PaymentMethod;
 import com.fintrack.service.PaymentService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +18,7 @@ import java.util.UUID;
 @RequestMapping("/api/user/payments")
 public class PaymentController {
 
+    private static final Logger logger = LoggerFactory.getLogger(PaymentController.class);
     private final PaymentService paymentService;
 
     public PaymentController(PaymentService paymentService) {
@@ -39,13 +42,23 @@ public class PaymentController {
     @PostMapping("/attach-method")
     public ResponseEntity<?> attachPaymentMethod(@RequestBody Map<String, String> request) {
         try {
+            logger.trace("Received attach-method request: {}", request);
+            
             UUID accountId = UUID.fromString(request.get("accountId"));
             String paymentMethodId = request.get("paymentMethodId");
 
+            if (accountId == null || paymentMethodId == null) {
+                logger.trace("Invalid request - missing accountId or paymentMethodId");
+                return ResponseEntity.badRequest().body(Map.of("message", "accountId and paymentMethodId are required"));
+            }
+
             PaymentMethod paymentMethod = paymentService.attachPaymentMethod(accountId, paymentMethodId);
+            logger.trace("Successfully attached payment method: {}", paymentMethod);
+            
             return ResponseEntity.ok(paymentMethod);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            logger.trace("Error attaching payment method: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 
@@ -133,6 +146,27 @@ public class PaymentController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/verify-method")
+    public ResponseEntity<?> verifyPaymentMethod(@RequestBody Map<String, String> request) {
+        try {
+            logger.trace("Received verify-method request: {}", request);
+            
+            String paymentMethodId = request.get("paymentMethodId");
+            if (paymentMethodId == null) {
+                logger.trace("Invalid request - missing paymentMethodId");
+                return ResponseEntity.badRequest().body(Map.of("message", "paymentMethodId is required"));
+            }
+
+            Map<String, Object> paymentMethod = paymentService.verifyPaymentMethod(paymentMethodId);
+            logger.trace("Successfully verified payment method: {}", paymentMethod);
+            
+            return ResponseEntity.ok(paymentMethod);
+        } catch (Exception e) {
+            logger.trace("Error verifying payment method: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 } 

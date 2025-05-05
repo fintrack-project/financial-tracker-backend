@@ -39,6 +39,15 @@ public class UserSubscription {
     @Column(name = "created_at", nullable = false, columnDefinition = "timestamp default CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
 
+    @Column(name = "stripe_customer_id")
+    private String stripeCustomerId;
+
+    @Column(name = "plan_id")
+    private String planId;
+
+    @Column(name = "cancel_at_period_end", columnDefinition = "boolean default false")
+    private boolean cancelAtPeriodEnd;
+
     // Getters and Setters
     public Long getId() {
         return id;
@@ -118,5 +127,29 @@ public class UserSubscription {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getStripeCustomerId() {
+        return stripeCustomerId;
+    }
+
+    public void setStripeCustomerId(String stripeCustomerId) {
+        this.stripeCustomerId = stripeCustomerId;
+    }
+
+    public String getPlanId() {
+        return planId;
+    }
+
+    public void setPlanId(String planId) {
+        this.planId = planId;
+    }
+
+    public boolean isCancelAtPeriodEnd() {
+        return cancelAtPeriodEnd;
+    }
+
+    public void setCancelAtPeriodEnd(boolean cancelAtPeriodEnd) {
+        this.cancelAtPeriodEnd = cancelAtPeriodEnd;
     }
 }

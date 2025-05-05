@@ -38,4 +38,18 @@ public class UserSubscriptionController {
             return ResponseEntity.badRequest().body("Invalid accountId format.");
         }
     }
+
+    @PostMapping("/update")
+    public ResponseEntity<?> updateUserSubscription(@RequestBody Map<String, String> request) {
+        try {
+            UUID accountId = UUID.fromString(request.get("accountId"));
+            String planId = request.get("planId");
+            String paymentMethodId = request.get("paymentMethodId"); // Optional
+
+            UserSubscription userSubscription = userSubscriptionService.updateSubscription(accountId, planId, paymentMethodId);
+            return ResponseEntity.ok(userSubscription);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
 }

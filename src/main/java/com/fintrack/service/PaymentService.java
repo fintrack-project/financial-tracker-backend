@@ -6,8 +6,11 @@ import com.fintrack.repository.PaymentIntentRepository;
 import com.fintrack.repository.PaymentMethodRepository;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
+import com.stripe.model.Customer;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.PaymentMethodAttachParams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +22,7 @@ import java.util.*;
 @Service
 public class PaymentService {
 
+    private static final Logger logger = LoggerFactory.getLogger(PaymentService.class);
     private final PaymentIntentRepository paymentIntentRepository;
     private final PaymentMethodRepository paymentMethodRepository;
 
@@ -66,36 +70,80 @@ public class PaymentService {
     @Transactional
     public PaymentMethod attachPaymentMethod(UUID accountId, String paymentMethodId) throws StripeException {
         Stripe.apiKey = stripeSecretKey;
+        logger.trace("Attempting to attach payment method {} to account {}", paymentMethodId, accountId);
 
-        // Attach payment method to customer in Stripe
-        com.stripe.model.PaymentMethod stripePaymentMethod = com.stripe.model.PaymentMethod.retrieve(paymentMethodId);
-        PaymentMethodAttachParams attachParams = PaymentMethodAttachParams.builder()
-                .setCustomer(accountId.toString())
-                .build();
-        stripePaymentMethod.attach(attachParams);
-
-        // Save payment method in our database
-        PaymentMethod paymentMethod = new PaymentMethod();
-        paymentMethod.setAccountId(accountId);
-        paymentMethod.setStripePaymentMethodId(paymentMethodId);
-        paymentMethod.setType(stripePaymentMethod.getType());
-        
-        // Set card details if it's a card payment method
-        if ("card".equals(stripePaymentMethod.getType())) {
-            paymentMethod.setCardLast4(stripePaymentMethod.getCard().getLast4());
-            paymentMethod.setCardBrand(stripePaymentMethod.getCard().getBrand());
-            paymentMethod.setCardExpMonth(stripePaymentMethod.getCard().getExpMonth().intValue());
-            paymentMethod.setCardExpYear(stripePaymentMethod.getCard().getExpYear().intValue());
+        // Get or create Stripe customer
+        String stripeCustomerId;
+        try {
+            Customer customer = Customer.retrieve(accountId.toString());
+            stripeCustomerId = customer.getId();
+            logger.trace("Found existing Stripe customer: {}", stripeCustomerId);
+        } catch (StripeException e) {
+            if (e.getCode().equals("resource_missing")) {
+                logger.trace("Customer not found, creating new Stripe customer for account {}", accountId);
+                // Create new customer if it doesn't exist
+                Map<String, Object> customerParams = new HashMap<>();
+                customerParams.put("id", accountId.toString());
+                customerParams.put("metadata", Map.of("accountId", accountId.toString()));
+                
+                try {
+                    Customer customer = Customer.create(customerParams);
+                    stripeCustomerId = customer.getId();
+                    logger.trace("Successfully created new Stripe customer: {}", stripeCustomerId);
+                } catch (StripeException createError) {
+                    logger.error("Failed to create Stripe customer: {}", createError.getMessage());
+                    throw new RuntimeException("Failed to create Stripe customer: " + createError.getMessage());
+                }
+            } else {
+                logger.error("Error retrieving Stripe customer: {}", e.getMessage());
+                throw new RuntimeException("Error retrieving Stripe customer: " + e.getMessage());
+            }
         }
 
-        // Set as default if it's the first payment method
-        List<PaymentMethod> existingMethods = paymentMethodRepository.findByAccountId(accountId);
-        paymentMethod.setDefault(existingMethods.isEmpty());
+        // Verify and attach payment method
+        try {
+            com.stripe.model.PaymentMethod stripePaymentMethod = com.stripe.model.PaymentMethod.retrieve(paymentMethodId);
+            logger.trace("Retrieved payment method from Stripe: {}", paymentMethodId);
 
-        paymentMethod.setCreatedAt(LocalDateTime.now());
-        paymentMethod.setUpdatedAt(LocalDateTime.now());
+            PaymentMethodAttachParams attachParams = PaymentMethodAttachParams.builder()
+                    .setCustomer(stripeCustomerId)
+                    .build();
+            stripePaymentMethod.attach(attachParams);
+            logger.trace("Successfully attached payment method {} to customer {}", paymentMethodId, stripeCustomerId);
 
-        return paymentMethodRepository.save(paymentMethod);
+            // Save payment method in our database
+            PaymentMethod paymentMethod = new PaymentMethod();
+            paymentMethod.setAccountId(accountId);
+            paymentMethod.setStripePaymentMethodId(paymentMethodId);
+            paymentMethod.setType(stripePaymentMethod.getType());
+            
+            // Set card details if it's a card payment method
+            if ("card".equals(stripePaymentMethod.getType())) {
+                paymentMethod.setCardLast4(stripePaymentMethod.getCard().getLast4());
+                paymentMethod.setCardBrand(stripePaymentMethod.getCard().getBrand());
+                paymentMethod.setCardExpMonth(stripePaymentMethod.getCard().getExpMonth().intValue());
+                paymentMethod.setCardExpYear(stripePaymentMethod.getCard().getExpYear().intValue());
+                logger.trace("Added card details for payment method: brand={}, last4={}", 
+                    stripePaymentMethod.getCard().getBrand(), 
+                    stripePaymentMethod.getCard().getLast4());
+            }
+
+            // Set as default if it's the first payment method
+            List<PaymentMethod> existingMethods = paymentMethodRepository.findByAccountId(accountId);
+            paymentMethod.setDefault(existingMethods.isEmpty());
+            logger.trace("Payment method is default: {}", paymentMethod.isDefault());
+
+            paymentMethod.setCreatedAt(LocalDateTime.now());
+            paymentMethod.setUpdatedAt(LocalDateTime.now());
+
+            PaymentMethod savedMethod = paymentMethodRepository.save(paymentMethod);
+            logger.trace("Successfully saved payment method to database: {}", savedMethod);
+            
+            return savedMethod;
+        } catch (StripeException e) {
+            logger.error("Error attaching payment method: {}", e.getMessage());
+            throw new RuntimeException("Error attaching payment method: " + e.getMessage());
+        }
     }
 
     @Transactional
@@ -119,6 +167,10 @@ public class PaymentService {
         }
 
         throw new RuntimeException("Payment intent not found: " + paymentIntentId);
+    }
+
+    public Optional<PaymentIntent> getPaymentIntent(String paymentIntentId) {
+        return paymentIntentRepository.findByStripePaymentIntentId(paymentIntentId);
     }
 
     public List<PaymentMethod> getPaymentMethods(UUID accountId) {
@@ -160,5 +212,26 @@ public class PaymentService {
         // Delete payment method in our database
         Optional<PaymentMethod> paymentMethod = paymentMethodRepository.findByStripePaymentMethodId(paymentMethodId);
         paymentMethod.ifPresent(paymentMethodRepository::delete);
+    }
+
+    public Map<String, Object> verifyPaymentMethod(String paymentMethodId) throws StripeException {
+        Stripe.apiKey = stripeSecretKey;
+        
+        com.stripe.model.PaymentMethod stripePaymentMethod = com.stripe.model.PaymentMethod.retrieve(paymentMethodId);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", stripePaymentMethod.getId());
+        result.put("type", stripePaymentMethod.getType());
+        
+        if ("card".equals(stripePaymentMethod.getType())) {
+            Map<String, Object> card = new HashMap<>();
+            card.put("brand", stripePaymentMethod.getCard().getBrand());
+            card.put("last4", stripePaymentMethod.getCard().getLast4());
+            card.put("exp_month", stripePaymentMethod.getCard().getExpMonth());
+            card.put("exp_year", stripePaymentMethod.getCard().getExpYear());
+            result.put("card", card);
+        }
+        
+        return result;
     }
 } 
