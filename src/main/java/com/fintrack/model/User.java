@@ -38,35 +38,8 @@ public class User {
     @Column(name = "account_tier", nullable = false, columnDefinition = "varchar(50) default 'free'")
     private String accountTier;
 
-    @Column(name = "subscription_start_date")
-    private LocalDateTime subscriptionStartDate;
-
-    @Column(name = "subscription_end_date")
-    private LocalDateTime subscriptionEndDate;
-
-    @Column(name = "is_active_subscription", nullable = false, columnDefinition = "boolean default false")
-    private boolean isActiveSubscription;
-
-    @Column(name = "payment_method")
-    private String paymentMethod;
-
-    @Column(name = "billing_address")
-    private String billingAddress;
-
-    @Column(name = "last_payment_date")
-    private LocalDateTime lastPaymentDate;
-
-    @Column(name = "next_billing_date")
-    private LocalDateTime nextBillingDate;
-
-    @Column(name = "payment_status")
-    private String paymentStatus;
-
     @Column(name = "timezone")
     private String timezone;
-
-    @Column(name = "two_factor_secret")
-    private String twoFactorSecret;
 
     @Column(name = "two_factor_enabled", nullable = false, columnDefinition = "boolean default false")
     private boolean twoFactorEnabled;
@@ -97,6 +70,9 @@ public class User {
 
     @Column(name = "phone_verified", nullable = false, columnDefinition = "boolean default false")
     private boolean phoneVerified;
+
+    @Column(name = "two_factor_secret")
+    private String twoFactorSecret;
 
     // Getters and Setters
     public UUID getAccountId() {
@@ -163,84 +139,12 @@ public class User {
         this.accountTier = accountTier;
     }
 
-    public LocalDateTime getSubscriptionStartDate() {
-        return subscriptionStartDate;
-    }
-
-    public void setSubscriptionStartDate(LocalDateTime subscriptionStartDate) {
-        this.subscriptionStartDate = subscriptionStartDate;
-    }
-
-    public LocalDateTime getSubscriptionEndDate() {
-        return subscriptionEndDate;
-    }
-
-    public void setSubscriptionEndDate(LocalDateTime subscriptionEndDate) {
-        this.subscriptionEndDate = subscriptionEndDate;
-    }
-
-    public Boolean getIsActiveSubscription() {
-        return isActiveSubscription;
-    }
-
-    public void setIsActiveSubscription(Boolean isActiveSubscription) {
-        this.isActiveSubscription = isActiveSubscription;
-    }
-
-    public String getPaymentMethod() {
-        return paymentMethod;
-    }
-
-    public void setPaymentMethod(String paymentMethod) {
-        this.paymentMethod = paymentMethod;
-    }
-
-    public String getBillingAddress() {
-        return billingAddress;
-    }
-
-    public void setBillingAddress(String billingAddress) {
-        this.billingAddress = billingAddress;
-    }
-
-    public LocalDateTime getLastPaymentDate() {
-        return lastPaymentDate;
-    }
-
-    public void setLastPaymentDate(LocalDateTime lastPaymentDate) {
-        this.lastPaymentDate = lastPaymentDate;
-    }
-
-    public LocalDateTime getNextBillingDate() {
-        return nextBillingDate;
-    }
-
-    public void setNextBillingDate(LocalDateTime nextBillingDate) {
-        this.nextBillingDate = nextBillingDate;
-    }
-
-    public String getPaymentStatus() {
-        return paymentStatus;
-    }
-
-    public void setPaymentStatus(String paymentStatus) {
-        this.paymentStatus = paymentStatus;
-    }
-
     public String getTimezone() {
         return timezone;
     }
 
     public void setTimezone(String timezone) {
         this.timezone = timezone;
-    }
-
-    public String getTwoFactorSecret() {
-        return twoFactorSecret;
-    }
-
-    public void setTwoFactorSecret(String twoFactorSecret) {
-        this.twoFactorSecret = twoFactorSecret;
     }
 
     public Boolean getTwoFactorEnabled() {
@@ -321,5 +225,13 @@ public class User {
 
     public void setPhoneVerified(Boolean phoneVerified) {
         this.phoneVerified = phoneVerified;
+    }
+
+    public String getTwoFactorSecret() {
+        return twoFactorSecret;
+    }
+
+    public void setTwoFactorSecret(String twoFactorSecret) {
+        this.twoFactorSecret = twoFactorSecret;
     }
 }
