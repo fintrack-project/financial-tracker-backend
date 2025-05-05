@@ -1,10 +1,15 @@
 package com.fintrack.controller;
 
+import com.fintrack.dto.ErrorResponse;
+import com.fintrack.dto.PaymentMethodRequest;
+import com.fintrack.dto.PaymentMethodResponse;
 import com.fintrack.model.PaymentIntent;
 import com.fintrack.model.PaymentMethod;
 import com.fintrack.service.PaymentService;
+import com.stripe.exception.StripeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,25 +45,33 @@ public class PaymentController {
     }
 
     @PostMapping("/attach-method")
-    public ResponseEntity<?> attachPaymentMethod(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> attachPaymentMethod(@RequestBody PaymentMethodRequest request) {
+        logger.trace("Received attach-method request: {}", request);
+        
         try {
-            logger.trace("Received attach-method request: {}", request);
-            
-            UUID accountId = UUID.fromString(request.get("accountId"));
-            String paymentMethodId = request.get("paymentMethodId");
-
-            if (accountId == null || paymentMethodId == null) {
-                logger.trace("Invalid request - missing accountId or paymentMethodId");
-                return ResponseEntity.badRequest().body(Map.of("message", "accountId and paymentMethodId are required"));
-            }
-
-            PaymentMethod paymentMethod = paymentService.attachPaymentMethod(accountId, paymentMethodId);
-            logger.trace("Successfully attached payment method: {}", paymentMethod);
-            
-            return ResponseEntity.ok(paymentMethod);
+            PaymentMethodResponse response = paymentService.attachPaymentMethod(
+                request.getAccountId(), 
+                request.getPaymentMethodId()
+            );
+            return ResponseEntity.ok(response);
+        } catch (StripeException e) {
+            logger.error("Stripe error while attaching payment method: {}", e.getMessage());
+            // Handle Stripe-specific errors
+            ErrorResponse errorResponse = new ErrorResponse(
+                "payment_error",
+                e.getMessage(),
+                e.getStripeError() != null ? e.getStripeError().getCode() : null
+            );
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         } catch (Exception e) {
-            logger.trace("Error attaching payment method: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+            logger.error("Unexpected error while attaching payment method: {}", e.getMessage(), e);
+            // Handle other errors
+            ErrorResponse errorResponse = new ErrorResponse(
+                "internal_error",
+                "An unexpected error occurred while processing your payment",
+                null
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.fintrack.service;
 
+import com.fintrack.dto.PaymentMethodResponse;
 import com.fintrack.model.PaymentIntent;
 import com.fintrack.model.PaymentMethod;
 import com.fintrack.repository.PaymentIntentRepository;
@@ -68,7 +69,7 @@ public class PaymentService {
     }
 
     @Transactional
-    public PaymentMethod attachPaymentMethod(UUID accountId, String paymentMethodId) throws StripeException {
+    public PaymentMethodResponse attachPaymentMethod(UUID accountId, String paymentMethodId) throws StripeException {
         Stripe.apiKey = stripeSecretKey;
         logger.trace("Attempting to attach payment method {} to account {}", paymentMethodId, accountId);
 
@@ -92,11 +93,11 @@ public class PaymentService {
                     logger.trace("Successfully created new Stripe customer: {}", stripeCustomerId);
                 } catch (StripeException createError) {
                     logger.error("Failed to create Stripe customer: {}", createError.getMessage());
-                    throw new RuntimeException("Failed to create Stripe customer: " + createError.getMessage());
+                    throw createError;
                 }
             } else {
                 logger.error("Error retrieving Stripe customer: {}", e.getMessage());
-                throw new RuntimeException("Error retrieving Stripe customer: " + e.getMessage());
+                throw e;
             }
         }
 
@@ -139,10 +140,10 @@ public class PaymentService {
             PaymentMethod savedMethod = paymentMethodRepository.save(paymentMethod);
             logger.trace("Successfully saved payment method to database: {}", savedMethod);
             
-            return savedMethod;
+            return new PaymentMethodResponse(savedMethod, "Payment method successfully attached");
         } catch (StripeException e) {
             logger.error("Error attaching payment method: {}", e.getMessage());
-            throw new RuntimeException("Error attaching payment method: " + e.getMessage());
+            throw e;
         }
     }
 
