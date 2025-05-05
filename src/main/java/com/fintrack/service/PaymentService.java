@@ -6,8 +6,6 @@ import com.fintrack.repository.PaymentIntentRepository;
 import com.fintrack.repository.PaymentMethodRepository;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
-import com.stripe.model.PaymentIntent as StripePaymentIntent;
-import com.stripe.model.PaymentMethod as StripePaymentMethod;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.PaymentMethodAttachParams;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,7 +47,7 @@ public class PaymentService {
                 )
                 .build();
 
-        StripePaymentIntent stripePaymentIntent = StripePaymentIntent.create(params);
+        com.stripe.model.PaymentIntent stripePaymentIntent = com.stripe.model.PaymentIntent.create(params);
 
         // Save payment intent in our database
         PaymentIntent paymentIntent = new PaymentIntent();
@@ -70,7 +68,7 @@ public class PaymentService {
         Stripe.apiKey = stripeSecretKey;
 
         // Attach payment method to customer in Stripe
-        StripePaymentMethod stripePaymentMethod = StripePaymentMethod.retrieve(paymentMethodId);
+        com.stripe.model.PaymentMethod stripePaymentMethod = com.stripe.model.PaymentMethod.retrieve(paymentMethodId);
         PaymentMethodAttachParams attachParams = PaymentMethodAttachParams.builder()
                 .setCustomer(accountId.toString())
                 .build();
@@ -86,8 +84,8 @@ public class PaymentService {
         if ("card".equals(stripePaymentMethod.getType())) {
             paymentMethod.setCardLast4(stripePaymentMethod.getCard().getLast4());
             paymentMethod.setCardBrand(stripePaymentMethod.getCard().getBrand());
-            paymentMethod.setCardExpMonth(stripePaymentMethod.getCard().getExpMonth());
-            paymentMethod.setCardExpYear(stripePaymentMethod.getCard().getExpYear());
+            paymentMethod.setCardExpMonth(stripePaymentMethod.getCard().getExpMonth().intValue());
+            paymentMethod.setCardExpYear(stripePaymentMethod.getCard().getExpYear().intValue());
         }
 
         // Set as default if it's the first payment method
@@ -105,7 +103,7 @@ public class PaymentService {
         Stripe.apiKey = stripeSecretKey;
 
         // Confirm payment intent in Stripe
-        StripePaymentIntent stripePaymentIntent = StripePaymentIntent.retrieve(paymentIntentId);
+        com.stripe.model.PaymentIntent stripePaymentIntent = com.stripe.model.PaymentIntent.retrieve(paymentIntentId);
         Map<String, Object> params = new HashMap<>();
         params.put("payment_method", paymentMethodId);
         stripePaymentIntent.confirm(params);
@@ -156,7 +154,7 @@ public class PaymentService {
         Stripe.apiKey = stripeSecretKey;
 
         // Delete payment method in Stripe
-        StripePaymentMethod stripePaymentMethod = StripePaymentMethod.retrieve(paymentMethodId);
+        com.stripe.model.PaymentMethod stripePaymentMethod = com.stripe.model.PaymentMethod.retrieve(paymentMethodId);
         stripePaymentMethod.detach();
 
         // Delete payment method in our database

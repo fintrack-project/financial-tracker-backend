@@ -72,13 +72,13 @@ public class PaymentController {
     }
 
     @GetMapping("/default-method/{accountId}")
-    public ResponseEntity<?> getDefaultPaymentMethod(@PathVariable String accountId) {
+    public ResponseEntity<PaymentMethod> getDefaultPaymentMethod(@PathVariable String accountId) {
         try {
             return paymentService.getDefaultPaymentMethod(UUID.fromString(accountId))
                     .map(ResponseEntity::ok)
                     .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().build();
         }
     }
 
