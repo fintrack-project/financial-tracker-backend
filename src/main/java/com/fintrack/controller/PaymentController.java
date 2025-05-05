@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/payments")
+@RequestMapping("/api/user/payments")
 public class PaymentController {
 
     private final PaymentService paymentService;
