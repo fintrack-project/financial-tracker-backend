@@ -4,11 +4,11 @@ package com.fintrack.constants.subscription;
  * Enum representing the different subscription plan types available in the application.
  */
 public enum SubscriptionPlanType {
-    FREE("free"),
-    BASIC("basic"),
-    PREMIUM("premium"),
-    BASIC_ANNUAL("basic_annual"),
-    PREMIUM_ANNUAL("premium_annual");
+    FREE("Free"),
+    BASIC("Basic"),
+    PREMIUM("Premium"),
+    BASIC_ANNUAL("Basic Annual"),
+    PREMIUM_ANNUAL("Premium Annual");
 
     private final String planName;
 

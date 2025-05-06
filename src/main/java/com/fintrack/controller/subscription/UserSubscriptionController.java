@@ -2,7 +2,10 @@ package com.fintrack.controller.subscription;
 
 import com.fintrack.constants.subscription.SubscriptionPlanType;
 import com.fintrack.dto.subscription.SubscriptionPlanRequest;
+import com.fintrack.dto.subscription.UserSubscriptionDetailsResponse;
+import com.fintrack.model.subscription.SubscriptionPlan;
 import com.fintrack.model.subscription.UserSubscription;
+import com.fintrack.service.subscription.SubscriptionPlanService;
 import com.fintrack.service.subscription.UserSubscriptionService;
 import com.stripe.exception.StripeException;
 import org.slf4j.Logger;
@@ -20,9 +23,13 @@ public class UserSubscriptionController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserSubscriptionController.class);
     private final UserSubscriptionService userSubscriptionService;
+    private final SubscriptionPlanService subscriptionPlanService;
 
-    public UserSubscriptionController(UserSubscriptionService userSubscriptionService) {
+    public UserSubscriptionController(
+            UserSubscriptionService userSubscriptionService,
+            SubscriptionPlanService subscriptionPlanService) {
         this.userSubscriptionService = userSubscriptionService;
+        this.subscriptionPlanService = subscriptionPlanService;
     }
 
     @PostMapping("/fetch")
@@ -40,6 +47,44 @@ public class UserSubscriptionController {
             } else {
                 return ResponseEntity.notFound().build();
             }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid account ID format"));
+        }
+    }
+
+    @PostMapping("/details")
+    public ResponseEntity<?> fetchUserSubscriptionWithPlanDetails(@RequestBody Map<String, String> requestBody) {
+        String accountIdStr = requestBody.get("accountId");
+        if (accountIdStr == null || accountIdStr.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Account ID is required"));
+        }
+
+        try {
+            UUID accountId = UUID.fromString(accountIdStr);
+            Optional<UserSubscription> userSubscriptionOpt = userSubscriptionService.getSubscriptionByAccountId(accountId);
+            
+            if (userSubscriptionOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            UserSubscription subscription = userSubscriptionOpt.get();
+            Optional<SubscriptionPlan> planOpt = subscriptionPlanService.getPlanById(subscription.getPlanId());
+            
+            if (planOpt.isEmpty()) {
+                return ResponseEntity.ok(Map.of(
+                    "subscription", subscription,
+                    "plan", Map.of("error", "Plan not found")
+                ));
+            }
+            
+            SubscriptionPlan plan = planOpt.get();
+            
+            // Create detailed response
+            UserSubscriptionDetailsResponse response = new UserSubscriptionDetailsResponse();
+            response.setSubscription(subscription);
+            response.setPlan(plan);
+            
+            return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid account ID format"));
         }

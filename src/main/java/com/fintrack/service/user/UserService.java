@@ -3,6 +3,7 @@ package com.fintrack.service.user;
 import com.fintrack.model.user.User;
 import com.fintrack.repository.user.UserRepository;
 import com.fintrack.security.JwtService;
+import com.fintrack.service.subscription.UserSubscriptionService;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ public class UserService {
     private final UserEmailService userEmailService;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final UserSubscriptionService userSubscriptionService;
 
     private static final int MAX_LOGIN_ATTEMPTS = 5;
     private static final int LOCK_TIME_DURATION = 1; // in minutes
@@ -31,11 +33,13 @@ public class UserService {
         UserRepository userRepository,
         UserEmailService userEmailService,
         BCryptPasswordEncoder passwordEncoder,
-        JwtService jwtService) {
+        JwtService jwtService,
+        UserSubscriptionService userSubscriptionService) {
         this.userRepository = userRepository;
         this.userEmailService = userEmailService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.userSubscriptionService = userSubscriptionService;
     }
 
     public Map<String, Object> authenticateAndGenerateToken(String userId, String password) {
@@ -138,6 +142,15 @@ public class UserService {
 
         // Save the user
         userRepository.save(user);
+        
+        // Create a free subscription for the new user
+        try {
+            userSubscriptionService.createFreeSubscription(user.getAccountId(), "Free");
+            logger.info("Created free subscription for new user with accountId: {}", user.getAccountId());
+        } catch (Exception e) {
+            logger.error("Failed to create free subscription for user: {}", e.getMessage(), e);
+            // Continue registration process even if subscription creation fails
+        }
 
         // Send the verification email
         userEmailService.sendVerificationEmail(user.getEmail(), user);
@@ -146,7 +159,6 @@ public class UserService {
     }
 
     private void setDefaultValues(User user) {
-        user.setAccountTier("free");
         user.setSignupDate(LocalDateTime.now());
     }
 

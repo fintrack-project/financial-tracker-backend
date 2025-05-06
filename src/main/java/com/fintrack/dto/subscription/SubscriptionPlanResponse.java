@@ -19,9 +19,9 @@ public class SubscriptionPlanResponse {
         SubscriptionPlanResponse response = new SubscriptionPlanResponse();
         response.setId(plan.getId());
         response.setName(plan.getName());
-        response.setAmount(BigDecimal.valueOf(plan.getPrice()));
-        response.setCurrency("USD"); // Default currency
-        response.setInterval(plan.getBillingCycle());
+        response.setAmount(plan.getAmount());
+        response.setCurrency(plan.getCurrency());
+        response.setInterval(plan.getInterval());
         
         List<FeatureResponse> featureResponses = features.stream()
                 .map(feature -> {

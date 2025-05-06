@@ -49,6 +49,17 @@ public class UserSubscriptionService {
         return userSubscriptionRepository.findByAccountId(accountId);
     }
 
+    /**
+     * Creates a free subscription for a new user
+     * @param accountId The user's account ID
+     * @param planName The name of the free plan (typically "Free")
+     * @return The created UserSubscription
+     */
+    public UserSubscription createFreeSubscription(UUID accountId, String planName) {
+        logger.info("Creating free subscription for new user: {}", accountId);
+        return handleFreePlanSubscription(accountId, planName);
+    }
+
     @Transactional
     public UserSubscription updateSubscription(UUID accountId, String planName, String paymentMethodId) throws StripeException {
         logger.info("Updating subscription for account: {} with plan: {}", accountId, planName);
@@ -171,22 +182,36 @@ public class UserSubscriptionService {
             customer.update(Map.of("invoice_settings", Map.of("default_payment_method", paymentMethodId)));
         }
 
+        // First retrieve the subscription to get the subscription item ID
+        Subscription stripeSubscription = Subscription.retrieve(currentSubscription.getStripeSubscriptionId());
+        
+        // Check if subscription has items
+        if (stripeSubscription.getItems() == null || stripeSubscription.getItems().getData() == null || 
+            stripeSubscription.getItems().getData().isEmpty()) {
+            throw new RuntimeException("Subscription has no items to update");
+        }
+        
+        // Get the first subscription item's ID
+        String subscriptionItemId = stripeSubscription.getItems().getData().get(0).getId();
+        logger.info("Found subscription item ID: {} for subscription: {}", 
+                subscriptionItemId, currentSubscription.getStripeSubscriptionId());
+
         // Update subscription in Stripe
         SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
                 .addItem(SubscriptionUpdateParams.Item.builder()
-                        .setId(currentSubscription.getStripeSubscriptionId())
+                        .setId(subscriptionItemId)
                         .setPrice(stripePriceId)
                         .build())
                 .build();
 
-        Subscription stripeSubscription = Subscription.retrieve(currentSubscription.getStripeSubscriptionId());
-        stripeSubscription.update(params);
+        stripeSubscription = stripeSubscription.update(params);
 
         // Calculate next billing date from Stripe response
         LocalDateTime nextBillingDate;
-        // Get the current period end from the subscription items
-        if (stripeSubscription.getItems() != null && stripeSubscription.getItems().getData() != null && !stripeSubscription.getItems().getData().isEmpty()) {
-            // Get the first subscription item's current period end
+        // Get the current period end from the subscription
+        if (stripeSubscription.getItems() != null && stripeSubscription.getItems().getData() != null && 
+            !stripeSubscription.getItems().getData().isEmpty()) {
+            // Get the subscription's current period end
             Long periodEnd = stripeSubscription.getItems().getData().get(0).getCurrentPeriodEnd();
             if (periodEnd != null) {
                 nextBillingDate = LocalDateTime.ofEpochSecond(periodEnd, 0, ZoneOffset.UTC);
@@ -243,9 +268,10 @@ public class UserSubscriptionService {
         
         // Calculate next billing date from Stripe response
         LocalDateTime nextBillingDate;
-        // Get the current period end from the subscription items
-        if (stripeSubscription.getItems() != null && stripeSubscription.getItems().getData() != null && !stripeSubscription.getItems().getData().isEmpty()) {
-            // Get the first subscription item's current period end
+        // Get the current period end from the subscription
+        if (stripeSubscription.getItems() != null && stripeSubscription.getItems().getData() != null && 
+            !stripeSubscription.getItems().getData().isEmpty()) {
+            // Get the subscription's current period end
             Long periodEnd = stripeSubscription.getItems().getData().get(0).getCurrentPeriodEnd();
             if (periodEnd != null) {
                 nextBillingDate = LocalDateTime.ofEpochSecond(periodEnd, 0, ZoneOffset.UTC);

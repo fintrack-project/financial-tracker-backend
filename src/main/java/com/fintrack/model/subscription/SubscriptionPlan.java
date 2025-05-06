@@ -1,6 +1,7 @@
 package com.fintrack.model.subscription;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -15,14 +16,17 @@ public class SubscriptionPlan {
     @Column(name = "name", nullable = false, unique = true)
     private String name;
 
-    @Column(name = "display_name")
+    @Transient // Not in the database
     private String displayName;
 
-    @Column(name = "price", nullable = false)
-    private Double price;
+    @Column(name = "amount", nullable = false)
+    private BigDecimal amount;
+    
+    @Column(name = "currency", length = 3)
+    private String currency = "USD";
 
-    @Column(name = "billing_cycle")
-    private String billingCycle;
+    @Column(name = "interval")
+    private String interval;
 
     @Column(name = "stripe_price_id")
     private String stripePriceId;
@@ -58,20 +62,28 @@ public class SubscriptionPlan {
         this.displayName = displayName;
     }
 
-    public Double getPrice() {
-        return price;
+    public BigDecimal getAmount() {
+        return amount;
     }
 
-    public void setPrice(Double price) {
-        this.price = price;
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
+    }
+    
+    public String getCurrency() {
+        return currency;
+    }
+    
+    public void setCurrency(String currency) {
+        this.currency = currency;
     }
 
-    public String getBillingCycle() {
-        return billingCycle;
+    public String getInterval() {
+        return interval;
     }
 
-    public void setBillingCycle(String billingCycle) {
-        this.billingCycle = billingCycle;
+    public void setInterval(String interval) {
+        this.interval = interval;
     }
 
     public String getStripePriceId() {
@@ -109,5 +121,15 @@ public class SubscriptionPlan {
     @Override
     public int hashCode() {
         return Objects.hash(id);
+    }
+    
+    // For backward compatibility with code that uses getPrice()
+    public Double getPrice() {
+        return amount != null ? amount.doubleValue() : null;
+    }
+    
+    // For backward compatibility with code that uses getBillingCycle()
+    public String getBillingCycle() {
+        return interval;
     }
 } 

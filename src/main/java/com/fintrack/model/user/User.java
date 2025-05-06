@@ -35,9 +35,6 @@ public class User {
     @Column(name = "address")
     private String address;
 
-    @Column(name = "account_tier", nullable = false, columnDefinition = "varchar(50) default 'free'")
-    private String accountTier;
-
     @Column(name = "timezone")
     private String timezone;
 
@@ -129,14 +126,6 @@ public class User {
 
     public void setAddress(String address) {
         this.address = address;
-    }
-
-    public String getAccountTier() {
-        return accountTier;
-    }
-
-    public void setAccountTier(String accountTier) {
-        this.accountTier = accountTier;
     }
 
     public String getTimezone() {

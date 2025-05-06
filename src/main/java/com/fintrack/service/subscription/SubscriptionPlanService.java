@@ -56,7 +56,7 @@ public class SubscriptionPlanService {
     
     public Optional<SubscriptionPlan> getPlanByName(String name) {
         logger.info("Looking up subscription plan by name: {}", name);
-        Optional<SubscriptionPlan> plan = subscriptionPlanRepository.findByName(name);
+        Optional<SubscriptionPlan> plan = subscriptionPlanRepository.findByNameIgnoreCase(name);
         
         if (plan.isPresent()) {
             logger.info("Found plan: {} with ID: {}", name, plan.get().getId());

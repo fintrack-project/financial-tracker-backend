@@ -24,7 +24,7 @@ public class UserSubscription {
     @Column(name = "stripe_customer_id")
     private String stripeCustomerId;
 
-    @Column(name = "active", nullable = false)
+    @Column(name = "is_active", nullable = false)
     private boolean active;
 
     @Column(name = "status")
