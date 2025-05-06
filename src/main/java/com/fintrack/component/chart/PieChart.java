@@ -2,8 +2,8 @@ package com.fintrack.component.chart;
 
 import java.util.*;
 
-import com.fintrack.model.HoldingsCategory;
-import com.fintrack.model.Category;
+import com.fintrack.model.finance.Category;
+import com.fintrack.model.finance.HoldingsCategory;
 import com.fintrack.component.calculator.PortfolioCalculator;
 
 import java.util.stream.Collectors;

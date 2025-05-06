@@ -5,10 +5,10 @@ import org.slf4j.LoggerFactory;
 
 import com.fintrack.component.calculator.PortfolioCalculator;
 import com.fintrack.constants.Color;
-import com.fintrack.model.Category;
-import com.fintrack.model.Holdings;
-import com.fintrack.model.HoldingsCategory;
-import com.fintrack.model.MarketDataDto;
+import com.fintrack.dto.market.MarketDataDto;
+import com.fintrack.model.finance.Category;
+import com.fintrack.model.finance.Holdings;
+import com.fintrack.model.finance.HoldingsCategory;
 
 import java.util.*;
 import java.util.stream.Collectors;

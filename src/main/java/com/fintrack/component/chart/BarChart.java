@@ -3,9 +3,9 @@ package com.fintrack.component.chart;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fintrack.model.HoldingsCategory;
 import com.fintrack.component.calculator.PortfolioCalculator;
-import com.fintrack.model.Category;
+import com.fintrack.model.finance.Category;
+import com.fintrack.model.finance.HoldingsCategory;
 
 import java.time.LocalDate;
 import java.util.*;
