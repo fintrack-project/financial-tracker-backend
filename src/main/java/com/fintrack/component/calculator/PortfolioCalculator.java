@@ -1,8 +1,9 @@
 package com.fintrack.component.calculator;
 
-import com.fintrack.constants.AssetType;
-import com.fintrack.model.Holdings;
-import com.fintrack.model.MarketDataDto;
+import com.fintrack.constants.finance.AssetType;
+import com.fintrack.dto.market.MarketDataDto;
+import com.fintrack.model.finance.Holdings;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

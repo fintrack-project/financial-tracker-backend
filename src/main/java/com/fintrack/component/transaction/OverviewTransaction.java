@@ -2,7 +2,7 @@ package com.fintrack.component.transaction;
 
 import java.math.BigDecimal;
 
-import com.fintrack.model.Transaction;
+import com.fintrack.model.finance.Transaction;
 
 public class OverviewTransaction extends Transaction {
     private BigDecimal totalBalanceBefore;
