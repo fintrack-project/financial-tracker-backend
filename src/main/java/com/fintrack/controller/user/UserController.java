@@ -1,17 +1,23 @@
 package com.fintrack.controller.user;
 
+import com.fintrack.common.ApiResponse;
 import com.fintrack.model.user.User;
 import com.fintrack.service.user.UserService;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping(value = "/api/user", produces = MediaType.APPLICATION_JSON_VALUE)
 public class UserController {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     private final UserService userService;
 
@@ -19,18 +25,28 @@ public class UserController {
         this.userService = userService;
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> loginUser(@RequestBody Map<String, String> loginRequest) {
-        String userId = loginRequest.get("userId");
-        String password = loginRequest.get("password");
-    
-        // Authenticate the user and generate a JWT token
-        Map<String, Object> response = userService.authenticateAndGenerateToken(userId, password);
-    
-        if ((boolean) response.get("success")) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.status(401).body(response);
+    @PostMapping(
+        value = "/login",
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<ApiResponse<Map<String, Object>>> loginUser(@RequestBody Map<String, String> loginRequest) {
+        try {
+            String userId = loginRequest.get("userId");
+            String password = loginRequest.get("password");
+            Map<String, Object> response = userService.authenticateAndGenerateToken(userId, password);
+            return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.success(response));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Login error: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.error("An unexpected error occurred"));
         }
     }
 
