@@ -1,6 +1,7 @@
 package com.fintrack.controller.user;
 
 import com.fintrack.common.ApiResponse;
+import com.fintrack.common.ResponseWrapper;
 import com.fintrack.constants.user.UserNotificationType;
 import com.fintrack.model.user.UserNotificationPreference;
 import com.fintrack.service.user.UserNotificationPreferenceService;
@@ -47,18 +48,12 @@ public class UserNotificationPreferenceController {
                 }
             }
 
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(response));
+            return ResponseWrapper.ok(response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Invalid accountId format"));
+            return ResponseWrapper.badRequest("Invalid accountId format");
         } catch (Exception e) {
             logger.error("Error fetching notification preferences: ", e);
-            return ResponseEntity.status(500)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to fetch notification preferences"));
+            return ResponseWrapper.internalServerError("Failed to fetch notification preferences");
         }
     }
 
@@ -83,9 +78,7 @@ public class UserNotificationPreferenceController {
             Boolean isEnabled = (Boolean) request.get("isEnabled");
 
             if (accountId == null || notificationType == null || isEnabled == null) {
-                return ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error("Missing required fields: accountId, notificationType, or isEnabled"));
+                return ResponseWrapper.badRequest("Missing required fields: accountId, notificationType, or isEnabled");
             }
 
             // Call the service to update the preference
@@ -95,18 +88,12 @@ public class UserNotificationPreferenceController {
                 isEnabled
             );
 
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(null, "Notification preference updated successfully"));
+            return ResponseWrapper.ok(null, "Notification preference updated successfully");
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Invalid accountId or notification type format"));
+            return ResponseWrapper.badRequest("Invalid accountId or notification type format");
         } catch (Exception e) {
             logger.error("Error updating notification preference: ", e);
-            return ResponseEntity.status(500)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to update notification preference"));
+            return ResponseWrapper.internalServerError("Failed to update notification preference");
         }
     }
 }

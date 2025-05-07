@@ -5,6 +5,7 @@ import com.fintrack.dto.subscription.SubscriptionPlanResponse;
 import com.fintrack.model.subscription.SubscriptionPlan;
 import com.fintrack.service.subscription.SubscriptionPlanService;
 import com.fintrack.common.ApiResponse;
+import com.fintrack.common.ResponseWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -29,13 +30,9 @@ public class SubscriptionPlanController {
     public ResponseEntity<ApiResponse<List<SubscriptionPlanResponse>>> getAllPlans() {
         try {
             List<SubscriptionPlanResponse> plans = subscriptionPlanService.getAllPlansWithFeatures();
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(plans));
+            return ResponseWrapper.ok(plans);
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 
@@ -43,21 +40,17 @@ public class SubscriptionPlanController {
     public ResponseEntity<ApiResponse<SubscriptionPlanResponse>> getPlanById(@PathVariable String planId) {
         try {
             return subscriptionPlanService.getPlanByIdWithFeatures(planId)
-                .map(plan -> ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.success(plan)))
-                .orElse(ResponseEntity.notFound().build());
+                .map(plan -> ResponseWrapper.ok(plan))
+                .orElse(ResponseWrapper.notFound());
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 
     @GetMapping("/basic")
-    public ResponseEntity<List<SubscriptionPlan>> getAllPlansBasic() {
+    public ResponseEntity<ApiResponse<List<SubscriptionPlan>>> getAllPlansBasic() {
         logger.info("Fetching all subscription plans (basic info)");
-        return ResponseEntity.ok(subscriptionPlanService.getAllPlans());
+        return ResponseWrapper.ok(subscriptionPlanService.getAllPlans());
     }
 
     @GetMapping("/by-name/{name}")
@@ -66,20 +59,14 @@ public class SubscriptionPlanController {
             // Validate that plan name is one of the accepted values
             SubscriptionPlanType planType = SubscriptionPlanType.fromPlanName(name);
             if (planType == null) {
-                return ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error("Invalid plan name: " + name));
+                return ResponseWrapper.badRequest("Invalid plan name: " + name);
             }
             
             return subscriptionPlanService.getPlanByNameWithFeatures(planType.getPlanName())
-                .map(plan -> ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.success(plan)))
-                .orElse(ResponseEntity.notFound().build());
+                .map(plan -> ResponseWrapper.ok(plan))
+                .orElse(ResponseWrapper.notFound());
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
     
@@ -87,28 +74,26 @@ public class SubscriptionPlanController {
     public ResponseEntity<?> lookupPlanId(@RequestBody Map<String, String> request) {
         String planName = request.get("planName");
         if (planName == null || planName.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Plan name is required"));
+            return ResponseWrapper.badRequest("Plan name is required");
         }
         
         // Validate that plan name is one of the accepted values
         SubscriptionPlanType planType = SubscriptionPlanType.fromPlanName(planName);
         if (planType == null) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "error", "Invalid plan name: " + planName,
-                    "validPlans", SubscriptionPlanType.values()));
+            return ResponseWrapper.badRequest("Invalid plan name: " + planName);
         }
         
         logger.info("Looking up plan ID for plan name: {}", planType.getPlanName());
         try {
             String planId = subscriptionPlanService.getPlanIdByName(planType.getPlanName());
             String stripePriceId = subscriptionPlanService.getStripePriceIdByName(planType.getPlanName());
-            return ResponseEntity.ok(Map.of(
+            return ResponseWrapper.ok(Map.of(
                     "planId", planId,
                     "stripePriceId", stripePriceId
             ));
         } catch (RuntimeException e) {
             logger.error("Error looking up plan ID: {}", e.getMessage());
-            return ResponseEntity.notFound().build();
+            return ResponseWrapper.notFound();
         }
     }
 } 

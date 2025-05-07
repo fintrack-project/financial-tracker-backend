@@ -8,6 +8,7 @@ import com.fintrack.model.subscription.UserSubscription;
 import com.fintrack.service.subscription.SubscriptionPlanService;
 import com.fintrack.service.subscription.UserSubscriptionService;
 import com.fintrack.common.ApiResponse;
+import com.fintrack.common.ResponseWrapper;
 import com.stripe.exception.StripeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,19 +39,19 @@ public class UserSubscriptionController {
     public ResponseEntity<?> fetchUserSubscriptionDetails(@RequestBody Map<String, String> requestBody) {
         String accountIdStr = requestBody.get("accountId");
         if (accountIdStr == null || accountIdStr.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Account ID is required"));
+            return ResponseWrapper.badRequest("Account ID is required");
         }
 
         try {
             UUID accountId = UUID.fromString(accountIdStr);
             Optional<UserSubscription> user = userSubscriptionService.getSubscriptionByAccountId(accountId);
             if (user.isPresent()) {
-                return ResponseEntity.ok(user.get());
+                return ResponseWrapper.ok(user.get());
             } else {
-                return ResponseEntity.notFound().build();
+                return ResponseWrapper.notFound();
             }
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Invalid account ID format"));
+            return ResponseWrapper.badRequest("Invalid account ID format");
         }
     }
 
@@ -58,9 +59,7 @@ public class UserSubscriptionController {
     public ResponseEntity<ApiResponse<UserSubscriptionDetailsResponse>> fetchUserSubscriptionWithPlanDetails(@RequestBody Map<String, String> requestBody) {
         String accountIdStr = requestBody.get("accountId");
         if (accountIdStr == null || accountIdStr.isEmpty()) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Account ID is required"));
+            return ResponseWrapper.badRequest("Account ID is required");
         }
 
         try {
@@ -87,13 +86,9 @@ public class UserSubscriptionController {
             response.setSubscription(subscription);
             response.setPlan(plan);
             
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(response));
+            return ResponseWrapper.ok(response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Invalid account ID format"));
+            return ResponseWrapper.badRequest("Invalid account ID format");
         }
     }
 
@@ -102,23 +97,17 @@ public class UserSubscriptionController {
         logger.info("Updating subscription for account: {} with plan name: {}", request.getAccountId(), request.getPlanName());
         
         if (request.getAccountId() == null) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Account ID is required"));
+            return ResponseWrapper.badRequest("Account ID is required");
         }
         
         if (request.getPlanName() == null || request.getPlanName().isEmpty()) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Plan name is required"));
+            return ResponseWrapper.badRequest("Plan name is required");
         }
         
         // Validate that plan name is one of the accepted values
         SubscriptionPlanType planType = SubscriptionPlanType.fromPlanName(request.getPlanName());
         if (planType == null) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Invalid plan name: " + request.getPlanName()));
+            return ResponseWrapper.badRequest("Invalid plan name: " + request.getPlanName());
         }
         
         try {
@@ -127,27 +116,19 @@ public class UserSubscriptionController {
                     request.getPlanName(), 
                     request.getPaymentMethodId());
             
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(userSubscription));
+            return ResponseWrapper.ok(userSubscription);
         } catch (StripeException e) {
             logger.error("Stripe error updating subscription: {}", e.getMessage());
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Payment processing error: " + e.getMessage()));
+            return ResponseWrapper.badRequest("Payment processing error: " + e.getMessage());
         } catch (RuntimeException e) {
             logger.error("Error updating subscription: {}", e.getMessage());
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
     
     @GetMapping("/plan-types")
     public ResponseEntity<ApiResponse<SubscriptionPlanType[]>> getAvailablePlanTypes() {
         logger.info("Getting available subscription plan types");
-        return ResponseEntity.ok()
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(ApiResponse.success(SubscriptionPlanType.values()));
+        return ResponseWrapper.ok(SubscriptionPlanType.values());
     }
 }

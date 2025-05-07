@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fintrack.common.ApiResponse;
+import com.fintrack.common.ResponseWrapper;
 import com.fintrack.service.user.UserPasswordService;
 
 import java.util.*;
@@ -33,25 +34,17 @@ public class UserPasswordController {
             String password = request.get("password");
         
             if (accountIdString == null || password == null) {
-                return ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error("Missing accountId or password in the request body."));
+                return ResponseWrapper.badRequest("Missing accountId or password in the request body.");
             }
         
             UUID accountId = UUID.fromString(accountIdString);
             Map<String, Object> response = userPasswordService.verifyPasswordAuthentication(accountId, password);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(response));
+            return ResponseWrapper.ok(response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         } catch (Exception e) {
             logger.error("Error verifying password: ", e);
-            return ResponseEntity.status(500)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to verify password"));
+            return ResponseWrapper.internalServerError("Failed to verify password");
         }
     }
 }

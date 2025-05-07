@@ -1,6 +1,7 @@
 package com.fintrack.controller.user;
 
 import org.springframework.http.ResponseEntity;
+import com.fintrack.common.ResponseWrapper;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
 import org.slf4j.Logger;
@@ -31,26 +32,18 @@ public class UserEmailController {
         try {
             String token = requestBody.get("token");
             if (token == null) {
-                return ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error("Missing token in the request body."));
+                return ResponseWrapper.badRequest("Missing token in the request body.");
             }
         
             String result = userEmailService.verifyEmail(token);
             if (result.equals("Email verified successfully.")) {
-                return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.success(result));
+                return ResponseWrapper.ok(result);
             } else {
-                return ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error(result));
+                return ResponseWrapper.badRequest(result);
             }
         } catch (Exception e) {
             logger.error("Error verifying email: ", e);
-            return ResponseEntity.status(500)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to verify email"));
+            return ResponseWrapper.internalServerError("Failed to verify email");
         }
     }
 
@@ -77,18 +70,12 @@ public class UserEmailController {
             // Call the service to send the email verification
             userEmailService.sendEmailVerification(accountId, email);
 
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(null, "Verification email sent successfully"));
+            return ResponseWrapper.ok(null, "Verification email sent successfully");
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Invalid accountId format"));
+            return ResponseWrapper.badRequest("Invalid accountId format");
         } catch (Exception e) {
             logger.error("Error sending verification email: ", e);
-            return ResponseEntity.status(500)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to send verification email"));
+            return ResponseWrapper.internalServerError("Failed to send verification email");
         }
     }
 
@@ -101,26 +88,18 @@ public class UserEmailController {
         try {
             String accountIdStr = requestBody.get("accountId");
             if (accountIdStr == null) {
-                return ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error("Missing accountId in the request body."));
+                return ResponseWrapper.badRequest("Missing accountId in the request body.");
             }
         
             UUID accountId = UUID.fromString(accountIdStr);
             boolean isVerified = userEmailService.isEmailVerified(accountId);
         
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(isVerified));
+            return ResponseWrapper.ok(isVerified);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Invalid accountId format."));
+            return ResponseWrapper.badRequest("Invalid accountId format.");
         } catch (Exception e) {
             logger.error("Error checking email verification: ", e);
-            return ResponseEntity.status(500)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to check email verification status"));
+            return ResponseWrapper.internalServerError("Failed to check email verification status");
         }
     }
 }

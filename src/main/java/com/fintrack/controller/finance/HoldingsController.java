@@ -3,7 +3,7 @@ package com.fintrack.controller.finance;
 import com.fintrack.model.finance.Holdings;
 import com.fintrack.service.finance.HoldingsService;
 import com.fintrack.common.ApiResponse;
-
+import com.fintrack.common.ResponseWrapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,13 +27,9 @@ public class HoldingsController {
     public ResponseEntity<ApiResponse<List<Holdings>>> getHoldings(@PathVariable UUID accountId) {
         try {
             List<Holdings> holdings = holdingsService.getHoldingsByAccount(accountId);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(holdings));
+            return ResponseWrapper.ok(holdings);
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 }

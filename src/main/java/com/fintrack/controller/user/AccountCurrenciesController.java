@@ -1,6 +1,7 @@
 package com.fintrack.controller.user;
 
 import com.fintrack.common.ApiResponse;
+import com.fintrack.common.ResponseWrapper;
 import com.fintrack.model.finance.AccountCurrency;
 import com.fintrack.repository.finance.AccountCurrenciesRepository;
 
@@ -11,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "/api/currencies", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -31,14 +31,10 @@ public class AccountCurrenciesController {
     public ResponseEntity<ApiResponse<List<AccountCurrency>>> getCurrenciesByAccountId(@RequestParam(name = "accountId") UUID accountId) {
         try {
             List<AccountCurrency> currencies = accountCurrenciesRepository.findByAccountId(accountId);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(currencies));
+            return ResponseWrapper.ok(currencies);
         } catch (Exception e) {
             logger.error("Error fetching currencies: ", e);
-            return ResponseEntity.status(500)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to fetch currencies"));
+            return ResponseWrapper.internalServerError("Failed to fetch currencies");
         }
     }
 
@@ -53,9 +49,7 @@ public class AccountCurrenciesController {
             String baseCurrency = (String) request.get("baseCurrency");
 
             if (accountId == null || baseCurrency == null) {
-                return ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error("Missing accountId or baseCurrency"));
+                return ResponseWrapper.badRequest("Missing accountId or baseCurrency");
             }
 
             // Find the existing default currency and unset it
@@ -76,18 +70,12 @@ public class AccountCurrenciesController {
                 accountCurrenciesRepository.save(newBaseCurrency);
             }
 
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(null, "Base currency updated successfully"));
+            return ResponseWrapper.ok(null, "Base currency updated successfully");
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Invalid accountId format"));
+            return ResponseWrapper.badRequest("Invalid accountId format");
         } catch (Exception e) {
             logger.error("Error updating base currency: ", e);
-            return ResponseEntity.status(500)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to update base currency"));
+            return ResponseWrapper.internalServerError("Failed to update base currency");
         }
     }
 }

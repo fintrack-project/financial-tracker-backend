@@ -1,9 +1,9 @@
 package com.fintrack.controller.market;
 
 import com.fintrack.common.ApiResponse;
+import com.fintrack.common.ResponseWrapper;
 import com.fintrack.service.market.MarketIndexDataService;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
@@ -30,19 +30,13 @@ public class MarketIndexDataController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> fetchMarketData(@RequestParam List<String> symbols) {
         try {
             Map<String, Object> marketData = marketIndexDataService.getMostRecentMarketIndexData(symbols);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(marketData));
+            return ResponseWrapper.ok(marketData);
         } catch (IllegalArgumentException e) {
             logger.error("Invalid request format: ", e);
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Invalid request format"));
+            return ResponseWrapper.badRequest(e.getMessage());
         } catch (Exception e) {
             logger.error("Error fetching market index data: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to fetch market index data"));
+            return ResponseWrapper.badRequest("Failed to fetch market index data");
         }
     }
 }

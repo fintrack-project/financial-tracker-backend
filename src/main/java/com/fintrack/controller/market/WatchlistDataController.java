@@ -1,10 +1,10 @@
 package com.fintrack.controller.market;
 
 import com.fintrack.common.ApiResponse;
+import com.fintrack.common.ResponseWrapper;
 import com.fintrack.model.market.WatchlistData;
 import com.fintrack.service.market.WatchlistDataService;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
@@ -35,19 +35,13 @@ public class WatchlistDataController {
             List<String> assetTypes = (List<String>) payload.get("assetTypes");
 
             List<WatchlistData> watchlistData = watchlistDataService.fetchWatchlistData(accountId, assetTypes);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(watchlistData));
+            return ResponseWrapper.ok(watchlistData);
         } catch (IllegalArgumentException e) {
             logger.error("Invalid request format: ", e);
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Invalid request format"));
+            return ResponseWrapper.badRequest(e.getMessage());
         } catch (Exception e) {
             logger.error("Error fetching watchlist data: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to fetch watchlist data"));
+            return ResponseWrapper.badRequest("Failed to fetch watchlist data");
         }
     }
 
@@ -63,19 +57,13 @@ public class WatchlistDataController {
             String assetType = (String) payload.get("assetType");
 
             watchlistDataService.addWatchlistItem(accountId, symbol, assetType);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(null, "Item added to watchlist successfully"));
+            return ResponseWrapper.ok(null, "Item added to watchlist successfully");
         } catch (IllegalArgumentException e) {
             logger.error("Invalid request format: ", e);
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         } catch (Exception e) {
             logger.error("Error adding watchlist item: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to add item to watchlist"));
+            return ResponseWrapper.badRequest("Failed to add item to watchlist");
         }
     }
 
@@ -91,19 +79,13 @@ public class WatchlistDataController {
             String assetType = (String) payload.get("assetType");
 
             watchlistDataService.removeWatchlistItem(accountId, symbol, assetType);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(null, "Item removed from watchlist successfully"));
+            return ResponseWrapper.ok(null, "Item removed from watchlist successfully");
         } catch (IllegalArgumentException e) {
             logger.error("Invalid request format: ", e);
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         } catch (Exception e) {
             logger.error("Error removing watchlist item: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to remove item from watchlist"));
+            return ResponseWrapper.badRequest("Failed to remove item from watchlist");
         }
     }
 }

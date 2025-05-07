@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
 import com.fintrack.common.ApiResponse;
+import com.fintrack.common.ResponseWrapper;
 import com.fintrack.service.finance.CategoriesService;
 
 import java.util.*;
@@ -26,13 +27,9 @@ public class CategoriesController {
             String categoryName = (String) categoryData.get("category_name");
         
             categoriesService.addCategory(accountId, categoryName);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(null, "Category added successfully."));
+            return ResponseWrapper.ok(null, "Category added successfully.");
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 
@@ -44,13 +41,9 @@ public class CategoriesController {
             String newCategoryName = (String) categoryData.get("new_category_name");
         
             categoriesService.updateCategoryName(accountId, oldCategoryName, newCategoryName);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(null, "Category name updated successfully."));
+            return ResponseWrapper.ok(null, "Category name updated successfully.");
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 
@@ -60,13 +53,9 @@ public class CategoriesController {
             @RequestParam(name = "category") String category) {
         try {
             categoriesService.removeCategory(accountId, category);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(null, "Category and its subcategories removed successfully."));
+            return ResponseWrapper.ok(null, "Category and its subcategories removed successfully.");
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 
@@ -75,13 +64,9 @@ public class CategoriesController {
         @RequestParam(name = "accountId") UUID accountId) {
         try {
             Map<String, Object> response = categoriesService.getCategoriesAndSubcategories(accountId);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(response));
+            return ResponseWrapper.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 
@@ -90,13 +75,9 @@ public class CategoriesController {
         @RequestParam(name = "accountId") UUID accountId) {
         try {
             List<String> categoryNames = categoriesService.getCategoryNames(accountId);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(categoryNames));
+            return ResponseWrapper.ok(categoryNames);
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 }
