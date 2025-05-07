@@ -48,7 +48,7 @@ public class UserService {
         Optional<User> userOptional = userRepository.findByUserId(userId);;
         if (userOptional.isEmpty()) {
             logger.warn("User not found for userId: {}", userId);
-            return Map.of("success", false, "message", "Invalid userId or password.");
+            throw new IllegalArgumentException("Invalid userId or password.");
         }
 
         User user = userOptional.get();
@@ -67,7 +67,7 @@ public class UserService {
                 // Account is still locked
                 logger.warn("Account is still locked for userId: {}", userId);
                 userRepository.save(user);
-                return Map.of("success", false, "message", String.format("Account is locked. Please try again %s minutes later.", LOCK_TIME_DURATION));
+                throw new IllegalArgumentException(String.format("Account is locked. Please try again %s minutes later.", LOCK_TIME_DURATION));
             }
         }
 
@@ -89,7 +89,11 @@ public class UserService {
             user.setAccountLocked(false); // Unlock account if it was locked
             userRepository.save(user);
 
-            return Map.of("success", true, "token", token);
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            response.put("userId", user.getUserId());
+            response.put("accountId", user.getAccountId());
+            return response;
         } else {
             // Failed login
             logger.warn("Invalid password for userId: {}", userId);
@@ -97,7 +101,7 @@ public class UserService {
             userRepository.save(user);
 
             // Validate the password
-            return Map.of("success", false, "message", "Invalid userId or password.");
+            throw new IllegalArgumentException("Invalid userId or password.");
         }
     }
 

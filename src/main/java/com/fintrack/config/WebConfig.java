@@ -20,10 +20,12 @@ public class WebConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**") // Allow all endpoints
-                        .allowedOrigins(baseUrl) // Allow requests from the frontend
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // Allow specific HTTP methods
+                        .allowedOrigins(baseUrl) // Use the configured base URL
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH") // Allow all common HTTP methods
                         .allowedHeaders("*") // Allow all headers
-                        .allowCredentials(true); // Allow cookies and credentials
+                        .exposedHeaders("Authorization") // Expose the Authorization header
+                        .allowCredentials(true) // Allow cookies and credentials
+                        .maxAge(3600); // Cache preflight requests for 1 hour
             }
         };
     }

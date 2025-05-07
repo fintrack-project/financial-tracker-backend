@@ -7,18 +7,20 @@ import com.fintrack.model.subscription.SubscriptionPlan;
 import com.fintrack.model.subscription.UserSubscription;
 import com.fintrack.service.subscription.SubscriptionPlanService;
 import com.fintrack.service.subscription.UserSubscriptionService;
+import com.fintrack.common.ApiResponse;
 import com.stripe.exception.StripeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.MediaType;
 
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/user/subscriptions")
+@RequestMapping(value = "/api/user/subscriptions", produces = MediaType.APPLICATION_JSON_VALUE)
 public class UserSubscriptionController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserSubscriptionController.class);
@@ -53,10 +55,12 @@ public class UserSubscriptionController {
     }
 
     @PostMapping("/details")
-    public ResponseEntity<?> fetchUserSubscriptionWithPlanDetails(@RequestBody Map<String, String> requestBody) {
+    public ResponseEntity<ApiResponse<UserSubscriptionDetailsResponse>> fetchUserSubscriptionWithPlanDetails(@RequestBody Map<String, String> requestBody) {
         String accountIdStr = requestBody.get("accountId");
         if (accountIdStr == null || accountIdStr.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Account ID is required"));
+            return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.error("Account ID is required"));
         }
 
         try {
@@ -71,10 +75,9 @@ public class UserSubscriptionController {
             Optional<SubscriptionPlan> planOpt = subscriptionPlanService.getPlanById(subscription.getPlanId());
             
             if (planOpt.isEmpty()) {
-                return ResponseEntity.ok(Map.of(
-                    "subscription", subscription,
-                    "plan", Map.of("error", "Plan not found")
-                ));
+                return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(ApiResponse.error("Plan not found"));
             }
             
             SubscriptionPlan plan = planOpt.get();
@@ -84,30 +87,38 @@ public class UserSubscriptionController {
             response.setSubscription(subscription);
             response.setPlan(plan);
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.success(response));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Invalid account ID format"));
+            return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.error("Invalid account ID format"));
         }
     }
 
     @PostMapping("/update")
-    public ResponseEntity<?> updateUserSubscription(@RequestBody SubscriptionPlanRequest request) {
+    public ResponseEntity<ApiResponse<UserSubscription>> updateUserSubscription(@RequestBody SubscriptionPlanRequest request) {
         logger.info("Updating subscription for account: {} with plan name: {}", request.getAccountId(), request.getPlanName());
         
         if (request.getAccountId() == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Account ID is required"));
+            return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.error("Account ID is required"));
         }
         
         if (request.getPlanName() == null || request.getPlanName().isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Plan name is required"));
+            return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.error("Plan name is required"));
         }
         
         // Validate that plan name is one of the accepted values
         SubscriptionPlanType planType = SubscriptionPlanType.fromPlanName(request.getPlanName());
         if (planType == null) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "error", "Invalid plan name: " + request.getPlanName(), 
-                    "validPlans", SubscriptionPlanType.values()));
+            return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.error("Invalid plan name: " + request.getPlanName()));
         }
         
         try {
@@ -116,22 +127,27 @@ public class UserSubscriptionController {
                     request.getPlanName(), 
                     request.getPaymentMethodId());
             
-            return ResponseEntity.ok(userSubscription);
+            return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.success(userSubscription));
         } catch (StripeException e) {
             logger.error("Stripe error updating subscription: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of(
-                    "error", "Payment processing error",
-                    "details", e.getMessage()
-            ));
+            return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.error("Payment processing error: " + e.getMessage()));
         } catch (RuntimeException e) {
             logger.error("Error updating subscription: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.error(e.getMessage()));
         }
     }
     
     @GetMapping("/plan-types")
-    public ResponseEntity<?> getAvailablePlanTypes() {
+    public ResponseEntity<ApiResponse<SubscriptionPlanType[]>> getAvailablePlanTypes() {
         logger.info("Getting available subscription plan types");
-        return ResponseEntity.ok(SubscriptionPlanType.values());
+        return ResponseEntity.ok()
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(ApiResponse.success(SubscriptionPlanType.values()));
     }
 }
