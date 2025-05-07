@@ -3,6 +3,7 @@ package com.fintrack.controller.subscription;
 import com.fintrack.constants.subscription.SubscriptionPlanType;
 import com.fintrack.dto.subscription.SubscriptionPlanRequest;
 import com.fintrack.dto.subscription.UserSubscriptionDetailsResponse;
+import com.fintrack.dto.subscription.SubscriptionUpdateResponse;
 import com.fintrack.model.subscription.SubscriptionPlan;
 import com.fintrack.model.subscription.UserSubscription;
 import com.fintrack.service.subscription.SubscriptionPlanService;
@@ -93,7 +94,7 @@ public class UserSubscriptionController {
     }
 
     @PostMapping("/update")
-    public ResponseEntity<ApiResponse<UserSubscription>> updateUserSubscription(@RequestBody SubscriptionPlanRequest request) {
+    public ResponseEntity<ApiResponse<SubscriptionUpdateResponse>> updateUserSubscription(@RequestBody SubscriptionPlanRequest request) {
         logger.info("Updating subscription for account: {} with plan name: {}", request.getAccountId(), request.getPlanName());
         
         if (request.getAccountId() == null) {
@@ -111,17 +112,36 @@ public class UserSubscriptionController {
         }
         
         try {
-            UserSubscription userSubscription = userSubscriptionService.updateSubscription(
+            SubscriptionUpdateResponse response = userSubscriptionService.updateSubscriptionWithPayment(
                     request.getAccountId(), 
                     request.getPlanName(), 
-                    request.getPaymentMethodId());
+                    request.getPaymentMethodId(),
+                    request.getReturnUrl());
             
-            return ResponseWrapper.ok(userSubscription);
+            return ResponseWrapper.ok(response);
         } catch (StripeException e) {
             logger.error("Stripe error updating subscription: {}", e.getMessage());
             return ResponseWrapper.badRequest("Payment processing error: " + e.getMessage());
         } catch (RuntimeException e) {
             logger.error("Error updating subscription: {}", e.getMessage());
+            return ResponseWrapper.badRequest(e.getMessage());
+        }
+    }
+
+    @PostMapping("/confirm-payment")
+    public ResponseEntity<ApiResponse<SubscriptionUpdateResponse>> confirmPayment(
+            @RequestParam("payment_intent") String paymentIntentId,
+            @RequestParam("subscription_id") String subscriptionId) {
+        logger.info("Confirming payment for subscription: {} with payment intent: {}", subscriptionId, paymentIntentId);
+        
+        try {
+            SubscriptionUpdateResponse response = userSubscriptionService.confirmPayment(paymentIntentId, subscriptionId);
+            return ResponseWrapper.ok(response);
+        } catch (StripeException e) {
+            logger.error("Stripe error confirming payment: {}", e.getMessage());
+            return ResponseWrapper.badRequest("Payment confirmation error: " + e.getMessage());
+        } catch (RuntimeException e) {
+            logger.error("Error confirming payment: {}", e.getMessage());
             return ResponseWrapper.badRequest(e.getMessage());
         }
     }

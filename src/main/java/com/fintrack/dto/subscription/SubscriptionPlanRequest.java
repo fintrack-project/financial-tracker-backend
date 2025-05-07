@@ -6,6 +6,7 @@ public class SubscriptionPlanRequest {
     private UUID accountId;
     private String planName;
     private String paymentMethodId;
+    private String returnUrl;  // URL to return to after payment completion
 
     // Getters and Setters
     public UUID getAccountId() {
@@ -30,5 +31,13 @@ public class SubscriptionPlanRequest {
 
     public void setPaymentMethodId(String paymentMethodId) {
         this.paymentMethodId = paymentMethodId;
+    }
+
+    public String getReturnUrl() {
+        return returnUrl;
+    }
+
+    public void setReturnUrl(String returnUrl) {
+        this.returnUrl = returnUrl;
     }
 } 

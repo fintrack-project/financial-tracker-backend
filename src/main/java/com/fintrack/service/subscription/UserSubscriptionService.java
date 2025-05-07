@@ -1,12 +1,15 @@
 package com.fintrack.service.subscription;
 
 import com.fintrack.constants.subscription.SubscriptionPlanType;
+import com.fintrack.dto.subscription.SubscriptionUpdateResponse;
 import com.fintrack.model.subscription.UserSubscription;
+import com.fintrack.model.subscription.SubscriptionPlan;
 import com.fintrack.repository.subscription.UserSubscriptionRepository;
 import com.fintrack.service.payment.PaymentService;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
+import com.stripe.model.PaymentIntent;
 import com.stripe.model.Subscription;
 import com.stripe.param.SubscriptionCreateParams;
 import com.stripe.param.SubscriptionUpdateParams;
@@ -16,13 +19,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class UserSubscriptionService {
@@ -330,5 +330,148 @@ public class UserSubscriptionService {
         }
         
         return customerId;
+    }
+
+    @Transactional
+    public SubscriptionUpdateResponse updateSubscriptionWithPayment(UUID accountId, String planName, 
+            String paymentMethodId, String returnUrl) throws StripeException {
+        logger.info("Updating subscription with payment for account: {} with plan: {}", accountId, planName);
+        
+        SubscriptionPlanType planType = SubscriptionPlanType.fromPlanName(planName);
+        if (planType == null) {
+            throw new IllegalArgumentException("Invalid plan name: " + planName);
+        }
+        
+        // If it's a free plan, handle it differently
+        if (planType == SubscriptionPlanType.FREE) {
+            UserSubscription subscription = handleFreePlanSubscription(accountId, planType.getPlanName());
+            return SubscriptionUpdateResponse.fromUserSubscription(subscription, null, false, 
+                    BigDecimal.ZERO, "USD");
+        }
+        
+        Stripe.apiKey = stripeSecretKey;
+
+        // Get plan ID and price from plan name
+        String planId = subscriptionPlanService.getPlanIdByName(planType.getPlanName());
+        String stripePriceId = subscriptionPlanService.getStripePriceIdByName(planType.getPlanName());
+        SubscriptionPlan plan = subscriptionPlanService.getPlanById(planId)
+                .orElseThrow(() -> new RuntimeException("Plan not found: " + planId));
+        
+        logger.info("Found plan ID: {} and Stripe price ID: {} for plan name: {}", 
+                planId, stripePriceId, planType.getPlanName());
+
+        // Get current subscription if exists
+        Optional<UserSubscription> currentSubscription = userSubscriptionRepository.findByAccountId(accountId);
+
+        if (currentSubscription.isPresent()) {
+            // Handle downgrade to free
+            if (planType == SubscriptionPlanType.FREE) {
+                UserSubscription subscription = handleDowngradeToFreePlan(currentSubscription.get(), planId);
+                return SubscriptionUpdateResponse.fromUserSubscription(subscription, null, false, 
+                        BigDecimal.ZERO, "USD");
+            }
+            
+            // Update existing subscription
+            return updateExistingSubscriptionWithPayment(currentSubscription.get(), planId, 
+                    stripePriceId, paymentMethodId, plan.getAmount(), plan.getCurrency(), returnUrl);
+        } else {
+            // Create new subscription
+            return createNewSubscriptionWithPayment(accountId, planId, stripePriceId, 
+                    paymentMethodId, plan.getAmount(), plan.getCurrency(), returnUrl);
+        }
+    }
+
+    private SubscriptionUpdateResponse updateExistingSubscriptionWithPayment(UserSubscription currentSubscription,
+            String planId, String stripePriceId, String paymentMethodId, BigDecimal amount, 
+            String currency, String returnUrl) throws StripeException {
+        
+        // Create a payment intent for the subscription update
+        Map<String, Object> paymentIntentParams = new HashMap<>();
+        paymentIntentParams.put("amount", amount.multiply(BigDecimal.valueOf(100)).intValue()); // Convert to cents
+        paymentIntentParams.put("currency", currency.toLowerCase());
+        paymentIntentParams.put("payment_method", paymentMethodId);
+        paymentIntentParams.put("confirm", false);
+        paymentIntentParams.put("setup_future_usage", "off_session");
+        paymentIntentParams.put("return_url", returnUrl);
+        paymentIntentParams.put("metadata", Map.of(
+            "subscription_id", currentSubscription.getStripeSubscriptionId(),
+            "account_id", currentSubscription.getAccountId().toString()
+        ));
+
+        PaymentIntent paymentIntent = PaymentIntent.create(paymentIntentParams);
+
+        // Update subscription status to pending
+        currentSubscription.setStatus("pending_payment");
+        currentSubscription = userSubscriptionRepository.save(currentSubscription);
+
+        return SubscriptionUpdateResponse.fromUserSubscription(currentSubscription, 
+                paymentIntent.getClientSecret(), true, amount, currency);
+    }
+
+    private SubscriptionUpdateResponse createNewSubscriptionWithPayment(UUID accountId, String planId,
+            String stripePriceId, String paymentMethodId, BigDecimal amount, String currency,
+            String returnUrl) throws StripeException {
+        
+        // Ensure customer exists in Stripe
+        String customerId = ensureStripeCustomerExists(accountId);
+        
+        // Create a payment intent for the new subscription
+        Map<String, Object> paymentIntentParams = new HashMap<>();
+        paymentIntentParams.put("amount", amount.multiply(BigDecimal.valueOf(100)).intValue()); // Convert to cents
+        paymentIntentParams.put("currency", currency.toLowerCase());
+        paymentIntentParams.put("payment_method", paymentMethodId);
+        paymentIntentParams.put("confirm", false);
+        paymentIntentParams.put("setup_future_usage", "off_session");
+        paymentIntentParams.put("return_url", returnUrl);
+        paymentIntentParams.put("metadata", Map.of(
+            "account_id", accountId.toString(),
+            "plan_id", planId
+        ));
+
+        PaymentIntent paymentIntent = PaymentIntent.create(paymentIntentParams);
+
+        // Create subscription in pending state
+        UserSubscription subscription = new UserSubscription();
+        subscription.setAccountId(accountId);
+        subscription.setPlanId(planId);
+        subscription.setStripeCustomerId(customerId);
+        subscription.setStatus("pending_payment");
+        subscription.setActive(false);
+        subscription.setSubscriptionStartDate(LocalDateTime.now());
+        subscription.setCreatedAt(LocalDateTime.now());
+        subscription = userSubscriptionRepository.save(subscription);
+
+        return SubscriptionUpdateResponse.fromUserSubscription(subscription, 
+                paymentIntent.getClientSecret(), true, amount, currency);
+    }
+
+    @Transactional
+    public SubscriptionUpdateResponse confirmPayment(String paymentIntentId, String subscriptionId) throws StripeException {
+        Stripe.apiKey = stripeSecretKey;
+        
+        // Retrieve the payment intent
+        PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
+        
+        if (!"succeeded".equals(paymentIntent.getStatus())) {
+            throw new RuntimeException("Payment not successful. Status: " + paymentIntent.getStatus());
+        }
+        
+        // Find the subscription
+        final UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        
+        // Update subscription status
+        subscription.setStatus("active");
+        subscription.setActive(true);
+        subscription.setLastPaymentDate(LocalDateTime.now());
+        subscription.setNextBillingDate(LocalDateTime.now().plusMonths(1));
+        UserSubscription savedSubscription = userSubscriptionRepository.save(subscription);
+        
+        // Get plan details for response
+        SubscriptionPlan plan = subscriptionPlanService.getPlanById(savedSubscription.getPlanId())
+                .orElseThrow(() -> new RuntimeException("Plan not found: " + savedSubscription.getPlanId()));
+        
+        return SubscriptionUpdateResponse.fromUserSubscription(savedSubscription, null, false, 
+                plan.getAmount(), plan.getCurrency());
     }
 }
