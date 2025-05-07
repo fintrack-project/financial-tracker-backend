@@ -92,12 +92,17 @@ public class UserController {
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error("User not found."));
+                    .body(ApiResponse.error("User not found"));
             }
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Invalid accountId format."));
+                .body(ApiResponse.error("Invalid accountId format"));
+        } catch (Exception e) {
+            logger.error("Error fetching user details: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.error("Failed to fetch user details"));
         }
     }
 

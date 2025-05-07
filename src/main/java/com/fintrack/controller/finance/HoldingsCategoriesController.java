@@ -2,13 +2,14 @@ package com.fintrack.controller.finance;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.http.MediaType;
+import com.fintrack.common.ApiResponse;
 import com.fintrack.service.finance.HoldingsCategoriesService;
 
 import java.util.*;
 
 @RestController
-@RequestMapping("/api/categories")
+@RequestMapping(value = "/api/categories", produces = MediaType.APPLICATION_JSON_VALUE)
 public class HoldingsCategoriesController {
 
     private final HoldingsCategoriesService holdingsCategoriesService;
@@ -18,41 +19,67 @@ public class HoldingsCategoriesController {
     }
 
     @PostMapping("/holdings/update")
-    public ResponseEntity<String> updateHoldingsCategories(
+    public ResponseEntity<ApiResponse<Void>> updateHoldingsCategories(
         @RequestParam(name = "accountId") UUID accountId,
         @RequestBody Map<String, Map<String, String>> holdingsCategories
     ) {
-        // Pass the data to the service layer
-        holdingsCategoriesService.updateHoldingsCategories(accountId, holdingsCategories);
-    
-        return ResponseEntity.ok("Holdings categories updated successfully.");
+        try {
+            holdingsCategoriesService.updateHoldingsCategories(accountId, holdingsCategories);
+            return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.success(null, "Holdings categories updated successfully."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.error(e.getMessage()));
+        }
     }
 
     @PostMapping("/holdings/add")
-    public ResponseEntity<String> addHoldingsCategories(
+    public ResponseEntity<ApiResponse<Void>> addHoldingsCategories(
         @RequestParam(name = "accountId") UUID accountId,
         @RequestBody Map<String, Map<String, String>> holdingsCategories
     ) {
-        // Pass the data to the service layer
-        holdingsCategoriesService.addHoldingsCategories(accountId, holdingsCategories);
-    
-        return ResponseEntity.ok("Holdings categories added successfully.");
+        try {
+            holdingsCategoriesService.addHoldingsCategories(accountId, holdingsCategories);
+            return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.success(null, "Holdings categories added successfully."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.error(e.getMessage()));
+        }
     }
 
     @PostMapping("/holdings/remove")
-    public ResponseEntity<String> removeHoldingsCategory(
+    public ResponseEntity<ApiResponse<Void>> removeHoldingsCategory(
         @RequestParam(name = "accountId") UUID accountId,
         @RequestParam(name = "category") String category
     ) {
-        // Pass the data to the service layer
-        holdingsCategoriesService.removeHoldingsCategory(accountId, category);
-    
-        return ResponseEntity.ok("Holdings category removed successfully.");
+        try {
+            holdingsCategoriesService.removeHoldingsCategory(accountId, category);
+            return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.success(null, "Holdings category removed successfully."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.error(e.getMessage()));
+        }
     }
 
     @GetMapping("/holdings/fetch")
-    public ResponseEntity<Map<String, Map<String, String>>> fetchHoldingsCategories(@RequestParam(name = "accountId") UUID accountId) {
-        Map<String, Map<String, String>> holdings = holdingsCategoriesService.fetchHoldingsCategories(accountId);
-        return ResponseEntity.ok(holdings);
+    public ResponseEntity<ApiResponse<Map<String, Map<String, String>>>> fetchHoldingsCategories(@RequestParam(name = "accountId") UUID accountId) {
+        try {
+            Map<String, Map<String, String>> holdings = holdingsCategoriesService.fetchHoldingsCategories(accountId);
+            return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.success(holdings));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ApiResponse.error(e.getMessage()));
+        }
     }
 }
