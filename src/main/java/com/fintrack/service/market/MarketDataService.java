@@ -121,6 +121,13 @@ public class MarketDataService {
                 logger.warn("No holdings found for accountId: " + accountId + ". Skipping MARKET_DATA_MONTHLY_REQUEST.");
                 return;
             }
+            
+            // Use current date as end_date if it's later than endDate
+            LocalDate currentDate = LocalDate.now();
+            if (currentDate.isAfter(endDate)) {
+                logger.debug("Using current date {} instead of {} as end_date", currentDate, endDate);
+                endDate = currentDate;
+            }
     
             // Create the payload for MARKET_DATA_MONTHLY_REQUEST
             Map<String, Object> monthlyRequestPayload = new HashMap<>();
