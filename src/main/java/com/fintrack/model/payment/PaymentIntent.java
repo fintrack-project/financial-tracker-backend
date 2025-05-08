@@ -34,6 +34,36 @@ public class PaymentIntent {
     @Column(name = "client_secret")
     private String clientSecret;
 
+    @Column(name = "stripe_customer_id")
+    private String stripeCustomerId;
+
+    @Column(name = "setup_future_usage", length = 20)
+    private String setupFutureUsage;
+
+    @Column(name = "payment_method_types")
+    private String paymentMethodTypes;
+
+    @Column(name = "next_action")
+    private String nextAction;
+
+    @Column(name = "last_payment_error")
+    private String lastPaymentError;
+
+    @Column(name = "cancellation_reason", length = 50)
+    private String cancellationReason;
+
+    @Column(name = "capture_method", length = 20)
+    private String captureMethod;
+
+    @Column(name = "confirmation_method", length = 20)
+    private String confirmationMethod;
+
+    @Column(name = "requires_action")
+    private Boolean requiresAction;
+
+    @Column(name = "metadata", columnDefinition = "TEXT")
+    private String metadata;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -103,6 +133,86 @@ public class PaymentIntent {
 
     public void setClientSecret(String clientSecret) {
         this.clientSecret = clientSecret;
+    }
+
+    public String getStripeCustomerId() {
+        return stripeCustomerId;
+    }
+
+    public void setStripeCustomerId(String stripeCustomerId) {
+        this.stripeCustomerId = stripeCustomerId;
+    }
+
+    public String getSetupFutureUsage() {
+        return setupFutureUsage;
+    }
+
+    public void setSetupFutureUsage(String setupFutureUsage) {
+        this.setupFutureUsage = setupFutureUsage;
+    }
+
+    public String getPaymentMethodTypes() {
+        return paymentMethodTypes;
+    }
+
+    public void setPaymentMethodTypes(String paymentMethodTypes) {
+        this.paymentMethodTypes = paymentMethodTypes;
+    }
+
+    public String getNextAction() {
+        return nextAction;
+    }
+
+    public void setNextAction(String nextAction) {
+        this.nextAction = nextAction;
+    }
+
+    public String getLastPaymentError() {
+        return lastPaymentError;
+    }
+
+    public void setLastPaymentError(String lastPaymentError) {
+        this.lastPaymentError = lastPaymentError;
+    }
+
+    public String getCancellationReason() {
+        return cancellationReason;
+    }
+
+    public void setCancellationReason(String cancellationReason) {
+        this.cancellationReason = cancellationReason;
+    }
+
+    public String getCaptureMethod() {
+        return captureMethod;
+    }
+
+    public void setCaptureMethod(String captureMethod) {
+        this.captureMethod = captureMethod;
+    }
+
+    public String getConfirmationMethod() {
+        return confirmationMethod;
+    }
+
+    public void setConfirmationMethod(String confirmationMethod) {
+        this.confirmationMethod = confirmationMethod;
+    }
+
+    public Boolean getRequiresAction() {
+        return requiresAction;
+    }
+
+    public void setRequiresAction(Boolean requiresAction) {
+        this.requiresAction = requiresAction;
+    }
+
+    public String getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(String metadata) {
+        this.metadata = metadata;
     }
 
     public LocalDateTime getCreatedAt() {

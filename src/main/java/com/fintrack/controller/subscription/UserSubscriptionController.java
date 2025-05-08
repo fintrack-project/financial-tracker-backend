@@ -4,6 +4,7 @@ import com.fintrack.constants.subscription.SubscriptionPlanType;
 import com.fintrack.dto.subscription.SubscriptionPlanRequest;
 import com.fintrack.dto.subscription.UserSubscriptionDetailsResponse;
 import com.fintrack.dto.subscription.SubscriptionUpdateResponse;
+import com.fintrack.dto.subscription.ConfirmPaymentRequest;
 import com.fintrack.model.subscription.SubscriptionPlan;
 import com.fintrack.model.subscription.UserSubscription;
 import com.fintrack.service.subscription.SubscriptionPlanService;
@@ -130,12 +131,14 @@ public class UserSubscriptionController {
 
     @PostMapping("/confirm-payment")
     public ResponseEntity<ApiResponse<SubscriptionUpdateResponse>> confirmPayment(
-            @RequestParam("payment_intent") String paymentIntentId,
-            @RequestParam("subscription_id") String subscriptionId) {
-        logger.info("Confirming payment for subscription: {} with payment intent: {}", subscriptionId, paymentIntentId);
+            @RequestBody ConfirmPaymentRequest request) {
+        logger.info("Confirming payment for subscription: {} with payment intent: {}", 
+            request.getSubscriptionId(), request.getPaymentIntentId());
         
         try {
-            SubscriptionUpdateResponse response = userSubscriptionService.confirmPayment(paymentIntentId, subscriptionId);
+            SubscriptionUpdateResponse response = userSubscriptionService.confirmPayment(
+                request.getPaymentIntentId(), 
+                request.getSubscriptionId());
             return ResponseWrapper.ok(response);
         } catch (StripeException e) {
             logger.error("Stripe error confirming payment: {}", e.getMessage());

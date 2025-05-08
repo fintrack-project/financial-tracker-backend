@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping(value = "/api/user/subscription-plans", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(value = "/api/subscription-plans", produces = MediaType.APPLICATION_JSON_VALUE)
 public class SubscriptionPlanController {
 
     private static final Logger logger = LoggerFactory.getLogger(SubscriptionPlanController.class);

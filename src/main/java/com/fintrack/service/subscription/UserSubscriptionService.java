@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.Arrays;
 
 @Service
 public class UserSubscriptionService {
@@ -389,10 +390,13 @@ public class UserSubscriptionService {
         Map<String, Object> paymentIntentParams = new HashMap<>();
         paymentIntentParams.put("amount", amount.multiply(BigDecimal.valueOf(100)).intValue()); // Convert to cents
         paymentIntentParams.put("currency", currency.toLowerCase());
+        paymentIntentParams.put("customer", currentSubscription.getStripeCustomerId());
         paymentIntentParams.put("payment_method", paymentMethodId);
-        paymentIntentParams.put("confirm", false);
+        paymentIntentParams.put("payment_method_types", Arrays.asList("card"));
+        paymentIntentParams.put("confirm", true);
         paymentIntentParams.put("setup_future_usage", "off_session");
         paymentIntentParams.put("return_url", returnUrl);
+        paymentIntentParams.put("capture_method", "automatic");
         paymentIntentParams.put("metadata", Map.of(
             "subscription_id", currentSubscription.getStripeSubscriptionId(),
             "account_id", currentSubscription.getAccountId().toString()
@@ -419,10 +423,13 @@ public class UserSubscriptionService {
         Map<String, Object> paymentIntentParams = new HashMap<>();
         paymentIntentParams.put("amount", amount.multiply(BigDecimal.valueOf(100)).intValue()); // Convert to cents
         paymentIntentParams.put("currency", currency.toLowerCase());
+        paymentIntentParams.put("customer", customerId);
         paymentIntentParams.put("payment_method", paymentMethodId);
-        paymentIntentParams.put("confirm", false);
+        paymentIntentParams.put("payment_method_types", Arrays.asList("card"));
+        paymentIntentParams.put("confirm", true);
         paymentIntentParams.put("setup_future_usage", "off_session");
         paymentIntentParams.put("return_url", returnUrl);
+        paymentIntentParams.put("capture_method", "automatic");
         paymentIntentParams.put("metadata", Map.of(
             "account_id", accountId.toString(),
             "plan_id", planId
@@ -473,5 +480,79 @@ public class UserSubscriptionService {
         
         return SubscriptionUpdateResponse.fromUserSubscription(savedSubscription, null, false, 
                 plan.getAmount(), plan.getCurrency());
+    }
+
+    @Transactional
+    public void handleFailedPayment(String paymentIntentId, String subscriptionId, String errorMessage) {
+        logger.info("Handling failed payment for subscription: {}, error: {}", subscriptionId, errorMessage);
+        
+        UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        
+        subscription.setStatus("payment_failed");
+        subscription.setActive(false);
+        userSubscriptionRepository.save(subscription);
+        
+        // TODO: Implement notification service to alert user about payment failure
+        logger.warn("Payment failed for subscription: {}. Error: {}", subscriptionId, errorMessage);
+    }
+
+    @Transactional
+    public void handlePaymentRequiresAction(String paymentIntentId, String subscriptionId, String nextAction) {
+        logger.info("Payment requires action for subscription: {}, action: {}", subscriptionId, nextAction);
+        
+        UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        
+        subscription.setStatus("requires_action");
+        userSubscriptionRepository.save(subscription);
+        
+        // TODO: Implement notification service to alert user about required action
+        logger.info("Payment requires action for subscription: {}. Action: {}", subscriptionId, nextAction);
+    }
+
+    @Transactional
+    public void handleSubscriptionCreated(String subscriptionId, String status) {
+        logger.info("Handling subscription created: {}, status: {}", subscriptionId, status);
+        
+        UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        
+        subscription.setStatus(status);
+        subscription.setActive("active".equals(status));
+        subscription.setSubscriptionStartDate(LocalDateTime.now());
+        userSubscriptionRepository.save(subscription);
+    }
+
+    @Transactional
+    public void handleSubscriptionUpdated(String subscriptionId, String status, Boolean cancelAtPeriodEnd) {
+        logger.info("Handling subscription updated: {}, status: {}, cancelAtPeriodEnd: {}", 
+                subscriptionId, status, cancelAtPeriodEnd);
+        
+        UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        
+        subscription.setStatus(status);
+        subscription.setActive("active".equals(status));
+        subscription.setCancelAtPeriodEnd(cancelAtPeriodEnd);
+        
+        if ("canceled".equals(status)) {
+            subscription.setSubscriptionEndDate(LocalDateTime.now());
+        }
+        
+        userSubscriptionRepository.save(subscription);
+    }
+
+    @Transactional
+    public void handleSubscriptionDeleted(String subscriptionId) {
+        logger.info("Handling subscription deleted: {}", subscriptionId);
+        
+        UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        
+        subscription.setStatus("canceled");
+        subscription.setActive(false);
+        subscription.setSubscriptionEndDate(LocalDateTime.now());
+        userSubscriptionRepository.save(subscription);
     }
 }
