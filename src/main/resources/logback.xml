@@ -14,11 +14,11 @@
         <appender-ref ref="CONSOLE" />
     </root>
 
-    <logger name="com.fintrack.service" level="trace" />
-    <logger name="com.fintrack.controller" level="trace" />
+    <logger name="com.fintrack.service" level="debug" />
+    <logger name="com.fintrack.controller" level="debug" />
     <logger name="com.fintrack.component" level="debug" />
     <logger name="org.hibernate.SQL" level="debug" />
-    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="trace" />
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="debug" />
 
     <!-- Hibernate Session and Transaction Logs -->
     <logger name="org.hibernate.engine.transaction" level="debug" />

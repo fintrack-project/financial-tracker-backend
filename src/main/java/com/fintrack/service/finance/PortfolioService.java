@@ -19,6 +19,7 @@ import com.fintrack.model.finance.HoldingsCategory;
 import com.fintrack.model.finance.HoldingsMonthly;
 import com.fintrack.model.market.MarketData;
 import com.fintrack.model.market.MarketDataMonthly;
+import com.fintrack.service.market.MarketDataService;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,6 +46,7 @@ public class PortfolioService {
     private final CategoriesRepository categoriesRepository;
     private final SubcategoriesRepository subcategoriesRepository;
     private final MarketDataMonthlyRepository marketDataMonthlyRepository;
+    private final MarketDataService marketDataService;
 
     public PortfolioService(
             HoldingsRepository holdingsRepository,
@@ -53,7 +55,8 @@ public class PortfolioService {
             MarketDataRepository marketDataRepository,
             MarketDataMonthlyRepository marketDataMonthlyRepository,
             CategoriesRepository categoriesRepository,
-            SubcategoriesRepository subcategoriesRepository) {
+            SubcategoriesRepository subcategoriesRepository,
+            MarketDataService marketDataService) {
         this.holdingsRepository = holdingsRepository;
         this.holdingsMonthlyRepository = holdingsMonthlyRepository;
         this.holdingsCategoriesRepository = holdingsCategoriesRepository;
@@ -61,6 +64,7 @@ public class PortfolioService {
         this.marketDataMonthlyRepository = marketDataMonthlyRepository;
         this.categoriesRepository = categoriesRepository;
         this.subcategoriesRepository = subcategoriesRepository;
+        this.marketDataService = marketDataService;
     }
     
     @Transactional(readOnly = true)
@@ -78,6 +82,10 @@ public class PortfolioService {
     
         // Fetch market data for the symbols and asset types
         List<Object[]> symbolAssetTypePairs = extractDistinctSymbolAssetTypePairs(holdings);
+        
+        // Ensure we have up-to-date market data for all symbols in the portfolio
+        refreshMarketDataForPortfolio(accountId, symbolAssetTypePairs);
+        
         List<MarketDataDto> marketDataDtoList = fetchMarketDataForPairs(symbolAssetTypePairs, baseCurrency, null);
     
         marketDataDtoList.forEach(marketData -> {
@@ -110,6 +118,10 @@ public class PortfolioService {
         
         // Fetch market data for the symbols and asset types
         List<Object[]> symbolAssetTypePairs = extractDistinctSymbolAssetTypePairs(holdings);
+        
+        // Ensure we have up-to-date market data for all symbols in the portfolio
+        refreshMarketDataForPortfolio(accountId, symbolAssetTypePairs);
+        
         List<MarketDataDto> marketDataDtoList = fetchMarketDataForPairs(symbolAssetTypePairs, baseCurrency, null);
     
         // Create marketDataMap
@@ -179,6 +191,9 @@ public class PortfolioService {
             
             // Fetch market data
             List<Object[]> symbolAssetTypePairs = extractDistinctSymbolAssetTypePairs(holdings);
+            
+            // Ensure we have market data for the historical date
+            // Note: For historical data, we don't need to refresh as it's not real-time
             List<MarketDataDto> marketDataDtoList = fetchMarketDataForPairs(symbolAssetTypePairs, baseCurrency, date);
 
             // Create market data map
@@ -221,6 +236,10 @@ public class PortfolioService {
 
                 // Fetch market data for the current holdings
                 List<Object[]> symbolAssetTypePairs = extractDistinctSymbolAssetTypePairs(currentHoldings);
+                
+                // Ensure we have up-to-date market data for current holdings
+                refreshMarketDataForPortfolio(accountId, symbolAssetTypePairs);
+                
                 List<MarketDataDto> currentMarketDataDtoList = fetchMarketDataForPairs(symbolAssetTypePairs, baseCurrency, null);
 
                 // Create marketDataMap for current data
@@ -373,7 +392,8 @@ public class PortfolioService {
     }
     
     private List<MarketDataDto> fetchNonForexMarketDataByDate(String symbol, AssetType assetType, LocalDate date) {
-        return fetchMarketData(
+        // First try to get data for the requested date
+        List<MarketDataDto> result = fetchMarketData(
             symbol,
             null,
             assetType,
@@ -382,6 +402,35 @@ public class PortfolioService {
             (pair, d) -> marketDataMonthlyRepository.findMarketDataBySymbolAndAssetTypeAndDate(pair, assetType.getAssetTypeName(), d),
             (pair, d) -> Collections.emptyList() // No reverse pair for non-FOREX
         );
+        
+        // If no data found for the requested date, try to find the most recent data
+        if (result.isEmpty()) {
+            logger.info("No market data found for symbol={}, assetType={} on date={}. Looking for most recent data.", 
+                    symbol, assetType, date);
+            
+            // Find the most recent date before the requested date that has data
+            List<MarketDataMonthly> historicalData = marketDataMonthlyRepository.findBySymbolAndDateRange(
+                    symbol, 
+                    date.minusMonths(3), // Look back up to 3 months
+                    date);
+            
+            if (!historicalData.isEmpty()) {
+                // Sort by date in descending order to get most recent first
+                historicalData.sort((a, b) -> b.getDate().compareTo(a.getDate()));
+                
+                // Get the most recent data
+                MarketDataMonthly mostRecentData = historicalData.get(0);
+                BigDecimal price = mostRecentData.getPrice();
+                
+                logger.info("Found most recent data for symbol={}, assetType={} on date={}. Price: {}", 
+                        symbol, assetType, mostRecentData.getDate(), price);
+                
+                // Create a market data DTO with the most recent price
+                result.add(new MarketDataDto(symbol, price, assetType));
+            }
+        }
+        
+        return result;
     }
 
     private <T> List<MarketDataDto> fetchMarketData(
@@ -438,5 +487,35 @@ public class PortfolioService {
             return ((MarketDataMonthly) marketData).getPrice();
         }
         throw new IllegalArgumentException("Unsupported market data type: " + marketData.getClass().getName());
+    }
+
+    /**
+     * Ensures that market data is refreshed for all symbols in the portfolio
+     * by directly calling MarketDataService instead of relying on Kafka messages
+     */
+    private void refreshMarketDataForPortfolio(UUID accountId, List<Object[]> symbolAssetTypePairs) {
+        // Convert symbol-assetType pairs to the format expected by MarketDataService
+        List<Map<String, String>> entities = new ArrayList<>();
+        for (Object[] pair : symbolAssetTypePairs) {
+            String symbol = (String) pair[0];
+            AssetType assetType = (AssetType) pair[1];
+            
+            Map<String, String> entity = new HashMap<>();
+            entity.put("symbol", symbol);
+            entity.put("assetType", assetType.getAssetTypeName());
+            entities.add(entity);
+        }
+        
+        // Directly call MarketDataService to fetch data instead of using Kafka
+        if (!entities.isEmpty()) {
+            logger.info("Directly refreshing market data for {} assets", entities.size());
+            try {
+                List<MarketData> refreshedData = marketDataService.fetchMarketData(accountId, entities);
+                logger.info("Successfully refreshed market data for {} assets", refreshedData.size());
+            } catch (Exception e) {
+                logger.error("Error refreshing market data: {}", e.getMessage(), e);
+                // Continue with available data even if refresh fails
+            }
+        }
     }
 }
