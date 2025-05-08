@@ -23,12 +23,8 @@ public class KafkaProducerService {
     }
 
     public void publishEvent(String topic, String message) {
-        kafkaTemplate.send(topic, message)
-            .thenAccept(result -> logger.info("Message sent successfully to topic: " + topic + ", partition: " + result.getRecordMetadata().partition() + ", offset: " + result.getRecordMetadata().offset()))
-            .exceptionally(ex -> {
-                logger.error("Failed to send message to topic: " + topic + ", error: " + ex.getMessage());
-                return null;
-            });
+        // Use the retry mechanism to handle OUT_OF_ORDER_SEQUENCE_NUMBER errors
+        publishEventWithRetry(topic, message, 3, 500);
     }
 
     public void publishEventWithRetry(String topic, String message, int maxRetries, long retryIntervalMillis) {

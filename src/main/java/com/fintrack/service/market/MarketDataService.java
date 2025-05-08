@@ -35,6 +35,8 @@ public class MarketDataService {
 
     public List<MarketData> fetchMarketData(UUID accountId, List<Map<String, String>> entities ) {
 
+        logger.trace("Fetching market data for entities: {}", entities);
+
         // Create the payload for MARKET_DATA_UPDATE_REQUEST
         List<Map<String, String>> assets = new ArrayList<>();
         List<Object[]> symbolAssetTypePairs = new ArrayList<>();
@@ -47,6 +49,8 @@ public class MarketDataService {
             assets.add(asset);
             symbolAssetTypePairs.add(new Object[]{symbol, assetType});
         }
+
+        logger.trace("Assets: {}", assets);
         // Send a Kafka message to request an update
         sendMarketDataUpdateRequest(accountId, assets);
 
@@ -102,13 +106,22 @@ public class MarketDataService {
 
     public void sendMarketDataUpdateRequest(UUID accountId, List<Map<String, String>> assets) {
         try {    
+            // Group the assets by asset type for better handling
+            Map<String, List<Map<String, String>>> assetsByType = new HashMap<>();
+            
+            for (Map<String, String> asset : assets) {
+                String assetType = asset.get("asset_type");
+                assetsByType.computeIfAbsent(assetType, k -> new ArrayList<>()).add(asset);
+            }
+            
+            // Create a single update request with all assets
             Map<String, Object> updateRequestPayload = new HashMap<>();
             updateRequestPayload.put("assets", assets);
-    
+            
             // Convert the payload to a JSON string
             ObjectMapper objectMapper = new ObjectMapper();
             String updateRequestJson = objectMapper.writeValueAsString(updateRequestPayload);
-    
+            
             // Publish the JSON payload to the MARKET_DATA_UPDATE_REQUEST topic
             kafkaProducerService.publishEvent(KafkaTopics.MARKET_DATA_UPDATE_REQUEST.getTopicName(), updateRequestJson);
             logger.info("Sent market data update request: " + updateRequestJson);
