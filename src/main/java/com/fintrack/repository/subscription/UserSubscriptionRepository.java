@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface UserSubscriptionRepository extends JpaRepository<UserSubscription, Long> {
     Optional<UserSubscription> findByAccountId(UUID accountId);
+    Optional<UserSubscription> findByStripeSubscriptionId(String stripeSubscriptionId);
 } 

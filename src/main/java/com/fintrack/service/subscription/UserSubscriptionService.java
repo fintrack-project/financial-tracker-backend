@@ -1,12 +1,15 @@
 package com.fintrack.service.subscription;
 
 import com.fintrack.constants.subscription.SubscriptionPlanType;
+import com.fintrack.dto.subscription.SubscriptionUpdateResponse;
 import com.fintrack.model.subscription.UserSubscription;
+import com.fintrack.model.subscription.SubscriptionPlan;
 import com.fintrack.repository.subscription.UserSubscriptionRepository;
 import com.fintrack.service.payment.PaymentService;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
+import com.stripe.model.PaymentIntent;
 import com.stripe.model.Subscription;
 import com.stripe.param.SubscriptionCreateParams;
 import com.stripe.param.SubscriptionUpdateParams;
@@ -16,13 +19,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.Arrays;
 
 @Service
 public class UserSubscriptionService {
@@ -330,5 +331,408 @@ public class UserSubscriptionService {
         }
         
         return customerId;
+    }
+
+    @Transactional
+    public SubscriptionUpdateResponse updateSubscriptionWithPayment(UUID accountId, String planName, 
+            String paymentMethodId, String returnUrl) throws StripeException {
+        // STEP 1: User initiates payment (This method is called from UserSubscriptionController)
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ STEP 1: Payment Initiation");
+        logger.trace("║ Account: {}", accountId);
+        logger.trace("║ Plan: {}", planName);
+        logger.trace("║ Payment Method: {}", paymentMethodId);
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+        
+        SubscriptionPlanType planType = SubscriptionPlanType.fromPlanName(planName);
+        if (planType == null) {
+            logger.trace("❌ Invalid plan name provided: {}", planName);
+            throw new IllegalArgumentException("Invalid plan name: " + planName);
+        }
+        
+        // Get plan details
+        String planId = subscriptionPlanService.getPlanIdByName(planType.getPlanName());
+        String stripePriceId = subscriptionPlanService.getStripePriceIdByName(planType.getPlanName());
+        SubscriptionPlan plan = subscriptionPlanService.getPlanById(planId)
+                .orElseThrow(() -> new RuntimeException("Plan not found: " + planId));
+        
+        logger.trace("║ Plan Details Retrieved:");
+        logger.trace("║ - Plan ID: {}", planId);
+        logger.trace("║ - Stripe Price ID: {}", stripePriceId);
+        logger.trace("║ - Amount: {}", plan.getAmount());
+        logger.trace("║ - Currency: {}", plan.getCurrency());
+
+        // STEP 2: Backend prepares for payment processing
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ STEP 2: Payment Processing Preparation");
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+
+        // Configure Stripe API
+        Stripe.apiKey = stripeSecretKey;
+        
+        // Get current subscription
+        Optional<UserSubscription> currentSubscription = userSubscriptionRepository.findByAccountId(accountId);
+        logger.trace("║ Current Subscription Status:");
+        logger.trace("║ - Exists: {}", currentSubscription.isPresent());
+        if (currentSubscription.isPresent()) {
+            logger.trace("║ - Current Plan: {}", currentSubscription.get().getPlanId());
+            logger.trace("║ - Status: {}", currentSubscription.get().getStatus());
+        }
+
+        // Handle free plan upgrades differently
+        if (currentSubscription.isPresent() && currentSubscription.get().getStripeSubscriptionId().startsWith("free_")) {
+            return handleFreeToPaidUpgrade(currentSubscription.get(), planId, stripePriceId, 
+                    paymentMethodId, plan.getAmount(), plan.getCurrency(), returnUrl);
+        }
+
+        // STEP 3: Create or Update Stripe Subscription
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ STEP 3: Create/Update Stripe Resources");
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+
+        if (currentSubscription.isPresent()) {
+            return updateExistingSubscriptionWithPayment(currentSubscription.get(), planId, 
+                    stripePriceId, paymentMethodId, plan.getAmount(), plan.getCurrency(), returnUrl);
+        } else {
+            return createNewSubscriptionWithPayment(accountId, planId, stripePriceId, 
+                    paymentMethodId, plan.getAmount(), plan.getCurrency(), returnUrl);
+        }
+    }
+
+    private SubscriptionUpdateResponse handleFreeToPaidUpgrade(UserSubscription currentSubscription,
+            String planId, String stripePriceId, String paymentMethodId, BigDecimal amount, 
+            String currency, String returnUrl) throws StripeException {
+        
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ STEP 3A: Handling Free to Paid Upgrade");
+        logger.trace("║ - Current Plan: {}", currentSubscription.getPlanId());
+        logger.trace("║ - New Plan: {}", planId);
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+
+        // Verify and update payment method
+        String customerId = currentSubscription.getStripeCustomerId();
+        logger.trace("║ Verifying Payment Method");
+        logger.trace("║ - Customer ID: {}", customerId);
+        logger.trace("║ - Payment Method: {}", paymentMethodId);
+
+        try {
+            Customer customer = Customer.retrieve(customerId);
+            customer.update(Map.of("invoice_settings", Map.of("default_payment_method", paymentMethodId)));
+            logger.trace("✓ Payment method updated successfully");
+        } catch (Exception e) {
+            logger.error("❌ Error updating payment method: {}", e.getMessage());
+            throw new RuntimeException("Failed to update payment method: " + e.getMessage());
+        }
+
+        // Create Stripe subscription
+        logger.trace("║ Creating Stripe Subscription");
+        SubscriptionCreateParams params = SubscriptionCreateParams.builder()
+                .setCustomer(customerId)
+                .addItem(SubscriptionCreateParams.Item.builder()
+                        .setPrice(stripePriceId)
+                        .build())
+                .setPaymentBehavior(SubscriptionCreateParams.PaymentBehavior.DEFAULT_INCOMPLETE)
+                .setPaymentSettings(SubscriptionCreateParams.PaymentSettings.builder()
+                        .setPaymentMethodTypes(List.of(SubscriptionCreateParams.PaymentSettings.PaymentMethodType.CARD))
+                        .setSaveDefaultPaymentMethod(SubscriptionCreateParams.PaymentSettings.SaveDefaultPaymentMethod.ON_SUBSCRIPTION)
+                        .build())
+                .setDefaultPaymentMethod(paymentMethodId)
+                .build();
+
+        Subscription stripeSubscription = Subscription.create(params);
+        logger.trace("✓ Stripe subscription created");
+        logger.trace("║ - Subscription ID: {}", stripeSubscription.getId());
+        logger.trace("║ - Status: {}", stripeSubscription.getStatus());
+
+        // STEP 4: Create Payment Intent
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ STEP 4: Create Payment Intent");
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+
+        Map<String, Object> paymentIntentParams = new HashMap<>();
+        int amountInCents = amount.multiply(BigDecimal.valueOf(100)).intValue();
+        paymentIntentParams.put("amount", amountInCents);
+        paymentIntentParams.put("currency", currency.toLowerCase());
+        paymentIntentParams.put("customer", customerId);
+        paymentIntentParams.put("payment_method", paymentMethodId);
+        paymentIntentParams.put("payment_method_types", Arrays.asList("card"));
+        paymentIntentParams.put("setup_future_usage", "off_session");
+        paymentIntentParams.put("metadata", Map.of(
+            "subscription_id", stripeSubscription.getId(),
+            "account_id", currentSubscription.getAccountId().toString()
+        ));
+
+        logger.trace("║ Payment Intent Parameters:");
+        logger.trace("║ - Amount: {} cents", amountInCents);
+        logger.trace("║ - Currency: {}", currency);
+        logger.trace("║ - Setup Future Usage: {}", paymentIntentParams.get("setup_future_usage"));
+
+        PaymentIntent paymentIntent = PaymentIntent.create(paymentIntentParams);
+        logger.trace("✓ Payment Intent created");
+        logger.trace("║ - ID: {}", paymentIntent.getId());
+        logger.trace("║ - Status: {}", paymentIntent.getStatus());
+
+        // STEP 5: Update Database
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ STEP 5: Update Local Database");
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+
+        currentSubscription.setStripeSubscriptionId(stripeSubscription.getId());
+        currentSubscription.setPlanId(planId);
+        currentSubscription.setStatus("pending_payment");
+        currentSubscription.setActive(false);
+        currentSubscription = userSubscriptionRepository.save(currentSubscription);
+        logger.trace("✓ Database updated");
+        logger.trace("║ - New Status: {}", currentSubscription.getStatus());
+        logger.trace("║ - New Plan ID: {}", currentSubscription.getPlanId());
+
+        // STEP 6: Return Response
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ STEP 6: Return Client Secret");
+        logger.trace("║ Payment flow ready for frontend confirmation");
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+
+        return SubscriptionUpdateResponse.fromUserSubscription(currentSubscription, 
+                paymentIntent.getClientSecret(), true, amount, currency);
+    }
+
+    private SubscriptionUpdateResponse createNewSubscriptionWithPayment(UUID accountId, String planId,
+            String stripePriceId, String paymentMethodId, BigDecimal amount, String currency,
+            String returnUrl) throws StripeException {
+        
+        logger.trace("Creating new subscription with payment - Account: {}, Plan: {}, Amount: {}", 
+                accountId, planId, amount);
+        
+        // Ensure customer exists in Stripe
+        String customerId = ensureStripeCustomerExists(accountId);
+        logger.trace("Customer ID confirmed in Stripe: {}", customerId);
+        
+        // Create a payment intent for the new subscription
+        Map<String, Object> paymentIntentParams = new HashMap<>();
+        int amountInCents = amount.multiply(BigDecimal.valueOf(100)).intValue();
+        paymentIntentParams.put("amount", amountInCents);
+        paymentIntentParams.put("currency", currency.toLowerCase());
+        paymentIntentParams.put("customer", customerId);
+        paymentIntentParams.put("payment_method", paymentMethodId);
+        paymentIntentParams.put("payment_method_types", Arrays.asList("card"));
+        paymentIntentParams.put("confirm", true);
+        paymentIntentParams.put("setup_future_usage", "off_session");
+        paymentIntentParams.put("return_url", returnUrl);
+        paymentIntentParams.put("capture_method", "automatic");
+        paymentIntentParams.put("metadata", Map.of(
+            "account_id", accountId.toString(),
+            "plan_id", planId
+        ));
+
+        logger.trace("Payment intent parameters prepared for new subscription - Amount (cents): {}", amountInCents);
+
+        PaymentIntent paymentIntent = PaymentIntent.create(paymentIntentParams);
+        logger.trace("Payment intent created for new subscription - ID: {}, Status: {}", 
+                paymentIntent.getId(), paymentIntent.getStatus());
+
+        // Create subscription in pending state
+        UserSubscription subscription = new UserSubscription();
+        subscription.setAccountId(accountId);
+        subscription.setPlanId(planId);
+        subscription.setStripeCustomerId(customerId);
+        subscription.setStatus("pending_payment");
+        subscription.setActive(false);
+        subscription.setSubscriptionStartDate(LocalDateTime.now());
+        subscription.setCreatedAt(LocalDateTime.now());
+        subscription = userSubscriptionRepository.save(subscription);
+        logger.trace("New subscription created in pending state - Account: {}, Plan: {}", 
+                accountId, planId);
+
+        return SubscriptionUpdateResponse.fromUserSubscription(subscription, 
+                paymentIntent.getClientSecret(), true, amount, currency);
+    }
+
+    @Transactional
+    public SubscriptionUpdateResponse confirmPayment(String paymentIntentId, String subscriptionId) throws StripeException {
+        logger.trace("Confirming payment - Payment Intent: {}, Subscription: {}", paymentIntentId, subscriptionId);
+        Stripe.apiKey = stripeSecretKey;
+        
+        // Retrieve the payment intent
+        PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
+        logger.trace("Retrieved payment intent - Status: {}, Amount: {}", 
+                paymentIntent.getStatus(), paymentIntent.getAmount());
+        
+        if (!"succeeded".equals(paymentIntent.getStatus())) {
+            logger.trace("Payment not successful - Current status: {}", paymentIntent.getStatus());
+            throw new RuntimeException("Payment not successful. Status: " + paymentIntent.getStatus());
+        }
+        
+        // Find the subscription
+        final UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        logger.trace("Found subscription - Current status: {}, Active: {}", 
+                subscription.getStatus(), subscription.isActive());
+        
+        // Update subscription status
+        subscription.setStatus("active");
+        subscription.setActive(true);
+        subscription.setLastPaymentDate(LocalDateTime.now());
+        subscription.setNextBillingDate(LocalDateTime.now().plusMonths(1));
+        UserSubscription savedSubscription = userSubscriptionRepository.save(subscription);
+        logger.trace("Subscription updated to active status - Next billing date: {}", 
+                savedSubscription.getNextBillingDate());
+        
+        // Get plan details for response
+        SubscriptionPlan plan = subscriptionPlanService.getPlanById(savedSubscription.getPlanId())
+                .orElseThrow(() -> new RuntimeException("Plan not found: " + savedSubscription.getPlanId()));
+        logger.trace("Retrieved plan details - Amount: {}, Currency: {}", 
+                plan.getAmount(), plan.getCurrency());
+        
+        return SubscriptionUpdateResponse.fromUserSubscription(savedSubscription, null, false, 
+                plan.getAmount(), plan.getCurrency());
+    }
+
+    @Transactional
+    public void handleFailedPayment(String paymentIntentId, String subscriptionId, String errorMessage) {
+        logger.info("Handling failed payment for subscription: {}, error: {}", subscriptionId, errorMessage);
+        
+        UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        
+        subscription.setStatus("payment_failed");
+        subscription.setActive(false);
+        userSubscriptionRepository.save(subscription);
+        
+        // TODO: Implement notification service to alert user about payment failure
+        logger.warn("Payment failed for subscription: {}. Error: {}", subscriptionId, errorMessage);
+    }
+
+    @Transactional
+    public void handlePaymentRequiresAction(String paymentIntentId, String subscriptionId, String nextAction) {
+        logger.info("Payment requires action for subscription: {}, action: {}", subscriptionId, nextAction);
+        
+        UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        
+        subscription.setStatus("requires_action");
+        userSubscriptionRepository.save(subscription);
+        
+        // TODO: Implement notification service to alert user about required action
+        logger.info("Payment requires action for subscription: {}. Action: {}", subscriptionId, nextAction);
+    }
+
+    @Transactional
+    public void handleSubscriptionCreated(String subscriptionId, String status) {
+        logger.info("Handling subscription created: {}, status: {}", subscriptionId, status);
+        
+        UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        
+        subscription.setStatus(status);
+        subscription.setActive("active".equals(status));
+        subscription.setSubscriptionStartDate(LocalDateTime.now());
+        userSubscriptionRepository.save(subscription);
+    }
+
+    @Transactional
+    public void handleSubscriptionUpdated(String subscriptionId, String status, Boolean cancelAtPeriodEnd) {
+        logger.info("Handling subscription updated: {}, status: {}, cancelAtPeriodEnd: {}", 
+                subscriptionId, status, cancelAtPeriodEnd);
+        
+        UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        
+        subscription.setStatus(status);
+        subscription.setActive("active".equals(status));
+        subscription.setCancelAtPeriodEnd(cancelAtPeriodEnd);
+        
+        if ("canceled".equals(status)) {
+            subscription.setSubscriptionEndDate(LocalDateTime.now());
+        }
+        
+        userSubscriptionRepository.save(subscription);
+    }
+
+    @Transactional
+    public void handleSubscriptionDeleted(String subscriptionId) {
+        logger.info("Handling subscription deleted: {}", subscriptionId);
+        
+        UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        
+        subscription.setStatus("canceled");
+        subscription.setActive(false);
+        subscription.setSubscriptionEndDate(LocalDateTime.now());
+        userSubscriptionRepository.save(subscription);
+    }
+
+    private SubscriptionUpdateResponse updateExistingSubscriptionWithPayment(UserSubscription currentSubscription,
+            String planId, String stripePriceId, String paymentMethodId, BigDecimal amount, 
+            String currency, String returnUrl) throws StripeException {
+        
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ STEP 3B: Update Existing Paid Subscription");
+        logger.trace("║ - Current Plan: {}", currentSubscription.getPlanId());
+        logger.trace("║ - New Plan: {}", planId);
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+
+        // Update payment method if provided
+        String customerId = currentSubscription.getStripeCustomerId();
+        logger.trace("║ Updating Payment Method");
+        logger.trace("║ - Customer ID: {}", customerId);
+        logger.trace("║ - Payment Method: {}", paymentMethodId);
+
+        try {
+            Customer customer = Customer.retrieve(customerId);
+            customer.update(Map.of("invoice_settings", Map.of("default_payment_method", paymentMethodId)));
+            logger.trace("✓ Payment method updated successfully");
+        } catch (Exception e) {
+            logger.error("❌ Error updating payment method: {}", e.getMessage());
+            throw new RuntimeException("Failed to update payment method: " + e.getMessage());
+        }
+
+        // STEP 4: Create Payment Intent
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ STEP 4: Create Payment Intent");
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+
+        Map<String, Object> paymentIntentParams = new HashMap<>();
+        int amountInCents = amount.multiply(BigDecimal.valueOf(100)).intValue();
+        paymentIntentParams.put("amount", amountInCents);
+        paymentIntentParams.put("currency", currency.toLowerCase());
+        paymentIntentParams.put("customer", customerId);
+        paymentIntentParams.put("payment_method", paymentMethodId);
+        paymentIntentParams.put("payment_method_types", Arrays.asList("card"));
+        paymentIntentParams.put("setup_future_usage", "off_session");
+        paymentIntentParams.put("metadata", Map.of(
+            "subscription_id", currentSubscription.getStripeSubscriptionId(),
+            "account_id", currentSubscription.getAccountId().toString()
+        ));
+
+        logger.trace("║ Payment Intent Parameters:");
+        logger.trace("║ - Amount: {} cents", amountInCents);
+        logger.trace("║ - Currency: {}", currency);
+        logger.trace("║ - Setup Future Usage: {}", paymentIntentParams.get("setup_future_usage"));
+
+        PaymentIntent paymentIntent = PaymentIntent.create(paymentIntentParams);
+        logger.trace("✓ Payment Intent created");
+        logger.trace("║ - ID: {}", paymentIntent.getId());
+        logger.trace("║ - Status: {}", paymentIntent.getStatus());
+
+        // STEP 5: Update Database
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ STEP 5: Update Local Database");
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+
+        currentSubscription.setPlanId(planId);
+        currentSubscription.setStatus("pending_payment");
+        currentSubscription = userSubscriptionRepository.save(currentSubscription);
+        logger.trace("✓ Database updated");
+        logger.trace("║ - New Status: {}", currentSubscription.getStatus());
+        logger.trace("║ - New Plan ID: {}", currentSubscription.getPlanId());
+
+        // STEP 6: Return Response
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ STEP 6: Return Client Secret");
+        logger.trace("║ Payment flow ready for frontend confirmation");
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+
+        return SubscriptionUpdateResponse.fromUserSubscription(currentSubscription, 
+                paymentIntent.getClientSecret(), true, amount, currency);
     }
 }

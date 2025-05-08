@@ -1,12 +1,11 @@
 package com.fintrack.controller.user;
 
 import com.fintrack.common.ApiResponse;
+import com.fintrack.common.ResponseWrapper;
 import com.fintrack.dto.user.AccountResponse;
 import com.fintrack.model.user.User;
 import com.fintrack.security.JwtService;
 import com.fintrack.service.user.AccountService;
-
-import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -51,19 +50,13 @@ public class AccountController {
             accountResponse.setCreatedAt(user.getSignupDate());
             accountResponse.setUpdatedAt(user.getLastActivityDate());
 
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(accountResponse));
+            return ResponseWrapper.ok(accountResponse);
         } catch (IllegalArgumentException e) {
             logger.error("Invalid token format: ", e);
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Invalid token format"));
+            return ResponseWrapper.badRequest("Invalid token format");
         } catch (Exception e) {
             logger.error("Error fetching current account: ", e);
-            return ResponseEntity.status(500)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to fetch current account"));
+            return ResponseWrapper.internalServerError("Failed to fetch current account");
         }
     }
 
@@ -78,18 +71,14 @@ public class AccountController {
             String accountId = accountService.getAccountIdByUserId(userId);
 
             if (accountId == null) {
-                return ResponseEntity.status(404)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error("User not found or account ID not associated with the user"));
+                return ResponseWrapper.notFound("User not found or account ID not associated with the user");
             }
 
             // Create the account in the accounts table
             boolean accountCreated = accountService.createAccount(UUID.fromString(accountId));
 
             if (!accountCreated) {
-                return ResponseEntity.status(400)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error("Account already exists or could not be created"));
+                return ResponseWrapper.badRequest("Account already exists or could not be created");
             }
 
             Map<String, String> response = Map.of(
@@ -97,14 +86,10 @@ public class AccountController {
                 "accountId", accountId
             );
 
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(response));
+            return ResponseWrapper.ok(response);
         } catch (Exception e) {
             logger.error("Error creating account: ", e);
-            return ResponseEntity.status(500)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to create account"));
+            return ResponseWrapper.internalServerError("Failed to create account");
         }
     }
 }

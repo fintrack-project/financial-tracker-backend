@@ -1,10 +1,10 @@
 package com.fintrack.controller.finance;
 
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
 import com.fintrack.common.ApiResponse;
+import com.fintrack.common.ResponseWrapper;
 import com.fintrack.service.finance.PortfolioService;
 
 import java.util.*;
@@ -26,13 +26,9 @@ public class PortfolioController {
             String baseCurrency = (String) requestData.get("baseCurrency");
 
             List<Map<String, Object>> portfolioData = portfolioService.calculatePortfolioData(accountId, baseCurrency);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(portfolioData));
+            return ResponseWrapper.ok(portfolioData);
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 
@@ -44,13 +40,9 @@ public class PortfolioController {
             String baseCurrency = (String) requestData.get("baseCurrency");
 
             List<Map<String, Object>> pieChartData = portfolioService.calculatePortfolioPieChartData(accountId, category, baseCurrency);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(pieChartData));
+            return ResponseWrapper.ok(pieChartData);
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 
@@ -62,13 +54,9 @@ public class PortfolioController {
             String baseCurrency = (String) requestData.get("baseCurrency");
 
             List<Map<String, Object>> barChartData = portfolioService.calculatePortfolioBarChartsData(accountId, category, baseCurrency);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(barChartData));
+            return ResponseWrapper.ok(barChartData);
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 }

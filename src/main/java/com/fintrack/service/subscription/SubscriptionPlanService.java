@@ -75,15 +75,15 @@ public class SubscriptionPlanService {
                 });
     }
     
-    public String getPlanIdByName(String planName) {
-        return getPlanByName(planName)
+    public String getPlanIdByName(String name) {
+        return subscriptionPlanRepository.findByNameIgnoreCase(name)
                 .map(SubscriptionPlan::getId)
-                .orElseThrow(() -> new RuntimeException("Subscription plan not found with name: " + planName));
+                .orElseThrow(() -> new RuntimeException("Plan not found with name: " + name));
     }
     
-    public String getStripePriceIdByName(String planName) {
-        return getPlanByName(planName)
+    public String getStripePriceIdByName(String name) {
+        return subscriptionPlanRepository.findByNameIgnoreCase(name)
                 .map(SubscriptionPlan::getStripePriceId)
-                .orElseThrow(() -> new RuntimeException("Stripe price ID not found for plan name: " + planName));
+                .orElseThrow(() -> new RuntimeException("Plan not found with name: " + name));
     }
 } 

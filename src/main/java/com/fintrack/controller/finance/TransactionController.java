@@ -5,10 +5,9 @@ import com.fintrack.component.transaction.PreviewTransaction;
 import com.fintrack.model.finance.Transaction;
 import com.fintrack.service.finance.TransactionService;
 import com.fintrack.common.ApiResponse;
-
+import com.fintrack.common.ResponseWrapper;
 import jakarta.servlet.http.HttpSession;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
@@ -36,13 +35,9 @@ public class TransactionController {
     public ResponseEntity<ApiResponse<List<Transaction>>> getTransactionsByAccountId(@PathVariable UUID accountId) {
         try {
             List<Transaction> transactions = transactionService.getTransactionsByAccountId(accountId);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(transactions));
+            return ResponseWrapper.ok(transactions);
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 
@@ -50,13 +45,9 @@ public class TransactionController {
     public ResponseEntity<ApiResponse<List<OverviewTransaction>>> getOverviewTransactionsByAccountId(@PathVariable UUID accountId) {
         try {
             List<OverviewTransaction> transactions = transactionService.getOverviewTransactionsByAccountId(accountId);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(transactions));
+            return ResponseWrapper.ok(transactions);
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 
@@ -75,13 +66,9 @@ public class TransactionController {
             session.setAttribute("previewTransactions", processedTransactions);
         
             // Return the processed transactions
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(processedTransactions));
+            return ResponseWrapper.ok(processedTransactions);
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 
@@ -96,13 +83,9 @@ public class TransactionController {
             if (previewTransactions == null) {
                 previewTransactions = new ArrayList<>(); // Return an empty list if no transactions are stored
             }
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(previewTransactions));
+            return ResponseWrapper.ok(previewTransactions);
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 
@@ -124,13 +107,9 @@ public class TransactionController {
             // Clear the session after confirmation
             session.removeAttribute("previewTransactions_" + accountId);
         
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(null, "Transactions confirmed successfully."));
+            return ResponseWrapper.ok(null, "Transactions confirmed successfully.");
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 }

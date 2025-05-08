@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fintrack.common.ApiResponse;
+import com.fintrack.common.ResponseWrapper;
 import com.fintrack.service.user.UserTwoFactorService;
 
 import java.util.*;
@@ -32,25 +33,17 @@ public class UserTwoFactorController {
             String accountIdString = request.get("accountId");
         
             if (accountIdString == null) {
-                return ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error("Missing accountId in the request body."));
+                return ResponseWrapper.badRequest("Missing accountId in the request body.");
             }
         
             UUID accountId = UUID.fromString(accountIdString);
             Map<String, String> response = userTwoFactorService.setupTwoFactorAuthentication(accountId);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(response));
+            return ResponseWrapper.ok(response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Invalid accountId format."));
+            return ResponseWrapper.badRequest("Invalid accountId format.");
         } catch (Exception e) {
             logger.error("Error setting up 2FA: ", e);
-            return ResponseEntity.status(500)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to set up 2FA"));
+            return ResponseWrapper.internalServerError("Failed to set up 2FA");
         }
     }
     
@@ -65,30 +58,20 @@ public class UserTwoFactorController {
             String otpString = request.get("otp");
         
             if (accountIdString == null || otpString == null) {
-                return ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error("Missing accountId or OTP in the request body."));
+                return ResponseWrapper.badRequest("Missing accountId or OTP in the request body.");
             }
         
             UUID accountId = UUID.fromString(accountIdString);
             int otp = Integer.parseInt(otpString);
             Map<String, Object> response = userTwoFactorService.verifyTwoFactorAuthentication(accountId, otp);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(response));
+            return ResponseWrapper.ok(response);
         } catch (NumberFormatException e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Invalid OTP format."));
+            return ResponseWrapper.badRequest("Invalid OTP format.");
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         } catch (Exception e) {
             logger.error("Error verifying 2FA: ", e);
-            return ResponseEntity.status(500)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to verify 2FA"));
+            return ResponseWrapper.internalServerError("Failed to verify 2FA");
         }
     }
 }

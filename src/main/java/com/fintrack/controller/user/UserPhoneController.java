@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fintrack.common.ApiResponse;
+import com.fintrack.common.ResponseWrapper;
 import com.fintrack.service.user.UserService;
 
 import java.util.*;
@@ -32,26 +33,18 @@ public class UserPhoneController {
             String accountId = request.get("accountId");
 
             if (accountId == null) {
-                return ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error("Missing accountId in the request body."));
+                return ResponseWrapper.badRequest("Missing accountId in the request body.");
             }
 
             // Call the service to update the phoneVerified field
             boolean isUpdated = userService.setPhoneVerified(UUID.fromString(accountId));
 
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(isUpdated));
+            return ResponseWrapper.ok(isUpdated);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Invalid accountId format"));
+            return ResponseWrapper.badRequest("Invalid accountId format");
         } catch (Exception e) {
             logger.error("Error verifying phone: ", e);
-            return ResponseEntity.status(500)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error("Failed to verify phone"));
+            return ResponseWrapper.internalServerError("Failed to verify phone");
         }
     }
 }

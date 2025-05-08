@@ -4,11 +4,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
 import com.fintrack.common.ApiResponse;
+import com.fintrack.common.ResponseWrapper;
 import com.fintrack.service.finance.SubcategoriesService;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping(value = "/api/categories/subcategories", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -28,13 +27,9 @@ public class SubcategoriesController {
             String subcategoryName = (String) subcategoryData.get("subcategory_name");
         
             subcategoriesService.addSubcategory(accountId, categoryName, subcategoryName);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(null, "Subcategory added successfully."));
+            return ResponseWrapper.ok(null, "Subcategory added successfully.");
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 
@@ -47,13 +42,9 @@ public class SubcategoriesController {
             String newSubcategoryName = (String) subcategoryData.get("new_subcategory_name");
         
             subcategoriesService.updateSubcategoryName(accountId, categoryName, oldSubcategoryName, newSubcategoryName);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(null, "Subcategory name updated successfully."));
+            return ResponseWrapper.ok(null, "Subcategory name updated successfully.");
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
     
@@ -64,13 +55,9 @@ public class SubcategoriesController {
             @RequestParam(name = "subcategory") String subcategory) {
         try {
             subcategoriesService.removeSubcategory(accountId, category, subcategory);
-            return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.success(null, "Subcategory removed successfully."));
+            return ResponseWrapper.ok(null, "Subcategory removed successfully.");
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(ApiResponse.error(e.getMessage()));
+            return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 }
