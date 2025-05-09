@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fintrack.constants.KafkaTopics;
 import com.fintrack.model.market.MarketIndexData;
 import com.fintrack.repository.market.MarketIndexDataRepository;
+import com.fintrack.service.market.base.AbstractMarketDataProvider;
 import com.fintrack.util.KafkaProducerService;
 
 import org.slf4j.Logger;
@@ -17,15 +18,14 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 @Service
-public class MarketIndexDataService {
+public class MarketIndexDataService extends AbstractMarketDataProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(MarketIndexDataService.class);
 
-    private final KafkaProducerService kafkaProducerService;
     private final MarketIndexDataRepository marketIndexDataRepository;
 
     public MarketIndexDataService(KafkaProducerService kafkaProducerService, MarketIndexDataRepository marketIndexDataRepository) {
-        this.kafkaProducerService = kafkaProducerService;
+        super(kafkaProducerService);
         this.marketIndexDataRepository = marketIndexDataRepository;
     }
 
@@ -36,8 +36,8 @@ public class MarketIndexDataService {
             decodedSymbols.add(URLDecoder.decode(encodedSymbol, StandardCharsets.UTF_8));
         }
 
-        // Send a Kafka message to request an update
-        sendMarketIndexDataUpdateRequest(decodedSymbols);
+        // Request an update via the superclass method
+        requestMarketDataUpdate(decodedSymbols);
 
         // Retry mechanism to fetch data until all symbols are available
         Map<String, Object> result = new HashMap<>();
@@ -68,7 +68,7 @@ public class MarketIndexDataService {
 
             // Wait before retrying
             try {
-                Thread.sleep(1000); // Wait for 2 seconds before retrying
+                Thread.sleep(1000); // Wait for 1 second before retrying
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 logger.error("Retry interrupted: " + e.getMessage());
@@ -85,31 +85,18 @@ public class MarketIndexDataService {
         return result;
     }
 
-    public void sendMarketIndexDataUpdateRequest(List<String> symbols) {
-        try {
-            // Create the payload as a Map
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("symbols", symbols);
-
-            // Convert the payload to a JSON string
-            ObjectMapper objectMapper = new ObjectMapper();
-            String jsonPayload = objectMapper.writeValueAsString(payload);
-
-            // Publish the JSON payload to the Kafka topic
-            kafkaProducerService.publishEvent(KafkaTopics.MARKET_INDEX_DATA_UPDATE_REQUEST.getTopicName(), jsonPayload);
-            logger.info("Sent market index data update request: " + jsonPayload);
-        } catch (Exception e) {
-            logger.error("Failed to send market index data update request: " + e.getMessage());
-        }
+    @Override
+    public KafkaTopics getUpdateRequestTopic() {
+        return KafkaTopics.MARKET_INDEX_DATA_UPDATE_REQUEST;
     }
 
+    @Override
     @KafkaListener(topics = "#{T(com.fintrack.constants.KafkaTopics).MARKET_INDEX_DATA_UPDATE_COMPLETE.getTopicName()}", groupId = "market-index-data-group")
-    public void onMarketIndexDataUpdateComplete(String message) {
+    public void onMarketDataUpdateComplete(String message) {
         logger.info("Received " + KafkaTopics.MARKET_INDEX_DATA_UPDATE_COMPLETE.getTopicName() + " message: " + message);
 
         // No need to save the data; just log the message
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
             List<Map<String, Object>> indexDataList = objectMapper.readValue(message, List.class);
             for (Map<String, Object> indexData : indexDataList) {
                 logger.trace("MarketIndexData: " + indexData);

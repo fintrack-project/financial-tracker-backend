@@ -8,6 +8,7 @@ import com.fintrack.model.market.WatchlistData;
 import com.fintrack.repository.finance.AccountCurrenciesRepository;
 import com.fintrack.repository.finance.HoldingsMonthlyRepository;
 import com.fintrack.repository.market.WatchlistDataRepository;
+import com.fintrack.service.market.interfaces.WatchlistDataOperations;
 import com.fintrack.util.KafkaProducerService;
 
 import org.slf4j.Logger;
@@ -17,8 +18,11 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.*;
 
+/**
+ * Service for managing watchlist data and requesting market data updates for watchlist items.
+ */
 @Service
-public class WatchlistDataService {
+public class WatchlistDataService implements WatchlistDataOperations {
 
     private static final Logger logger = LoggerFactory.getLogger(WatchlistDataService.class);
 
@@ -47,11 +51,13 @@ public class WatchlistDataService {
         this.kafkaProducerService = kafkaProducerService;
     }
 
+    @Override
     public List<WatchlistData> fetchWatchlistData(UUID accountId, List<String> assetTypes) {
         logger.info("Fetching watchlist data for accountId: {} and assetTypes: {}", accountId, assetTypes);
         return watchlistDataRepository.findWatchlistDataByAccountIdAndAssetTypes(accountId, assetTypes);
     }
 
+    @Override
     public void addWatchlistItem(UUID accountId, String symbol, String assetType) {
         logger.info("Adding item to watchlist: accountId={}, symbol={}, assetType={}", accountId, symbol, assetType);
 
@@ -71,6 +77,7 @@ public class WatchlistDataService {
         requestMarketDataUpdate(accountId, symbol, assetType);
     }
 
+    @Override
     public void removeWatchlistItem(UUID accountId, String symbol, String assetType) {
         logger.info("Removing item from watchlist: accountId={}, symbol={}, assetType={}", accountId, symbol, assetType);
 
@@ -115,12 +122,7 @@ public class WatchlistDataService {
         }
     }
 
-    /**
-     * Request market data updates for multiple watchlist items.
-     * 
-     * @param accountId The account ID
-     * @param watchlistItems List of watchlist data items
-     */
+    @Override
     public void requestMarketDataUpdates(UUID accountId, List<WatchlistData> watchlistItems) {
         logger.info("Requesting market data updates for {} watchlist items", watchlistItems.size());
         
