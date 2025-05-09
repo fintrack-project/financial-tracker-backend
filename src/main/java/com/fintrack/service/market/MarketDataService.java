@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fintrack.constants.KafkaTopics;
 import com.fintrack.constants.finance.AssetType;
 import com.fintrack.model.market.MarketData;
+import com.fintrack.service.market.base.AbstractMarketDataProvider;
 import com.fintrack.util.KafkaProducerService;
 
 import org.slf4j.Logger;
@@ -20,7 +21,7 @@ import java.util.stream.Collectors;
  * This service delegates to asset-specific services based on asset type.
  */
 @Service
-public class MarketDataService {
+public class MarketDataService extends AbstractMarketDataProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(MarketDataService.class);
 
@@ -28,7 +29,6 @@ public class MarketDataService {
     private final ForexMarketDataService forexMarketDataService;
     private final CryptoMarketDataService cryptoMarketDataService;
     private final CommodityMarketDataService commodityMarketDataService;
-    private final KafkaProducerService kafkaProducerService;
 
     public MarketDataService(
             StockMarketDataService stockMarketDataService,
@@ -36,11 +36,11 @@ public class MarketDataService {
             CryptoMarketDataService cryptoMarketDataService,
             CommodityMarketDataService commodityMarketDataService,
             KafkaProducerService kafkaProducerService) {
+        super(kafkaProducerService);
         this.stockMarketDataService = stockMarketDataService;
         this.forexMarketDataService = forexMarketDataService;
         this.cryptoMarketDataService = cryptoMarketDataService;
         this.commodityMarketDataService = commodityMarketDataService;
-        this.kafkaProducerService = kafkaProducerService;
     }
 
     /**
@@ -113,13 +113,40 @@ public class MarketDataService {
         return entitiesByAssetType;
     }
 
+    @Override
+    public KafkaTopics getUpdateRequestTopic() {
+        return KafkaTopics.MARKET_DATA_UPDATE_REQUEST;
+    }
+
+    @Override
+    public Map<String, Object> createUpdateRequestPayload(Map<String, Object> data) {
+        // Convert symbols to assets format if needed
+        if (data.containsKey("symbols")) {
+            List<String> symbols = (List<String>) data.get("symbols");
+            
+            // Create assets in the required format for the Kafka message
+            List<Map<String, String>> assets = symbols.stream()
+                .map(symbol -> Map.of("symbol", symbol, "asset_type", AssetType.STOCK.getAssetTypeName()))
+                .collect(Collectors.toList());
+            
+            // Replace symbols with assets in the payload
+            Map<String, Object> payload = new HashMap<>(data);
+            payload.remove("symbols");
+            payload.put("assets", assets);
+            
+            return payload;
+        }
+        
+        return data;
+    }
+
+    @Override
     @KafkaListener(topics = "#{T(com.fintrack.constants.KafkaTopics).MARKET_DATA_UPDATE_COMPLETE.getTopicName()}", groupId = "market-data-group")
     public void onMarketDataUpdateComplete(String message) {
         logger.info("Received " + KafkaTopics.MARKET_DATA_UPDATE_COMPLETE.getTopicName() + " message: " + message);
 
         // No need to save the data; just log the message
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
             Map<String, Object> payload = objectMapper.readValue(message, Map.class);
             logger.info("Market data update complete payload: " + payload);
         } catch (Exception e) {

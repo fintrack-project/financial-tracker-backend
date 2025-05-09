@@ -1,12 +1,15 @@
 package com.fintrack.service.market;
 
+import com.fintrack.constants.KafkaTopics;
 import com.fintrack.constants.finance.AssetType;
 import com.fintrack.model.finance.AccountCurrency;
 import com.fintrack.repository.finance.AccountCurrenciesRepository;
 import com.fintrack.repository.finance.HoldingsMonthlyRepository;
 import com.fintrack.repository.market.MarketDataRepository;
+import com.fintrack.service.market.base.AssetMarketDataProviderBase;
 import com.fintrack.util.KafkaProducerService;
 
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -15,7 +18,7 @@ import java.util.*;
  * Service for handling forex-specific market data operations.
  */
 @Service
-public class ForexMarketDataService extends AssetMarketDataService {
+public class ForexMarketDataService extends AssetMarketDataProviderBase {
 
     private final AccountCurrenciesRepository accountCurrenciesRepository;
     private static final String DEFAULT_BASE_CURRENCY = "USD";
@@ -129,5 +132,27 @@ public class ForexMarketDataService extends AssetMarketDataService {
         
         // Default to USD if no default currency found
         return DEFAULT_BASE_CURRENCY;
+    }
+
+    @Override
+    @KafkaListener(topics = "#{T(com.fintrack.constants.KafkaTopics).MARKET_DATA_UPDATE_COMPLETE.getTopicName()}", 
+                  groupId = "forex-market-data-group", 
+                  properties = "#{{'spring.json.value.default.type=java.util.Map'}}")
+    public void onMarketDataUpdateComplete(String message) {
+        logger.info("Received market data update complete message for FOREX: {}", message);
+        
+        try {
+            Map<String, Object> payload = objectMapper.readValue(message, Map.class);
+            
+            // Process only if it contains forex assets
+            if (payload.containsKey("assets")) {
+                List<Map<String, Object>> assets = (List<Map<String, Object>>) payload.get("assets");
+                assets.stream()
+                    .filter(asset -> getAssetType().getAssetTypeName().equals(asset.get("asset_type")))
+                    .forEach(asset -> logger.debug("Processed FOREX update for: {}", asset.get("symbol")));
+            }
+        } catch (Exception e) {
+            logger.error("Failed to process market data update complete message: {}", e.getMessage());
+        }
     }
 } 

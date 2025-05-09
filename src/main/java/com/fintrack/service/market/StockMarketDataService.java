@@ -1,10 +1,13 @@
 package com.fintrack.service.market;
 
+import com.fintrack.constants.KafkaTopics;
 import com.fintrack.constants.finance.AssetType;
 import com.fintrack.repository.finance.HoldingsMonthlyRepository;
 import com.fintrack.repository.market.MarketDataRepository;
+import com.fintrack.service.market.base.AssetMarketDataProviderBase;
 import com.fintrack.util.KafkaProducerService;
 
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -13,7 +16,7 @@ import java.util.*;
  * Service for handling stock-specific market data operations.
  */
 @Service
-public class StockMarketDataService extends AssetMarketDataService {
+public class StockMarketDataService extends AssetMarketDataProviderBase {
 
     public StockMarketDataService(
             MarketDataRepository marketDataRepository,
@@ -42,5 +45,27 @@ public class StockMarketDataService extends AssetMarketDataService {
         
         logger.debug("Processed stock symbols: {}", assets);
         return assets;
+    }
+
+    @Override
+    @KafkaListener(topics = "#{T(com.fintrack.constants.KafkaTopics).MARKET_DATA_UPDATE_COMPLETE.getTopicName()}", 
+                  groupId = "stock-market-data-group", 
+                  properties = "#{{'spring.json.value.default.type=java.util.Map'}}")
+    public void onMarketDataUpdateComplete(String message) {
+        logger.info("Received market data update complete message for STOCK: {}", message);
+        
+        try {
+            Map<String, Object> payload = objectMapper.readValue(message, Map.class);
+            
+            // Process only if it contains stock assets
+            if (payload.containsKey("assets")) {
+                List<Map<String, Object>> assets = (List<Map<String, Object>>) payload.get("assets");
+                assets.stream()
+                    .filter(asset -> getAssetType().getAssetTypeName().equals(asset.get("asset_type")))
+                    .forEach(asset -> logger.debug("Processed STOCK update for: {}", asset.get("symbol")));
+            }
+        } catch (Exception e) {
+            logger.error("Failed to process market data update complete message: {}", e.getMessage());
+        }
     }
 } 
