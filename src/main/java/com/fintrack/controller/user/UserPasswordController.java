@@ -47,4 +47,74 @@ public class UserPasswordController {
             return ResponseWrapper.internalServerError("Failed to verify password");
         }
     }
+    
+    @PostMapping(
+        value = "/password-reset-request",
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<ApiResponse<Map<String, Object>>> requestPasswordReset(@RequestBody Map<String, String> requestBody) {
+        try {
+            String identifier = requestBody.get("identifier");
+            
+            if (identifier == null || identifier.trim().isEmpty()) {
+                return ResponseWrapper.badRequest("Missing identifier (userId or email) in the request.");
+            }
+            
+            Map<String, Object> response = userPasswordService.requestPasswordReset(identifier);
+            return ResponseWrapper.ok(response);
+        } catch (Exception e) {
+            logger.error("Error requesting password reset: ", e);
+            return ResponseWrapper.internalServerError("Failed to process password reset request");
+        }
+    }
+    
+    @GetMapping(
+        value = "/validate-reset-token/{token}",
+        produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<ApiResponse<Map<String, Object>>> validateResetToken(@PathVariable String token) {
+        try {
+            boolean isValid = userPasswordService.validateResetToken(token);
+            
+            if (isValid) {
+                return ResponseWrapper.ok(Map.of("valid", true));
+            } else {
+                Map<String, Object> response = new HashMap<>();
+                response.put("valid", false);
+                response.put("message", "Invalid or expired token");
+                return ResponseWrapper.badRequest("Invalid or expired token");
+            }
+        } catch (Exception e) {
+            logger.error("Error validating reset token: ", e);
+            return ResponseWrapper.internalServerError("Failed to validate token");
+        }
+    }
+    
+    @PostMapping(
+        value = "/reset-password",
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<ApiResponse<Map<String, Object>>> resetPassword(@RequestBody Map<String, String> requestBody) {
+        try {
+            String token = requestBody.get("token");
+            String newPassword = requestBody.get("newPassword");
+            
+            if (token == null || newPassword == null) {
+                return ResponseWrapper.badRequest("Missing token or newPassword in the request body.");
+            }
+            
+            Map<String, Object> response = userPasswordService.resetPassword(token, newPassword);
+            
+            if ((boolean) response.get("success")) {
+                return ResponseWrapper.ok(response);
+            } else {
+                return ResponseWrapper.badRequest((String) response.get("message"));
+            }
+        } catch (Exception e) {
+            logger.error("Error resetting password: ", e);
+            return ResponseWrapper.internalServerError("Failed to reset password");
+        }
+    }
 }

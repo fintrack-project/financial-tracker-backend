@@ -104,3 +104,34 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 For any questions or support, please contact the project maintainers at:
 - **Email**: support@fintrack.com
 - **GitHub Issues**: [Open an issue](https://github.com/<repository-url>/issues)
+
+## Password Reset Functionality
+
+The password reset functionality has been implemented to allow users to reset their passwords through email verification. To use this feature, you need to:
+
+1. Execute the SQL migration script to create the required database table:
+
+```sql
+-- Run this in your PostgreSQL database
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id SERIAL PRIMARY KEY,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    user_id VARCHAR(255) NOT NULL,
+    expiry_date TIMESTAMP NOT NULL,
+    is_used BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create an index on token for faster lookups
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON password_reset_tokens(token);
+
+-- Create an index on user_id for faster lookups
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
+```
+
+2. Make sure your email service is properly configured in `application.properties`.
+
+3. The password reset functionality provides the following endpoints:
+   - `POST /api/user/password-reset-request` - Request a password reset link
+   - `GET /api/user/validate-reset-token/{token}` - Validate a reset token
+   - `POST /api/user/reset-password` - Reset password with a valid token
