@@ -24,21 +24,31 @@ public class WatchlistDataService {
 
     private final WatchlistDataRepository watchlistDataRepository;
     private final AccountCurrenciesRepository accountCurrenciesRepository;
-    private final HoldingsMonthlyRepository holdingsMonthlyRepository;
+    private final ForexMarketDataService forexMarketDataService;
+    private final StockMarketDataService stockMarketDataService;
+    private final CryptoMarketDataService cryptoMarketDataService;
+    private final CommodityMarketDataService commodityMarketDataService;
     private final KafkaProducerService kafkaProducerService;
 
-    public WatchlistDataService(WatchlistDataRepository watchlistDataRepository
-        , AccountCurrenciesRepository accountCurrenciesRepository
-        , HoldingsMonthlyRepository holdingsMonthlyRepository
-        , KafkaProducerService kafkaProducerService) {
+    public WatchlistDataService(
+        WatchlistDataRepository watchlistDataRepository,
+        AccountCurrenciesRepository accountCurrenciesRepository,
+        ForexMarketDataService forexMarketDataService,
+        StockMarketDataService stockMarketDataService,
+        CryptoMarketDataService cryptoMarketDataService,
+        CommodityMarketDataService commodityMarketDataService,
+        KafkaProducerService kafkaProducerService) {
         this.watchlistDataRepository = watchlistDataRepository;
         this.accountCurrenciesRepository = accountCurrenciesRepository;
-        this.holdingsMonthlyRepository = holdingsMonthlyRepository;
+        this.forexMarketDataService = forexMarketDataService;
+        this.stockMarketDataService = stockMarketDataService;
+        this.cryptoMarketDataService = cryptoMarketDataService;
+        this.commodityMarketDataService = commodityMarketDataService;
         this.kafkaProducerService = kafkaProducerService;
     }
 
     public List<WatchlistData> fetchWatchlistData(UUID accountId, List<String> assetTypes) {
-        logger.info("Fetching watchlist data for accountId: " + accountId + " and assetTypes: " + assetTypes);
+        logger.info("Fetching watchlist data for accountId: {} and assetTypes: {}", accountId, assetTypes);
         return watchlistDataRepository.findWatchlistDataByAccountIdAndAssetTypes(accountId, assetTypes);
     }
 
@@ -52,9 +62,13 @@ public class WatchlistDataService {
 
         watchlistDataRepository.save(watchlistData);
 
-        if ("FOREX".equalsIgnoreCase(assetType)) {
+        // Handle specific asset type processing
+        if (AssetType.FOREX.getAssetTypeName().equalsIgnoreCase(assetType)) {
             handleForexCurrenciesOnAdd(accountId, symbol);
         }
+        
+        // Request market data update for the new watchlist item
+        requestMarketDataUpdate(accountId, symbol, assetType);
     }
 
     public void removeWatchlistItem(UUID accountId, String symbol, String assetType) {
@@ -64,11 +78,86 @@ public class WatchlistDataService {
         if (watchlistData != null) {
             watchlistDataRepository.delete(watchlistData); // Perform a hard delete
 
-            if ("FOREX".equalsIgnoreCase(assetType)) {
+            if (AssetType.FOREX.getAssetTypeName().equalsIgnoreCase(assetType)) {
                 handleForexCurrenciesOnRemove(accountId, symbol);
             }
         } else {
             throw new IllegalArgumentException("Item not found in watchlist.");
+        }
+    }
+
+    /**
+     * Request market data update for a specific watchlist item based on its asset type.
+     * 
+     * @param accountId The account ID
+     * @param symbol The symbol
+     * @param assetType The asset type
+     */
+    private void requestMarketDataUpdate(UUID accountId, String symbol, String assetType) {
+        try {
+            if (AssetType.STOCK.getAssetTypeName().equalsIgnoreCase(assetType)) {
+                logger.info("Requesting stock market data update for symbol: {}", symbol);
+                stockMarketDataService.fetchMarketData(accountId, List.of(symbol));
+            } else if (AssetType.FOREX.getAssetTypeName().equalsIgnoreCase(assetType)) {
+                logger.info("Requesting forex market data update for symbol: {}", symbol);
+                forexMarketDataService.fetchMarketData(accountId, List.of(symbol));
+            } else if (AssetType.CRYPTO.getAssetTypeName().equalsIgnoreCase(assetType)) {
+                logger.info("Requesting crypto market data update for symbol: {}", symbol);
+                cryptoMarketDataService.fetchMarketData(accountId, List.of(symbol));
+            } else if (AssetType.COMMODITY.getAssetTypeName().equalsIgnoreCase(assetType)) {
+                logger.info("Requesting commodity market data update for symbol: {}", symbol);
+                commodityMarketDataService.fetchMarketData(accountId, List.of(symbol));
+            } else {
+                logger.warn("Unknown asset type: {}. No market data update requested.", assetType);
+            }
+        } catch (Exception e) {
+            logger.error("Error requesting market data update for symbol {}: {}", symbol, e.getMessage());
+        }
+    }
+
+    /**
+     * Request market data updates for multiple watchlist items.
+     * 
+     * @param accountId The account ID
+     * @param watchlistItems List of watchlist data items
+     */
+    public void requestMarketDataUpdates(UUID accountId, List<WatchlistData> watchlistItems) {
+        logger.info("Requesting market data updates for {} watchlist items", watchlistItems.size());
+        
+        // Group by asset type for more efficient processing
+        Map<String, List<String>> symbolsByAssetType = new HashMap<>();
+        
+        for (WatchlistData item : watchlistItems) {
+            String assetTypeStr = item.getAssetType().getAssetTypeName();
+            symbolsByAssetType
+                .computeIfAbsent(assetTypeStr, k -> new ArrayList<>())
+                .add(item.getSymbol());
+        }
+        
+        // Process each asset type
+        for (Map.Entry<String, List<String>> entry : symbolsByAssetType.entrySet()) {
+            String assetType = entry.getKey();
+            List<String> symbols = entry.getValue();
+            
+            try {
+                if (AssetType.STOCK.getAssetTypeName().equalsIgnoreCase(assetType)) {
+                    logger.info("Requesting stock market data updates for {} symbols", symbols.size());
+                    stockMarketDataService.fetchMarketData(accountId, symbols);
+                } else if (AssetType.FOREX.getAssetTypeName().equalsIgnoreCase(assetType)) {
+                    logger.info("Requesting forex market data updates for {} symbols", symbols.size());
+                    forexMarketDataService.fetchMarketData(accountId, symbols);
+                } else if (AssetType.CRYPTO.getAssetTypeName().equalsIgnoreCase(assetType)) {
+                    logger.info("Requesting crypto market data updates for {} symbols", symbols.size());
+                    cryptoMarketDataService.fetchMarketData(accountId, symbols);
+                } else if (AssetType.COMMODITY.getAssetTypeName().equalsIgnoreCase(assetType)) {
+                    logger.info("Requesting commodity market data updates for {} symbols", symbols.size());
+                    commodityMarketDataService.fetchMarketData(accountId, symbols);
+                } else {
+                    logger.warn("Unknown asset type: {}. No market data updates requested.", assetType);
+                }
+            } catch (Exception e) {
+                logger.error("Error requesting market data updates for asset type {}: {}", assetType, e.getMessage());
+            }
         }
     }
 
@@ -109,11 +198,7 @@ public class WatchlistDataService {
             }
         }
 
-        // If both currencies are new, send a Kafka message
-        if (currenciesToAdd.contains(currencyFrom) && currenciesToAdd.contains(currencyTo)) {
-            logger.info("No link between {} and existing currencies. Sending Kafka message for update.", symbol);
-            sendMarketDataUpdateRequest(accountId, List.of(symbol));
-        }
+        // Note: Market data update is now handled by the requestMarketDataUpdate method
     }
 
     private void handleForexCurrenciesOnRemove(UUID accountId, String symbol) {
@@ -151,58 +236,9 @@ public class WatchlistDataService {
                 .orElse(null);
         if (accountCurrency != null && !accountCurrency.isDefault()) {
             accountCurrenciesRepository.delete(accountCurrency);
+            logger.info("Removed currency {} for account {}", currency, accountId);
         } else if (accountCurrency != null && accountCurrency.isDefault()) {
             logger.info("Currency {} is the default currency for account {} and will not be removed.", currency, accountId);
-        }
-    }
-
-    private void sendMarketDataUpdateRequest(UUID accountId, List<String> currencies) {
-        List<Map<String, String>> assets = currencies.stream()
-                .map(currency -> Map.of("symbol", currency, "assetType", AssetType.FOREX.getAssetTypeName()))
-                .toList();
-        
-        try {    
-            Map<String, Object> updateRequestPayload = new HashMap<>();
-            updateRequestPayload.put("assets", assets);
-    
-            // Convert the payload to a JSON string
-            ObjectMapper objectMapper = new ObjectMapper();
-            String updateRequestJson = objectMapper.writeValueAsString(updateRequestPayload);
-    
-            // Publish the JSON payload to the MARKET_DATA_UPDATE_REQUEST topic
-            kafkaProducerService.publishEvent(KafkaTopics.MARKET_DATA_UPDATE_REQUEST.getTopicName(), updateRequestJson);
-            logger.info("Sent market data update request: " + updateRequestJson);
-
-            // Fetch the start_date and end_date from HoldingsMonthlyRepository
-            LocalDate startDate = holdingsMonthlyRepository.findEarliestDateByAccountId(accountId);
-            LocalDate endDate = holdingsMonthlyRepository.findLatestDateByAccountId(accountId);
-
-            if (startDate == null || endDate == null) {
-                logger.warn("No holdings found for accountId: " + accountId + ". Skipping MARKET_DATA_MONTHLY_REQUEST.");
-                return;
-            }
-            
-            // Use current date as end_date if it's later than endDate
-            LocalDate currentDate = LocalDate.now();
-            if (currentDate.isAfter(endDate)) {
-                logger.debug("Using current date {} instead of {} as end_date", currentDate, endDate);
-                endDate = currentDate;
-            }
-    
-            // Create the payload for MARKET_DATA_MONTHLY_REQUEST
-            Map<String, Object> monthlyRequestPayload = new HashMap<>();
-            monthlyRequestPayload.put("assets", assets);
-            monthlyRequestPayload.put("start_date", startDate.toString());
-            monthlyRequestPayload.put("end_date", endDate.toString());
-    
-            // Convert the payload to a JSON string
-            String monthlyRequestJson = objectMapper.writeValueAsString(monthlyRequestPayload);
-    
-            // Publish the JSON payload to the MARKET_DATA_MONTHLY_REQUEST topic
-            kafkaProducerService.publishEvent(KafkaTopics.HISTORICAL_MARKET_DATA_REQUEST.getTopicName(), monthlyRequestJson);
-            logger.info("Sent market data monthly request: " + monthlyRequestJson);
-        } catch (Exception e) {
-            logger.error("Failed to send market data update or monthly request: " + e.getMessage());
         }
     }
 
