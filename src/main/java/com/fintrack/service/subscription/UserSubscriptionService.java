@@ -62,32 +62,23 @@ public class UserSubscriptionService {
     }
 
     @Transactional
-    public UserSubscription updateSubscription(UUID accountId, String planName, String paymentMethodId) throws StripeException {
-        logger.info("Updating subscription for account: {} with plan: {}", accountId, planName);
+    public UserSubscription updateSubscription(UUID accountId, String planId, String paymentMethodId) throws StripeException {
+        logger.info("Updating subscription for account: {} with plan ID: {}", accountId, planId);
         
-        SubscriptionPlanType planType = SubscriptionPlanType.fromPlanName(planName);
-        if (planType == null) {
-            throw new IllegalArgumentException("Invalid plan name: " + planName);
-        }
+        // Get plan details
+        SubscriptionPlan plan = subscriptionPlanService.getPlanById(planId)
+                .orElseThrow(() -> new RuntimeException("Plan not found: " + planId));
         
-        // If it's a free plan, handle it differently
-        if (planType == SubscriptionPlanType.FREE) {
-            return handleFreePlanSubscription(accountId, planType.getPlanName());
-        }
+        String stripePriceId = plan.getStripePriceId();
         
-        Stripe.apiKey = stripeSecretKey;
-
-        // Get plan ID from plan name
-        String planId = subscriptionPlanService.getPlanIdByName(planType.getPlanName());
-        String stripePriceId = subscriptionPlanService.getStripePriceIdByName(planType.getPlanName());
-        
-        logger.info("Found plan ID: {} and Stripe price ID: {} for plan name: {}", planId, stripePriceId, planType.getPlanName());
+        logger.info("Found plan ID: {} and Stripe price ID: {} for plan", planId, stripePriceId);
 
         // Get current subscription if exists
         Optional<UserSubscription> currentSubscription = userSubscriptionRepository.findByAccountId(accountId);
 
         if (currentSubscription.isPresent()) {
             // Handle downgrade to free
+            SubscriptionPlanType planType = SubscriptionPlanType.fromPlanId(planId);
             if (planType == SubscriptionPlanType.FREE) {
                 return handleDowngradeToFreePlan(currentSubscription.get(), planId);
             }
@@ -95,6 +86,14 @@ public class UserSubscriptionService {
             // Update existing subscription
             return updateExistingSubscription(currentSubscription.get(), planId, stripePriceId, paymentMethodId);
         } else {
+            // If it's a free plan, handle it differently
+            SubscriptionPlanType planType = SubscriptionPlanType.fromPlanId(planId);
+            if (planType == SubscriptionPlanType.FREE) {
+                return handleFreePlanSubscription(accountId, planType.getPlanName());
+            }
+            
+            Stripe.apiKey = stripeSecretKey;
+            
             // Create new subscription
             return createNewSubscription(accountId, planId, stripePriceId, paymentMethodId);
         }
@@ -334,27 +333,21 @@ public class UserSubscriptionService {
     }
 
     @Transactional
-    public SubscriptionUpdateResponse updateSubscriptionWithPayment(UUID accountId, String planName, 
+    public SubscriptionUpdateResponse updateSubscriptionWithPayment(UUID accountId, String planId, 
             String paymentMethodId, String returnUrl) throws StripeException {
         // STEP 1: User initiates payment (This method is called from UserSubscriptionController)
         logger.trace("╔══════════════════════════════════════════════════════════════");
         logger.trace("║ STEP 1: Payment Initiation");
         logger.trace("║ Account: {}", accountId);
-        logger.trace("║ Plan: {}", planName);
+        logger.trace("║ Plan ID: {}", planId);
         logger.trace("║ Payment Method: {}", paymentMethodId);
         logger.trace("╚══════════════════════════════════════════════════════════════");
         
-        SubscriptionPlanType planType = SubscriptionPlanType.fromPlanName(planName);
-        if (planType == null) {
-            logger.trace("❌ Invalid plan name provided: {}", planName);
-            throw new IllegalArgumentException("Invalid plan name: " + planName);
-        }
-        
         // Get plan details
-        String planId = subscriptionPlanService.getPlanIdByName(planType.getPlanName());
-        String stripePriceId = subscriptionPlanService.getStripePriceIdByName(planType.getPlanName());
         SubscriptionPlan plan = subscriptionPlanService.getPlanById(planId)
                 .orElseThrow(() -> new RuntimeException("Plan not found: " + planId));
+        
+        String stripePriceId = plan.getStripePriceId();
         
         logger.trace("║ Plan Details Retrieved:");
         logger.trace("║ - Plan ID: {}", planId);

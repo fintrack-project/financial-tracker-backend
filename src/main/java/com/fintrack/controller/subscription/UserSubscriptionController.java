@@ -96,26 +96,26 @@ public class UserSubscriptionController {
 
     @PostMapping("/update")
     public ResponseEntity<ApiResponse<SubscriptionUpdateResponse>> updateUserSubscription(@RequestBody SubscriptionPlanRequest request) {
-        logger.info("Updating subscription for account: {} with plan name: {}", request.getAccountId(), request.getPlanName());
+        logger.info("Updating subscription for account: {} with plan ID: {}", request.getAccountId(), request.getPlanId());
         
         if (request.getAccountId() == null) {
             return ResponseWrapper.badRequest("Account ID is required");
         }
         
-        if (request.getPlanName() == null || request.getPlanName().isEmpty()) {
-            return ResponseWrapper.badRequest("Plan name is required");
-        }
-        
-        // Validate that plan name is one of the accepted values
-        SubscriptionPlanType planType = SubscriptionPlanType.fromPlanName(request.getPlanName());
-        if (planType == null) {
-            return ResponseWrapper.badRequest("Invalid plan name: " + request.getPlanName());
+        if (request.getPlanId() == null || request.getPlanId().isEmpty()) {
+            return ResponseWrapper.badRequest("Plan ID is required");
         }
         
         try {
+            // Verify that the plan exists
+            Optional<SubscriptionPlan> planOpt = subscriptionPlanService.getPlanById(request.getPlanId());
+            if (planOpt.isEmpty()) {
+                return ResponseWrapper.badRequest("Invalid plan ID: " + request.getPlanId());
+            }
+            
             SubscriptionUpdateResponse response = userSubscriptionService.updateSubscriptionWithPayment(
                     request.getAccountId(), 
-                    request.getPlanName(), 
+                    request.getPlanId(), 
                     request.getPaymentMethodId(),
                     request.getReturnUrl());
             
