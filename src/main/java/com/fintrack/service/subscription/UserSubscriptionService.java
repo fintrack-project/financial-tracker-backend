@@ -568,20 +568,78 @@ public class UserSubscriptionService {
         logger.trace("Found subscription - Current status: {}, Active: {}", 
                 subscription.getStatus(), subscription.isActive());
         
-        // Update subscription status
+        // Get the Stripe subscription to get accurate billing dates
+        Subscription stripeSubscription = Subscription.retrieve(subscriptionId);
+        
+        // Get plan details to determine subscription interval
+        SubscriptionPlan plan = subscriptionPlanService.getPlanById(subscription.getPlanId())
+                .orElseThrow(() -> new RuntimeException("Plan not found: " + subscription.getPlanId()));
+        
+        // Calculate dates based on Stripe subscription data and plan interval
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startDate = now;
+        LocalDateTime nextBillingDate = null;
+        
+        // Get the current period end from the subscription
+        if (stripeSubscription.getItems() != null && stripeSubscription.getItems().getData() != null && 
+            !stripeSubscription.getItems().getData().isEmpty()) {
+            // Get the subscription's current period end
+            Long periodEnd = stripeSubscription.getItems().getData().get(0).getCurrentPeriodEnd();
+            if (periodEnd != null) {
+                nextBillingDate = LocalDateTime.ofEpochSecond(periodEnd, 0, ZoneOffset.UTC);
+            } else {
+                // Fallback to interval-specific period if no period end is specified
+                switch (plan.getInterval().toUpperCase()) {
+                    case "MONTH":
+                        nextBillingDate = now.plusMonths(1);
+                        break;
+                    case "YEAR":
+                        nextBillingDate = now.plusYears(1);
+                        break;
+                    default:
+                        // Default to monthly if interval is not recognized
+                        nextBillingDate = now.plusMonths(1);
+                        logger.warn("Unknown interval for plan {}, defaulting to monthly", plan.getId());
+                }
+            }
+        } else {
+            // Fallback to interval-specific period if no items are found
+            switch (plan.getInterval().toUpperCase()) {
+                case "MONTH":
+                    nextBillingDate = now.plusMonths(1);
+                    break;
+                case "YEAR":
+                    nextBillingDate = now.plusYears(1);
+                    break;
+                default:
+                    // Default to monthly if interval is not recognized
+                    nextBillingDate = now.plusMonths(1);
+                    logger.warn("Unknown interval for plan {}, defaulting to monthly", plan.getId());
+            }
+        }
+        
+        // Update subscription status and dates
         subscription.setStatus("active");
         subscription.setActive(true);
-        subscription.setLastPaymentDate(LocalDateTime.now());
-        subscription.setNextBillingDate(LocalDateTime.now().plusMonths(1));
-        UserSubscription savedSubscription = userSubscriptionRepository.save(subscription);
-        logger.trace("Subscription updated to active status - Next billing date: {}", 
-                savedSubscription.getNextBillingDate());
+        subscription.setLastPaymentDate(now);
+        subscription.setSubscriptionStartDate(startDate);
+        subscription.setNextBillingDate(nextBillingDate);
         
-        // Get plan details for response
-        SubscriptionPlan plan = subscriptionPlanService.getPlanById(savedSubscription.getPlanId())
-                .orElseThrow(() -> new RuntimeException("Plan not found: " + savedSubscription.getPlanId()));
-        logger.trace("Retrieved plan details - Amount: {}, Currency: {}", 
-                plan.getAmount(), plan.getCurrency());
+        // If the subscription is set to cancel at period end, set the end date
+        if (stripeSubscription.getCancelAtPeriodEnd()) {
+            subscription.setSubscriptionEndDate(nextBillingDate);
+            subscription.setCancelAtPeriodEnd(true);
+        } else {
+            subscription.setSubscriptionEndDate(null);
+            subscription.setCancelAtPeriodEnd(false);
+        }
+        
+        UserSubscription savedSubscription = userSubscriptionRepository.save(subscription);
+        logger.trace("Subscription updated to active status - Start: {}, Next billing: {}, End: {}, Interval: {}", 
+                savedSubscription.getSubscriptionStartDate(),
+                savedSubscription.getNextBillingDate(),
+                savedSubscription.getSubscriptionEndDate(),
+                plan.getInterval());
         
         return SubscriptionUpdateResponse.fromUserSubscription(savedSubscription, null, false, 
                 plan.getAmount(), plan.getCurrency());
