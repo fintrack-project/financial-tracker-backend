@@ -573,42 +573,20 @@ public class UserSubscriptionService {
         LocalDateTime startDate = now;
         LocalDateTime nextBillingDate = null;
         
-        // Get the current period end from the subscription
-        if (stripeSubscription.getItems() != null && stripeSubscription.getItems().getData() != null && 
-            !stripeSubscription.getItems().getData().isEmpty()) {
-            // Get the subscription's current period end
-            Long periodEnd = stripeSubscription.getItems().getData().get(0).getCurrentPeriodEnd();
-            if (periodEnd != null) {
-                nextBillingDate = LocalDateTime.ofEpochSecond(periodEnd, 0, ZoneOffset.UTC);
-            } else {
-                // Fallback to interval-specific period if no period end is specified
-                switch (plan.getInterval().toUpperCase()) {
-                    case "MONTH":
-                        nextBillingDate = now.plusMonths(1);
-                        break;
-                    case "YEAR":
-                        nextBillingDate = now.plusYears(1);
-                        break;
-                    default:
-                        // Default to monthly if interval is not recognized
-                        nextBillingDate = now.plusMonths(1);
-                        logger.warn("Unknown interval for plan {}, defaulting to monthly", plan.getId());
-                }
-            }
+        logger.debug("Calculating next billing date for subscription: {} with plan: {}", 
+                subscriptionId, plan.getId());
+        logger.debug("Plan interval: {}, Plan type: {}", plan.getInterval(), 
+                SubscriptionPlanType.fromPlanId(plan.getId()));
+        
+        // Determine the plan type and calculate next billing date accordingly
+        SubscriptionPlanType planType = SubscriptionPlanType.fromPlanId(plan.getId());
+        if (planType != null && planType.isAnnual()) {
+            nextBillingDate = now.plusYears(1);
+            logger.debug("Using annual interval for next billing date: {}", nextBillingDate);
         } else {
-            // Fallback to interval-specific period if no items are found
-            switch (plan.getInterval().toUpperCase()) {
-                case "MONTH":
-                    nextBillingDate = now.plusMonths(1);
-                    break;
-                case "YEAR":
-                    nextBillingDate = now.plusYears(1);
-                    break;
-                default:
-                    // Default to monthly if interval is not recognized
-                    nextBillingDate = now.plusMonths(1);
-                    logger.warn("Unknown interval for plan {}, defaulting to monthly", plan.getId());
-            }
+            // For monthly plans or if plan type is not found, use monthly interval
+            nextBillingDate = now.plusMonths(1);
+            logger.debug("Using monthly interval for next billing date: {}", nextBillingDate);
         }
         
         // Update subscription status and dates
@@ -622,13 +600,15 @@ public class UserSubscriptionService {
         if (stripeSubscription.getCancelAtPeriodEnd()) {
             subscription.setSubscriptionEndDate(nextBillingDate);
             subscription.setCancelAtPeriodEnd(true);
+            logger.debug("Subscription set to cancel at period end: {}", nextBillingDate);
         } else {
             subscription.setSubscriptionEndDate(null);
             subscription.setCancelAtPeriodEnd(false);
+            logger.debug("Subscription not set to cancel at period end");
         }
         
         UserSubscription savedSubscription = userSubscriptionRepository.save(subscription);
-        logger.trace("Subscription updated to active status - Start: {}, Next billing: {}, End: {}, Interval: {}", 
+        logger.debug("Subscription updated - Start: {}, Next billing: {}, End: {}, Interval: {}", 
                 savedSubscription.getSubscriptionStartDate(),
                 savedSubscription.getNextBillingDate(),
                 savedSubscription.getSubscriptionEndDate(),
