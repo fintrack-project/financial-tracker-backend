@@ -157,13 +157,13 @@ public class UserSubscriptionController {
 
     @PostMapping("/cancel")
     public ResponseEntity<ApiResponse<SubscriptionUpdateResponse>> cancelSubscription(@RequestBody Map<String, String> requestBody) {
-        String subscriptionId = requestBody.get("subscriptionId");
-        if (subscriptionId == null || subscriptionId.isEmpty()) {
-            return ResponseWrapper.badRequest("Subscription ID is required");
+        String stripeSubscriptionId = requestBody.get("stripeSubscriptionId");
+        if (stripeSubscriptionId == null || stripeSubscriptionId.isEmpty()) {
+            return ResponseWrapper.badRequest("Stripe subscription ID is required");
         }
 
         try {
-            SubscriptionUpdateResponse response = userSubscriptionService.cancelSubscription(subscriptionId);
+            SubscriptionUpdateResponse response = userSubscriptionService.cancelSubscription(stripeSubscriptionId);
             return ResponseWrapper.ok(response);
         } catch (StripeException e) {
             logger.error("Stripe error canceling subscription: {}", e.getMessage());
@@ -176,13 +176,13 @@ public class UserSubscriptionController {
 
     @PostMapping("/reactivate")
     public ResponseEntity<ApiResponse<SubscriptionUpdateResponse>> reactivateSubscription(@RequestBody Map<String, String> requestBody) {
-        String subscriptionId = requestBody.get("subscriptionId");
-        if (subscriptionId == null || subscriptionId.isEmpty()) {
-            return ResponseWrapper.badRequest("Subscription ID is required");
+        String stripeSubscriptionId = requestBody.get("stripeSubscriptionId");
+        if (stripeSubscriptionId == null || stripeSubscriptionId.isEmpty()) {
+            return ResponseWrapper.badRequest("Stripe subscription ID is required");
         }
 
         try {
-            SubscriptionUpdateResponse response = userSubscriptionService.reactivateSubscription(subscriptionId);
+            SubscriptionUpdateResponse response = userSubscriptionService.reactivateSubscription(stripeSubscriptionId);
             return ResponseWrapper.ok(response);
         } catch (StripeException e) {
             logger.error("Stripe error reactivating subscription: {}", e.getMessage());
