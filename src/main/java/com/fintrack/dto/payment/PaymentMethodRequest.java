@@ -1,24 +1,12 @@
 package com.fintrack.dto.payment;
 
+import lombok.Data;
+
 import java.util.UUID;
 
+@Data
 public class PaymentMethodRequest {
     private UUID accountId;
     private String paymentMethodId;
-
-    public UUID getAccountId() {
-        return accountId;
-    }
-
-    public void setAccountId(UUID accountId) {
-        this.accountId = accountId;
-    }
-
-    public String getPaymentMethodId() {
-        return paymentMethodId;
-    }
-
-    public void setPaymentMethodId(String paymentMethodId) {
-        this.paymentMethodId = paymentMethodId;
-    }
+    private String billingAddress;
 } 
