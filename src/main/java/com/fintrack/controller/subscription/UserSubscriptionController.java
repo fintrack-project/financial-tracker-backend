@@ -94,9 +94,9 @@ public class UserSubscriptionController {
         }
     }
 
-    @PostMapping("/update")
-    public ResponseEntity<ApiResponse<SubscriptionUpdateResponse>> updateUserSubscription(@RequestBody SubscriptionPlanRequest request) {
-        logger.info("Updating subscription for account: {} with plan ID: {}", request.getAccountId(), request.getPlanId());
+    @PostMapping("/upgrade")
+    public ResponseEntity<ApiResponse<SubscriptionUpdateResponse>> upgradeUserSubscription(@RequestBody SubscriptionPlanRequest request) {
+        logger.info("Upgrading subscription for account: {} with plan ID: {}", request.getAccountId(), request.getPlanId());
         
         if (request.getAccountId() == null) {
             return ResponseWrapper.badRequest("Account ID is required");
@@ -113,7 +113,7 @@ public class UserSubscriptionController {
                 return ResponseWrapper.badRequest("Invalid plan ID: " + request.getPlanId());
             }
             
-            SubscriptionUpdateResponse response = userSubscriptionService.updateSubscriptionWithPayment(
+            SubscriptionUpdateResponse response = userSubscriptionService.upgradeSubscriptionWithPayment(
                     request.getAccountId(), 
                     request.getPlanId(), 
                     request.getPaymentMethodId(),
@@ -121,10 +121,10 @@ public class UserSubscriptionController {
             
             return ResponseWrapper.ok(response);
         } catch (StripeException e) {
-            logger.error("Stripe error updating subscription: {}", e.getMessage());
+            logger.error("Stripe error upgrading subscription: {}", e.getMessage());
             return ResponseWrapper.badRequest("Payment processing error: " + e.getMessage());
         } catch (RuntimeException e) {
-            logger.error("Error updating subscription: {}", e.getMessage());
+            logger.error("Error upgrading subscription: {}", e.getMessage());
             return ResponseWrapper.badRequest(e.getMessage());
         }
     }
@@ -189,6 +189,41 @@ public class UserSubscriptionController {
             return ResponseWrapper.badRequest("Error reactivating subscription: " + e.getMessage());
         } catch (RuntimeException e) {
             logger.error("Error reactivating subscription: {}", e.getMessage());
+            return ResponseWrapper.badRequest(e.getMessage());
+        }
+    }
+
+    @PostMapping("/downgrade")
+    public ResponseEntity<ApiResponse<SubscriptionUpdateResponse>> downgradeUserSubscription(@RequestBody SubscriptionPlanRequest request) {
+        logger.info("Downgrading subscription for account: {} with plan ID: {}", request.getAccountId(), request.getPlanId());
+        
+        if (request.getAccountId() == null) {
+            return ResponseWrapper.badRequest("Account ID is required");
+        }
+        
+        if (request.getPlanId() == null || request.getPlanId().isEmpty()) {
+            return ResponseWrapper.badRequest("Plan ID is required");
+        }
+        
+        try {
+            // Verify that the plan exists
+            Optional<SubscriptionPlan> planOpt = subscriptionPlanService.getPlanById(request.getPlanId());
+            if (planOpt.isEmpty()) {
+                return ResponseWrapper.badRequest("Invalid plan ID: " + request.getPlanId());
+            }
+            
+            SubscriptionUpdateResponse response = userSubscriptionService.downgradeSubscriptionWithPayment(
+                    request.getAccountId(), 
+                    request.getPlanId(), 
+                    request.getPaymentMethodId(),
+                    request.getReturnUrl());
+            
+            return ResponseWrapper.ok(response);
+        } catch (StripeException e) {
+            logger.error("Stripe error downgrading subscription: {}", e.getMessage());
+            return ResponseWrapper.badRequest("Payment processing error: " + e.getMessage());
+        } catch (RuntimeException e) {
+            logger.error("Error downgrading subscription: {}", e.getMessage());
             return ResponseWrapper.badRequest(e.getMessage());
         }
     }
