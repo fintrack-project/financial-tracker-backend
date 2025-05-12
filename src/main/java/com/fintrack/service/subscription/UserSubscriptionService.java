@@ -62,32 +62,23 @@ public class UserSubscriptionService {
     }
 
     @Transactional
-    public UserSubscription updateSubscription(UUID accountId, String planName, String paymentMethodId) throws StripeException {
-        logger.info("Updating subscription for account: {} with plan: {}", accountId, planName);
+    public UserSubscription updateSubscription(UUID accountId, String planId, String paymentMethodId) throws StripeException {
+        logger.info("Updating subscription for account: {} with plan ID: {}", accountId, planId);
         
-        SubscriptionPlanType planType = SubscriptionPlanType.fromPlanName(planName);
-        if (planType == null) {
-            throw new IllegalArgumentException("Invalid plan name: " + planName);
-        }
+        // Get plan details
+        SubscriptionPlan plan = subscriptionPlanService.getPlanById(planId)
+                .orElseThrow(() -> new RuntimeException("Plan not found: " + planId));
         
-        // If it's a free plan, handle it differently
-        if (planType == SubscriptionPlanType.FREE) {
-            return handleFreePlanSubscription(accountId, planType.getPlanName());
-        }
+        String stripePriceId = plan.getStripePriceId();
         
-        Stripe.apiKey = stripeSecretKey;
-
-        // Get plan ID from plan name
-        String planId = subscriptionPlanService.getPlanIdByName(planType.getPlanName());
-        String stripePriceId = subscriptionPlanService.getStripePriceIdByName(planType.getPlanName());
-        
-        logger.info("Found plan ID: {} and Stripe price ID: {} for plan name: {}", planId, stripePriceId, planType.getPlanName());
+        logger.info("Found plan ID: {} and Stripe price ID: {} for plan", planId, stripePriceId);
 
         // Get current subscription if exists
         Optional<UserSubscription> currentSubscription = userSubscriptionRepository.findByAccountId(accountId);
 
         if (currentSubscription.isPresent()) {
             // Handle downgrade to free
+            SubscriptionPlanType planType = SubscriptionPlanType.fromPlanId(planId);
             if (planType == SubscriptionPlanType.FREE) {
                 return handleDowngradeToFreePlan(currentSubscription.get(), planId);
             }
@@ -95,6 +86,14 @@ public class UserSubscriptionService {
             // Update existing subscription
             return updateExistingSubscription(currentSubscription.get(), planId, stripePriceId, paymentMethodId);
         } else {
+            // If it's a free plan, handle it differently
+            SubscriptionPlanType planType = SubscriptionPlanType.fromPlanId(planId);
+            if (planType == SubscriptionPlanType.FREE) {
+                return handleFreePlanSubscription(accountId, planType.getPlanName());
+            }
+            
+            Stripe.apiKey = stripeSecretKey;
+            
             // Create new subscription
             return createNewSubscription(accountId, planId, stripePriceId, paymentMethodId);
         }
@@ -334,27 +333,21 @@ public class UserSubscriptionService {
     }
 
     @Transactional
-    public SubscriptionUpdateResponse updateSubscriptionWithPayment(UUID accountId, String planName, 
+    public SubscriptionUpdateResponse updateSubscriptionWithPayment(UUID accountId, String planId, 
             String paymentMethodId, String returnUrl) throws StripeException {
         // STEP 1: User initiates payment (This method is called from UserSubscriptionController)
         logger.trace("╔══════════════════════════════════════════════════════════════");
         logger.trace("║ STEP 1: Payment Initiation");
         logger.trace("║ Account: {}", accountId);
-        logger.trace("║ Plan: {}", planName);
+        logger.trace("║ Plan ID: {}", planId);
         logger.trace("║ Payment Method: {}", paymentMethodId);
         logger.trace("╚══════════════════════════════════════════════════════════════");
         
-        SubscriptionPlanType planType = SubscriptionPlanType.fromPlanName(planName);
-        if (planType == null) {
-            logger.trace("❌ Invalid plan name provided: {}", planName);
-            throw new IllegalArgumentException("Invalid plan name: " + planName);
-        }
-        
         // Get plan details
-        String planId = subscriptionPlanService.getPlanIdByName(planType.getPlanName());
-        String stripePriceId = subscriptionPlanService.getStripePriceIdByName(planType.getPlanName());
         SubscriptionPlan plan = subscriptionPlanService.getPlanById(planId)
                 .orElseThrow(() -> new RuntimeException("Plan not found: " + planId));
+        
+        String stripePriceId = plan.getStripePriceId();
         
         logger.trace("║ Plan Details Retrieved:");
         logger.trace("║ - Plan ID: {}", planId);
@@ -568,20 +561,58 @@ public class UserSubscriptionService {
         logger.trace("Found subscription - Current status: {}, Active: {}", 
                 subscription.getStatus(), subscription.isActive());
         
-        // Update subscription status
+        // Get the Stripe subscription to get accurate billing dates
+        Subscription stripeSubscription = Subscription.retrieve(subscriptionId);
+        
+        // Get plan details to determine subscription interval
+        SubscriptionPlan plan = subscriptionPlanService.getPlanById(subscription.getPlanId())
+                .orElseThrow(() -> new RuntimeException("Plan not found: " + subscription.getPlanId()));
+        
+        // Calculate dates based on Stripe subscription data and plan interval
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startDate = now;
+        LocalDateTime nextBillingDate = null;
+        
+        logger.debug("Calculating next billing date for subscription: {} with plan: {}", 
+                subscriptionId, plan.getId());
+        logger.debug("Plan interval: {}, Plan type: {}", plan.getInterval(), 
+                SubscriptionPlanType.fromPlanId(plan.getId()));
+        
+        // Determine the plan type and calculate next billing date accordingly
+        SubscriptionPlanType planType = SubscriptionPlanType.fromPlanId(plan.getId());
+        if (planType != null && planType.isAnnual()) {
+            nextBillingDate = now.plusYears(1);
+            logger.debug("Using annual interval for next billing date: {}", nextBillingDate);
+        } else {
+            // For monthly plans or if plan type is not found, use monthly interval
+            nextBillingDate = now.plusMonths(1);
+            logger.debug("Using monthly interval for next billing date: {}", nextBillingDate);
+        }
+        
+        // Update subscription status and dates
         subscription.setStatus("active");
         subscription.setActive(true);
-        subscription.setLastPaymentDate(LocalDateTime.now());
-        subscription.setNextBillingDate(LocalDateTime.now().plusMonths(1));
-        UserSubscription savedSubscription = userSubscriptionRepository.save(subscription);
-        logger.trace("Subscription updated to active status - Next billing date: {}", 
-                savedSubscription.getNextBillingDate());
+        subscription.setLastPaymentDate(now);
+        subscription.setSubscriptionStartDate(startDate);
+        subscription.setNextBillingDate(nextBillingDate);
         
-        // Get plan details for response
-        SubscriptionPlan plan = subscriptionPlanService.getPlanById(savedSubscription.getPlanId())
-                .orElseThrow(() -> new RuntimeException("Plan not found: " + savedSubscription.getPlanId()));
-        logger.trace("Retrieved plan details - Amount: {}, Currency: {}", 
-                plan.getAmount(), plan.getCurrency());
+        // If the subscription is set to cancel at period end, set the end date
+        if (stripeSubscription.getCancelAtPeriodEnd()) {
+            subscription.setSubscriptionEndDate(nextBillingDate);
+            subscription.setCancelAtPeriodEnd(true);
+            logger.debug("Subscription set to cancel at period end: {}", nextBillingDate);
+        } else {
+            subscription.setSubscriptionEndDate(null);
+            subscription.setCancelAtPeriodEnd(false);
+            logger.debug("Subscription not set to cancel at period end");
+        }
+        
+        UserSubscription savedSubscription = userSubscriptionRepository.save(subscription);
+        logger.debug("Subscription updated - Start: {}, Next billing: {}, End: {}, Interval: {}", 
+                savedSubscription.getSubscriptionStartDate(),
+                savedSubscription.getNextBillingDate(),
+                savedSubscription.getSubscriptionEndDate(),
+                plan.getInterval());
         
         return SubscriptionUpdateResponse.fromUserSubscription(savedSubscription, null, false, 
                 plan.getAmount(), plan.getCurrency());
@@ -734,5 +765,232 @@ public class UserSubscriptionService {
 
         return SubscriptionUpdateResponse.fromUserSubscription(currentSubscription, 
                 paymentIntent.getClientSecret(), true, amount, currency);
+    }
+
+    @Transactional
+    public SubscriptionUpdateResponse cancelSubscription(String subscriptionId) throws StripeException {
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ STEP 1: Subscription Cancellation Initiation");
+        logger.trace("║ Subscription ID: {}", subscriptionId);
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+        
+        Stripe.apiKey = stripeSecretKey;
+        
+        // Find the subscription
+        final UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ STEP 2: Subscription Details Retrieved");
+        logger.trace("║ - Status: {}", subscription.getStatus());
+        logger.trace("║ - Active: {}", subscription.isActive());
+        logger.trace("║ - Plan ID: {}", subscription.getPlanId());
+        logger.trace("║ - Stripe Subscription ID: {}", subscription.getStripeSubscriptionId());
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+        
+        // Check if it's a free subscription
+        if (subscription.getStripeSubscriptionId().startsWith("free_")) {
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 3: Free Subscription Cancellation Attempt");
+            logger.trace("║ ❌ Error: Cannot cancel free subscription");
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            throw new RuntimeException("Cannot cancel free subscription. Please upgrade to a paid plan first.");
+        }
+        
+        // For paid subscriptions, cancel in Stripe
+        try {
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 3: Retrieving Stripe Subscription");
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            
+            Subscription stripeSubscription = Subscription.retrieve(subscriptionId);
+            
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 4: Preparing Stripe Cancellation");
+            logger.trace("║ - Current Status: {}", stripeSubscription.getStatus());
+            logger.trace("║ - Cancel at Period End: {}", stripeSubscription.getCancelAtPeriodEnd());
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            
+            // Cancel at period end instead of immediately
+            SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
+                    .setCancelAtPeriodEnd(true)
+                    .build();
+            
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 5: Updating Stripe Subscription");
+            logger.trace("║ - Setting cancel_at_period_end to true");
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            
+            stripeSubscription = stripeSubscription.update(params);
+            
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 6: Stripe Update Complete");
+            logger.trace("║ - New Status: {}", stripeSubscription.getStatus());
+            logger.trace("║ - Cancel at Period End: {}", stripeSubscription.getCancelAtPeriodEnd());
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            
+            // Update our database
+            subscription.setCancelAtPeriodEnd(true);
+            
+            // Get the current period end from the subscription items
+            if (stripeSubscription.getItems() != null && !stripeSubscription.getItems().getData().isEmpty()) {
+                Long periodEnd = stripeSubscription.getItems().getData().get(0).getCurrentPeriodEnd();
+                if (periodEnd != null) {
+                    LocalDateTime endDate = LocalDateTime.ofEpochSecond(periodEnd, 0, ZoneOffset.UTC);
+                    subscription.setSubscriptionEndDate(endDate);
+                    logger.trace("║ - Period End Date: {}", endDate);
+                }
+            }
+            
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 7: Updating Local Database");
+            logger.trace("║ - Setting cancel_at_period_end to true");
+            logger.trace("║ - Updating subscription end date");
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            
+            UserSubscription savedSubscription = userSubscriptionRepository.save(subscription);
+            
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 8: Database Update Complete");
+            logger.trace("║ - Status: {}", savedSubscription.getStatus());
+            logger.trace("║ - Active: {}", savedSubscription.isActive());
+            logger.trace("║ - End Date: {}", savedSubscription.getSubscriptionEndDate());
+            logger.trace("║ - Cancel at Period End: {}", savedSubscription.getCancelAtPeriodEnd());
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            
+            // Get plan details for the response
+            SubscriptionPlan plan = subscriptionPlanService.getPlanById(savedSubscription.getPlanId())
+                    .orElseThrow(() -> new RuntimeException("Plan not found: " + savedSubscription.getPlanId()));
+            
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 9: Preparing Response");
+            logger.trace("║ - Plan ID: {}", plan.getId());
+            logger.trace("║ - Amount: {}", plan.getAmount());
+            logger.trace("║ - Currency: {}", plan.getCurrency());
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            
+            return SubscriptionUpdateResponse.fromUserSubscription(savedSubscription, null, false, 
+                    plan.getAmount(), plan.getCurrency());
+            
+        } catch (StripeException e) {
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ ❌ ERROR: Stripe Operation Failed");
+            logger.trace("║ - Error Message: {}", e.getMessage());
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            throw new RuntimeException("Failed to cancel subscription: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public SubscriptionUpdateResponse reactivateSubscription(String subscriptionId) throws StripeException {
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ STEP 1: Subscription Reactivation Initiation");
+        logger.trace("║ Subscription ID: {}", subscriptionId);
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+        
+        Stripe.apiKey = stripeSecretKey;
+        
+        // Find the subscription
+        final UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ STEP 2: Subscription Details Retrieved");
+        logger.trace("║ - Status: {}", subscription.getStatus());
+        logger.trace("║ - Active: {}", subscription.isActive());
+        logger.trace("║ - Plan ID: {}", subscription.getPlanId());
+        logger.trace("║ - Cancel at Period End: {}", subscription.getCancelAtPeriodEnd());
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+        
+        // Check if it's a free subscription
+        if (subscription.getStripeSubscriptionId().startsWith("free_")) {
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 3: Free Subscription Reactivation Attempt");
+            logger.trace("║ ❌ Error: Cannot reactivate free subscription");
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            throw new RuntimeException("Cannot reactivate free subscription. Please upgrade to a paid plan first.");
+        }
+        
+        // Check if subscription is already active and not set to cancel
+        if (subscription.isActive() && !subscription.getCancelAtPeriodEnd()) {
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 3: Subscription Status Check");
+            logger.trace("║ ❌ Error: Subscription is already active and not set to cancel");
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            throw new RuntimeException("Subscription is already active and not set to cancel");
+        }
+        
+        try {
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 3: Retrieving Stripe Subscription");
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            
+            Subscription stripeSubscription = Subscription.retrieve(subscriptionId);
+            
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 4: Preparing Stripe Reactivation");
+            logger.trace("║ - Current Status: {}", stripeSubscription.getStatus());
+            logger.trace("║ - Cancel at Period End: {}", stripeSubscription.getCancelAtPeriodEnd());
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            
+            // Reactivate by setting cancel_at_period_end to false
+            SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
+                    .setCancelAtPeriodEnd(false)
+                    .build();
+            
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 5: Updating Stripe Subscription");
+            logger.trace("║ - Setting cancel_at_period_end to false");
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            
+            stripeSubscription = stripeSubscription.update(params);
+            
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 6: Stripe Update Complete");
+            logger.trace("║ - New Status: {}", stripeSubscription.getStatus());
+            logger.trace("║ - Cancel at Period End: {}", stripeSubscription.getCancelAtPeriodEnd());
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            
+            // Update our database
+            subscription.setCancelAtPeriodEnd(false);
+            subscription.setSubscriptionEndDate(null); // Clear the end date since it's reactivated
+            
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 7: Updating Local Database");
+            logger.trace("║ - Setting cancel_at_period_end to false");
+            logger.trace("║ - Clearing subscription end date");
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            
+            UserSubscription savedSubscription = userSubscriptionRepository.save(subscription);
+            
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 8: Database Update Complete");
+            logger.trace("║ - Status: {}", savedSubscription.getStatus());
+            logger.trace("║ - Active: {}", savedSubscription.isActive());
+            logger.trace("║ - End Date: {}", savedSubscription.getSubscriptionEndDate());
+            logger.trace("║ - Cancel at Period End: {}", savedSubscription.getCancelAtPeriodEnd());
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            
+            // Get plan details for the response
+            SubscriptionPlan plan = subscriptionPlanService.getPlanById(savedSubscription.getPlanId())
+                    .orElseThrow(() -> new RuntimeException("Plan not found: " + savedSubscription.getPlanId()));
+            
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 9: Preparing Response");
+            logger.trace("║ - Plan ID: {}", plan.getId());
+            logger.trace("║ - Amount: {}", plan.getAmount());
+            logger.trace("║ - Currency: {}", plan.getCurrency());
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            
+            return SubscriptionUpdateResponse.fromUserSubscription(savedSubscription, null, false, 
+                    plan.getAmount(), plan.getCurrency());
+            
+        } catch (StripeException e) {
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ ❌ ERROR: Stripe Operation Failed");
+            logger.trace("║ - Error Message: {}", e.getMessage());
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            throw new RuntimeException("Failed to reactivate subscription: " + e.getMessage());
+        }
     }
 }

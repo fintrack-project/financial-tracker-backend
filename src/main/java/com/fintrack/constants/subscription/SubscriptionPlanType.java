@@ -1,5 +1,8 @@
 package com.fintrack.constants.subscription;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Enum representing the different subscription plan types available in the application.
  */
@@ -11,6 +14,21 @@ public enum SubscriptionPlanType {
     PREMIUM_ANNUAL("Premium Annual");
 
     private final String planName;
+    private static final Map<String, SubscriptionPlanType> planIdToType = new HashMap<>();
+
+    static {
+        // Initialize the map with plan IDs
+        // Free plan
+        planIdToType.put("plan_free", FREE);
+        
+        // Monthly plans
+        planIdToType.put("plan_basic", BASIC);
+        planIdToType.put("plan_premium", PREMIUM);
+        
+        // Annual plans
+        planIdToType.put("plan_basic_annual", BASIC_ANNUAL);
+        planIdToType.put("plan_premium_annual", PREMIUM_ANNUAL);
+    }
 
     SubscriptionPlanType(String planName) {
         this.planName = planName;
@@ -37,6 +55,19 @@ public enum SubscriptionPlanType {
             }
         }
         return null;
+    }
+    
+    /**
+     * Find subscription plan type by plan ID
+     *
+     * @param planId the plan ID to find
+     * @return the corresponding SubscriptionPlanType or null if not found
+     */
+    public static SubscriptionPlanType fromPlanId(String planId) {
+        if (planId == null) {
+            return null;
+        }
+        return planIdToType.get(planId);
     }
     
     /**

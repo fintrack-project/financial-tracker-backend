@@ -4,7 +4,7 @@ import java.util.UUID;
 
 public class SubscriptionPlanRequest {
     private UUID accountId;
-    private String planName;
+    private String planId;
     private String paymentMethodId;
     private String returnUrl;  // URL to return to after payment completion
 
@@ -17,12 +17,12 @@ public class SubscriptionPlanRequest {
         this.accountId = accountId;
     }
 
-    public String getPlanName() {
-        return planName;
+    public String getPlanId() {
+        return planId;
     }
 
-    public void setPlanName(String planName) {
-        this.planName = planName;
+    public void setPlanId(String planId) {
+        this.planId = planId;
     }
 
     public String getPaymentMethodId() {
