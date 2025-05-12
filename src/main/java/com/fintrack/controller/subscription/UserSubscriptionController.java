@@ -154,4 +154,23 @@ public class UserSubscriptionController {
         logger.info("Getting available subscription plan types");
         return ResponseWrapper.ok(SubscriptionPlanType.values());
     }
+
+    @PostMapping("/cancel")
+    public ResponseEntity<ApiResponse<SubscriptionUpdateResponse>> cancelSubscription(@RequestBody Map<String, String> requestBody) {
+        String subscriptionId = requestBody.get("subscriptionId");
+        if (subscriptionId == null || subscriptionId.isEmpty()) {
+            return ResponseWrapper.badRequest("Subscription ID is required");
+        }
+
+        try {
+            SubscriptionUpdateResponse response = userSubscriptionService.cancelSubscription(subscriptionId);
+            return ResponseWrapper.ok(response);
+        } catch (StripeException e) {
+            logger.error("Stripe error canceling subscription: {}", e.getMessage());
+            return ResponseWrapper.badRequest("Error canceling subscription: " + e.getMessage());
+        } catch (RuntimeException e) {
+            logger.error("Error canceling subscription: {}", e.getMessage());
+            return ResponseWrapper.badRequest(e.getMessage());
+        }
+    }
 }
