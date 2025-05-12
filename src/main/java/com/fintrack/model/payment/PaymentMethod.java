@@ -36,6 +36,9 @@ public class PaymentMethod {
     @Column(name = "is_default", nullable = false)
     private boolean isDefault;
 
+    @Column(name = "billing_address_id")
+    private String billingAddressId;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -113,6 +116,14 @@ public class PaymentMethod {
 
     public void setDefault(boolean isDefault) {
         this.isDefault = isDefault;
+    }
+
+    public String getBillingAddressId() {
+        return billingAddressId;
+    }
+
+    public void setBillingAddressId(String billingAddressId) {
+        this.billingAddressId = billingAddressId;
     }
 
     public LocalDateTime getCreatedAt() {
