@@ -43,7 +43,10 @@ public class UserSubscription {
     private LocalDateTime lastPaymentDate;
 
     @Column(name = "cancel_at_period_end")
-    private Boolean cancelAtPeriodEnd;
+    private Boolean cancelAtPeriodEnd = false;
+
+    @Column(name = "pending_plan_change")
+    private Boolean pendingPlanChange = false;
     
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -143,6 +146,14 @@ public class UserSubscription {
 
     public void setCancelAtPeriodEnd(Boolean cancelAtPeriodEnd) {
         this.cancelAtPeriodEnd = cancelAtPeriodEnd;
+    }
+
+    public Boolean getPendingPlanChange() {
+        return pendingPlanChange;
+    }
+
+    public void setPendingPlanChange(Boolean pendingPlanChange) {
+        this.pendingPlanChange = pendingPlanChange;
     }
 
     public LocalDateTime getCreatedAt() {

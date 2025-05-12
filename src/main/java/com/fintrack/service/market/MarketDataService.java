@@ -35,7 +35,7 @@ public class MarketDataService extends AbstractMarketDataProvider {
             ForexMarketDataService forexMarketDataService,
             CryptoMarketDataService cryptoMarketDataService,
             CommodityMarketDataService commodityMarketDataService,
-            KafkaProducerService kafkaProducerService) {
+        KafkaProducerService kafkaProducerService) {
         super(kafkaProducerService);
         this.stockMarketDataService = stockMarketDataService;
         this.forexMarketDataService = forexMarketDataService;
@@ -111,12 +111,12 @@ public class MarketDataService extends AbstractMarketDataProvider {
         }
         
         return entitiesByAssetType;
-    }
+            }
 
     @Override
     public KafkaTopics getUpdateRequestTopic() {
         return KafkaTopics.MARKET_DATA_UPDATE_REQUEST;
-    }
+        }
 
     @Override
     public Map<String, Object> createUpdateRequestPayload(Map<String, Object> data) {
