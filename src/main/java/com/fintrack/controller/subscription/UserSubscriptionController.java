@@ -173,4 +173,23 @@ public class UserSubscriptionController {
             return ResponseWrapper.badRequest(e.getMessage());
         }
     }
+
+    @PostMapping("/reactivate")
+    public ResponseEntity<ApiResponse<SubscriptionUpdateResponse>> reactivateSubscription(@RequestBody Map<String, String> requestBody) {
+        String subscriptionId = requestBody.get("subscriptionId");
+        if (subscriptionId == null || subscriptionId.isEmpty()) {
+            return ResponseWrapper.badRequest("Subscription ID is required");
+        }
+
+        try {
+            SubscriptionUpdateResponse response = userSubscriptionService.reactivateSubscription(subscriptionId);
+            return ResponseWrapper.ok(response);
+        } catch (StripeException e) {
+            logger.error("Stripe error reactivating subscription: {}", e.getMessage());
+            return ResponseWrapper.badRequest("Error reactivating subscription: " + e.getMessage());
+        } catch (RuntimeException e) {
+            logger.error("Error reactivating subscription: {}", e.getMessage());
+            return ResponseWrapper.badRequest(e.getMessage());
+        }
+    }
 }
