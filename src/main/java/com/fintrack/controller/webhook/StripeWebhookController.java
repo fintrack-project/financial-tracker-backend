@@ -1,6 +1,6 @@
 package com.fintrack.controller.webhook;
 
-import com.fintrack.service.subscription.UserSubscriptionService;
+import com.fintrack.service.subscription.OldUserSubscriptionService;
 import com.fintrack.service.payment.PaymentService;
 import com.fintrack.repository.payment.PaymentIntentRepository;
 import com.fintrack.model.payment.PaymentIntent;
@@ -28,14 +28,14 @@ import java.util.Optional;
 public class StripeWebhookController {
     private static final Logger logger = LoggerFactory.getLogger(StripeWebhookController.class);
     
-    private final UserSubscriptionService userSubscriptionService;
+    private final OldUserSubscriptionService userSubscriptionService;
     private final PaymentIntentRepository paymentIntentRepository;
     
     @Value("${stripe.webhook.secret}")
     private String webhookSecret;
 
     @Autowired
-    public StripeWebhookController(UserSubscriptionService userSubscriptionService, PaymentIntentRepository paymentIntentRepository) {
+    public StripeWebhookController(OldUserSubscriptionService userSubscriptionService, PaymentIntentRepository paymentIntentRepository) {
         this.userSubscriptionService = userSubscriptionService;
         this.paymentIntentRepository = paymentIntentRepository;
     }
@@ -58,7 +58,7 @@ public class StripeWebhookController {
         logger.info("║ Processing Stripe Webhook Event");
         logger.info("║ Event Type: {}", event.getType());
         logger.info("║ Event ID: {}", event.getId());
-        logger.info("║ Event Data: {}", event.getData().getObject());
+        // logger.info("║ Event Data: {}", event.getData().getObject());
         logger.info("╚══════════════════════════════════════════════════════════════");
 
         try {

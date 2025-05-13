@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 
 @Service
@@ -29,71 +30,135 @@ public class UserSubscriptionDowngradeService extends BaseUserSubscriptionServic
 
     @Transactional
     public SubscriptionUpdateResponse downgradeSubscription(UUID accountId, String planId) throws StripeException {
-        Map<String, Object> details = new HashMap<>();
-        details.put("accountId", accountId);
-        details.put("planId", planId);
-        logOperation("Downgrade Subscription", details);
-
-        // Get current subscription
-        UserSubscription currentSubscription = userSubscriptionRepository.findByAccountId(accountId)
-                .orElseThrow(() -> new RuntimeException("No subscription found for account: " + accountId));
-        validateSubscriptionExists(currentSubscription, currentSubscription.getStripeSubscriptionId());
-
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ STEP 1: Subscription Downgrade Initiation");
+        logger.trace("║ Account: {}", accountId);
+        logger.trace("║ Plan ID: {}", planId);
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+        
         // Get plan details
         SubscriptionPlan newPlan = subscriptionPlanService.getPlanById(planId)
                 .orElseThrow(() -> new RuntimeException("Plan not found: " + planId));
-        validatePlanExists(newPlan, planId);
+        
+        String stripePriceId = newPlan.getStripePriceId();
+        
+        logger.trace("║ Plan Details Retrieved:");
+        logger.trace("║ - Plan ID: {}", planId);
+        logger.trace("║ - Stripe Price ID: {}", stripePriceId);
+        logger.trace("║ - Amount: {}", newPlan.getAmount());
+        logger.trace("║ - Currency: {}", newPlan.getCurrency());
 
-        // Validate downgrade
-        validateDowngrade(currentSubscription, newPlan);
+        // Get current subscription
+        Optional<UserSubscription> currentSubscription = userSubscriptionRepository.findByAccountId(accountId);
+        logger.trace("║ Current Subscription Status:");
+        logger.trace("║ - Exists: {}", currentSubscription.isPresent());
+        if (currentSubscription.isPresent()) {
+            logger.trace("║ - Current Plan: {}", currentSubscription.get().getPlanId());
+            logger.trace("║ - Status: {}", currentSubscription.get().getStatus());
+        }
 
-        // Update subscription in Stripe
-        Subscription stripeSubscription = updateStripeSubscription(
-                currentSubscription.getStripeSubscriptionId(), 
-                newPlan.getStripePriceId());
+        if (currentSubscription.isEmpty()) {
+            throw new RuntimeException("No active subscription found for account: " + accountId);
+        }
 
-        // Update subscription in database
-        currentSubscription.setPlanId(newPlan.getId());
-        currentSubscription.setStatus(stripeSubscription.getStatus());
-        currentSubscription.setActive("active".equals(stripeSubscription.getStatus()));
-        currentSubscription.setNextBillingDate(calculateNextBillingDate(newPlan));
-        currentSubscription = userSubscriptionRepository.save(currentSubscription);
+        UserSubscription subscription = currentSubscription.get();
 
-        return SubscriptionUpdateResponse.fromUserSubscription(currentSubscription, 
-                null, false, newPlan.getAmount(), newPlan.getCurrency());
-    }
+        // Verify it's not a free subscription
+        if (subscription.getStripeSubscriptionId().startsWith("free_")) {
+            throw new RuntimeException("Cannot downgrade free subscription");
+        }
 
-    private void validateDowngrade(UserSubscription currentSubscription, SubscriptionPlan newPlan) {
-        SubscriptionPlan currentPlan = subscriptionPlanService.getPlanById(currentSubscription.getPlanId())
-                .orElseThrow(() -> new RuntimeException("Current plan not found: " + currentSubscription.getPlanId()));
+        // Get current plan details
+        SubscriptionPlan currentPlan = subscriptionPlanService.getPlanById(subscription.getPlanId())
+                .orElseThrow(() -> new RuntimeException("Current plan not found: " + subscription.getPlanId()));
 
+        // Verify it's actually a downgrade
         if (newPlan.getAmount().compareTo(currentPlan.getAmount()) >= 0) {
-            throw new RuntimeException("New plan must have a lower price than current plan");
+            throw new RuntimeException("Cannot downgrade to a plan with equal or higher price");
         }
 
-        // Additional validation for downgrade-specific rules
-        if (currentSubscription.getStripeSubscriptionId().startsWith("free_")) {
-            throw new RuntimeException("Cannot downgrade a free subscription");
-        }
-    }
-
-    private Subscription updateStripeSubscription(String subscriptionId, String newPriceId) throws StripeException {
         try {
-            Subscription stripeSubscription = Subscription.retrieve(subscriptionId);
-            String subscriptionItemId = stripeSubscription.getItems().getData().get(0).getId();
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 2: Retrieving Stripe Subscription");
+            logger.trace("╚══════════════════════════════════════════════════════════════");
 
+            Subscription stripeSubscription = Subscription.retrieve(subscription.getStripeSubscriptionId());
+
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 3: Preparing Stripe Downgrade");
+            logger.trace("║ - Current Status: {}", stripeSubscription.getStatus());
+            logger.trace("║ - Current Price ID: {}", stripeSubscription.getItems().getData().get(0).getPrice().getId());
+            logger.trace("║ - New Price ID: {}", stripePriceId);
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+
+            // Update subscription in Stripe to apply changes at period end
             SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
                     .addItem(SubscriptionUpdateParams.Item.builder()
-                            .setId(subscriptionItemId)
-                            .setPrice(newPriceId)
+                            .setId(stripeSubscription.getItems().getData().get(0).getId())
+                            .setPrice(stripePriceId)
                             .build())
-                    .setProrationBehavior(SubscriptionUpdateParams.ProrationBehavior.CREATE_PRORATIONS)
+                    .setProrationBehavior(SubscriptionUpdateParams.ProrationBehavior.NONE)
+                    .setBillingCycleAnchor(SubscriptionUpdateParams.BillingCycleAnchor.NOW)
+                    .setCancelAtPeriodEnd(false)
                     .build();
 
-            return stripeSubscription.update(params);
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 4: Updating Stripe Subscription");
+            logger.trace("║ - Setting new price ID");
+            logger.trace("║ - Applying changes at period end");
+            logger.trace("║ - No prorations");
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+
+            stripeSubscription = stripeSubscription.update(params);
+
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 5: Stripe Update Complete");
+            logger.trace("║ - New Status: {}", stripeSubscription.getStatus());
+            logger.trace("║ - New Price ID: {}", stripeSubscription.getItems().getData().get(0).getPrice().getId());
+            logger.trace("║ - Next Billing Date: {}", stripeSubscription.getItems().getData().get(0).getCurrentPeriodEnd());
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+
+            // Update our database
+            subscription.setPlanId(planId);
+            subscription.setStatus(stripeSubscription.getStatus());
+            subscription.setActive("active".equals(stripeSubscription.getStatus()));
+            subscription.setPendingPlanChange(true); // Mark that there's a pending plan change
+
+            // Calculate next billing date
+            if (stripeSubscription.getItems() != null && !stripeSubscription.getItems().getData().isEmpty()) {
+                Long periodEnd = stripeSubscription.getItems().getData().get(0).getCurrentPeriodEnd();
+                if (periodEnd != null) {
+                    subscription.setNextBillingDate(LocalDateTime.ofEpochSecond(periodEnd, 0, ZoneOffset.UTC));
+                }
+            }
+
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 6: Updating Local Database");
+            logger.trace("║ - New Plan ID: {}", subscription.getPlanId());
+            logger.trace("║ - New Status: {}", subscription.getStatus());
+            logger.trace("║ - Next Billing Date: {}", subscription.getNextBillingDate());
+            logger.trace("║ - Pending Plan Change: {}", subscription.getPendingPlanChange());
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+
+            UserSubscription savedSubscription = userSubscriptionRepository.save(subscription);
+
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 7: Database Update Complete");
+            logger.trace("║ - Status: {}", savedSubscription.getStatus());
+            logger.trace("║ - Active: {}", savedSubscription.isActive());
+            logger.trace("║ - Plan ID: {}", savedSubscription.getPlanId());
+            logger.trace("║ - Pending Plan Change: {}", savedSubscription.getPendingPlanChange());
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+
+            return SubscriptionUpdateResponse.fromUserSubscription(savedSubscription, null, false, 
+                    newPlan.getAmount(), newPlan.getCurrency());
+
         } catch (StripeException e) {
-            handleStripeError(e, "update Stripe subscription");
-            throw e;
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ ❌ ERROR: Stripe Operation Failed");
+            logger.trace("║ - Error Message: {}", e.getMessage());
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            throw new RuntimeException("Failed to downgrade subscription: " + e.getMessage());
         }
     }
 } 

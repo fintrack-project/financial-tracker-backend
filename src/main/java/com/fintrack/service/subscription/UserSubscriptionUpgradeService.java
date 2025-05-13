@@ -124,9 +124,10 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
                     "upgrade_from", "free"
                 ));
 
-        if (paymentMethodId != null && !paymentMethodId.isEmpty()) {
-            paramsBuilder.setDefaultPaymentMethod(paymentMethodId);
-        }
+        // Don't set default payment method - let frontend handle it
+        // if (paymentMethodId != null && !paymentMethodId.isEmpty()) {
+        //     paramsBuilder.setDefaultPaymentMethod(paymentMethodId);
+        // }
 
         Subscription stripeSubscription = Subscription.create(paramsBuilder.build());
         logger.trace("✓ Stripe subscription created");
@@ -139,16 +140,16 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         paymentIntentParams.put("amount", amountInCents);
         paymentIntentParams.put("currency", newPlan.getCurrency().toLowerCase());
         paymentIntentParams.put("customer", customerId);
-        paymentIntentParams.put("payment_method", paymentMethodId);
+        // Don't set payment method - let frontend handle it
+        // paymentIntentParams.put("payment_method", paymentMethodId);
         paymentIntentParams.put("payment_method_types", Arrays.asList("card"));
         paymentIntentParams.put("setup_future_usage", "off_session");
+        paymentIntentParams.put("confirm", false);  // Never confirm from backend
         
-        // Only set return_url and confirm if returnUrl is provided
+        // Only use return_url if explicitly provided by frontend
         if (returnUrl != null && !returnUrl.isEmpty()) {
-            paymentIntentParams.put("return_url", returnUrl);
             paymentIntentParams.put("confirm", true);
-        } else {
-            paymentIntentParams.put("confirm", false);
+            paymentIntentParams.put("return_url", returnUrl);
         }
         
         paymentIntentParams.put("metadata", Map.of(
@@ -159,10 +160,29 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
             "upgrade_from", "free"
         ));
 
-        PaymentIntent paymentIntent = PaymentIntent.create(paymentIntentParams);
+        PaymentIntent stripePaymentIntent = PaymentIntent.create(paymentIntentParams);
         logger.trace("✓ Payment Intent created");
-        logger.trace("║ - ID: {}", paymentIntent.getId());
-        logger.trace("║ - Status: {}", paymentIntent.getStatus());
+        logger.trace("║ - ID: {}", stripePaymentIntent.getId());
+        logger.trace("║ - Status: {}", stripePaymentIntent.getStatus());
+
+        // Save payment intent to our database
+        com.fintrack.model.payment.PaymentIntent dbPaymentIntent = new com.fintrack.model.payment.PaymentIntent();
+        dbPaymentIntent.setAccountId(currentSubscription.getAccountId());
+        dbPaymentIntent.setStripePaymentIntentId(stripePaymentIntent.getId());
+        dbPaymentIntent.setAmount(newPlan.getAmount());
+        dbPaymentIntent.setCurrency(newPlan.getCurrency());
+        dbPaymentIntent.setStatus(stripePaymentIntent.getStatus());
+        dbPaymentIntent.setPaymentMethodId(paymentMethodId);
+        dbPaymentIntent.setClientSecret(stripePaymentIntent.getClientSecret());
+        dbPaymentIntent.setStripeCustomerId(customerId);
+        dbPaymentIntent.setSetupFutureUsage("off_session");
+        dbPaymentIntent.setPaymentMethodTypes("card");
+        dbPaymentIntent.setRequiresAction(stripePaymentIntent.getStatus().equals("requires_action"));
+        dbPaymentIntent.setMetadata(String.format("{\"subscription_id\":\"%s\",\"plan_id\":\"%s\"}", 
+            stripeSubscription.getId(), newPlan.getId()));
+        dbPaymentIntent.setCreatedAt(LocalDateTime.now());
+        paymentIntentRepository.save(dbPaymentIntent);
+        logger.trace("✓ Payment intent saved to database");
         
         // Update subscription in database
         currentSubscription.setStripeSubscriptionId(stripeSubscription.getId());
@@ -173,7 +193,7 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         currentSubscription = userSubscriptionRepository.save(currentSubscription);
 
         return SubscriptionUpdateResponse.fromUserSubscription(currentSubscription, 
-                paymentIntent.getClientSecret(), true, newPlan.getAmount(), newPlan.getCurrency());
+                stripePaymentIntent.getClientSecret(), true, newPlan.getAmount(), newPlan.getCurrency());
     }
 
     private SubscriptionUpdateResponse updatePaidSubscription(UserSubscription currentSubscription, 
@@ -186,12 +206,12 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         logger.trace("╚══════════════════════════════════════════════════════════════");
 
         try {
-            // Update payment method if provided
-            if (paymentMethodId != null && !paymentMethodId.isEmpty()) {
-                Customer customer = Customer.retrieve(currentSubscription.getStripeCustomerId());
-                customer.update(Map.of("invoice_settings", Map.of("default_payment_method", paymentMethodId)));
-                logger.trace("✓ Payment method updated");
-            }
+            // Don't update payment method - let frontend handle it
+            // if (paymentMethodId != null && !paymentMethodId.isEmpty()) {
+            //     Customer customer = Customer.retrieve(currentSubscription.getStripeCustomerId());
+            //     customer.update(Map.of("invoice_settings", Map.of("default_payment_method", paymentMethodId)));
+            //     logger.trace("✓ Payment method updated");
+            // }
 
             // Update subscription in Stripe
             Subscription stripeSubscription = Subscription.retrieve(currentSubscription.getStripeSubscriptionId());
@@ -220,16 +240,16 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
             paymentIntentParams.put("amount", amountInCents);
             paymentIntentParams.put("currency", newPlan.getCurrency().toLowerCase());
             paymentIntentParams.put("customer", currentSubscription.getStripeCustomerId());
-            paymentIntentParams.put("payment_method", paymentMethodId);
+            // Don't set payment method - let frontend handle it
+            // paymentIntentParams.put("payment_method", paymentMethodId);
             paymentIntentParams.put("payment_method_types", Arrays.asList("card"));
             paymentIntentParams.put("setup_future_usage", "off_session");
+            paymentIntentParams.put("confirm", false);  // Never confirm from backend
             
-            // Only set return_url and confirm if returnUrl is provided
+            // Only use return_url if explicitly provided by frontend
             if (returnUrl != null && !returnUrl.isEmpty()) {
-                paymentIntentParams.put("return_url", returnUrl);
                 paymentIntentParams.put("confirm", true);
-            } else {
-                paymentIntentParams.put("confirm", false);
+                paymentIntentParams.put("return_url", returnUrl);
             }
             
             paymentIntentParams.put("metadata", Map.of(
@@ -240,10 +260,29 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
                 "upgrade_from", SubscriptionPlanType.fromPlanId(currentSubscription.getPlanId()).name().toLowerCase()
             ));
 
-            PaymentIntent paymentIntent = PaymentIntent.create(paymentIntentParams);
+            PaymentIntent stripePaymentIntent = PaymentIntent.create(paymentIntentParams);
             logger.trace("✓ Payment Intent created");
-            logger.trace("║ - ID: {}", paymentIntent.getId());
-            logger.trace("║ - Status: {}", paymentIntent.getStatus());
+            logger.trace("║ - ID: {}", stripePaymentIntent.getId());
+            logger.trace("║ - Status: {}", stripePaymentIntent.getStatus());
+
+            // Save payment intent to our database
+            com.fintrack.model.payment.PaymentIntent dbPaymentIntent = new com.fintrack.model.payment.PaymentIntent();
+            dbPaymentIntent.setAccountId(currentSubscription.getAccountId());
+            dbPaymentIntent.setStripePaymentIntentId(stripePaymentIntent.getId());
+            dbPaymentIntent.setAmount(newPlan.getAmount());
+            dbPaymentIntent.setCurrency(newPlan.getCurrency());
+            dbPaymentIntent.setStatus(stripePaymentIntent.getStatus());
+            dbPaymentIntent.setPaymentMethodId(paymentMethodId);
+            dbPaymentIntent.setClientSecret(stripePaymentIntent.getClientSecret());
+            dbPaymentIntent.setStripeCustomerId(currentSubscription.getStripeCustomerId());
+            dbPaymentIntent.setSetupFutureUsage("off_session");
+            dbPaymentIntent.setPaymentMethodTypes("card");
+            dbPaymentIntent.setRequiresAction(stripePaymentIntent.getStatus().equals("requires_action"));
+            dbPaymentIntent.setMetadata(String.format("{\"subscription_id\":\"%s\",\"plan_id\":\"%s\"}", 
+                stripeSubscription.getId(), newPlan.getId()));
+            dbPaymentIntent.setCreatedAt(LocalDateTime.now());
+            paymentIntentRepository.save(dbPaymentIntent);
+            logger.trace("✓ Payment intent saved to database");
 
             // Calculate next billing date
             LocalDateTime nextBillingDate;
@@ -271,7 +310,7 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
             logger.trace("║ - Next Billing Date: {}", currentSubscription.getNextBillingDate());
 
             return SubscriptionUpdateResponse.fromUserSubscription(currentSubscription, 
-                    paymentIntent.getClientSecret(), true, newPlan.getAmount(), newPlan.getCurrency());
+                    stripePaymentIntent.getClientSecret(), true, newPlan.getAmount(), newPlan.getCurrency());
 
         } catch (StripeException e) {
             logger.error("❌ Error updating subscription: {}", e.getMessage());
