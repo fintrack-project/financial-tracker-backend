@@ -38,7 +38,7 @@ public class PaymentService {
     }
 
     @Transactional
-    public PaymentIntent createPaymentIntent(UUID accountId, BigDecimal amount, String currency) throws StripeException {
+    public PaymentIntent createPaymentIntent(UUID accountId, BigDecimal amount, String currency, String returnUrl) throws StripeException {
         Stripe.apiKey = stripeSecretKey;
 
         // Create payment intent in Stripe
@@ -50,6 +50,7 @@ public class PaymentService {
                                 .setEnabled(true)
                                 .build()
                 )
+                .setReturnUrl(returnUrl)
                 .build();
 
         com.stripe.model.PaymentIntent stripePaymentIntent = com.stripe.model.PaymentIntent.create(params);

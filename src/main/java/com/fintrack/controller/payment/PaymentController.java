@@ -3,6 +3,7 @@ package com.fintrack.controller.payment;
 import com.fintrack.dto.ErrorResponse;
 import com.fintrack.dto.payment.PaymentMethodRequest;
 import com.fintrack.dto.payment.PaymentMethodResponse;
+import com.fintrack.dto.payment.PaymentIntentRequest;
 import com.fintrack.model.payment.PaymentIntent;
 import com.fintrack.model.payment.PaymentMethod;
 import com.fintrack.service.payment.PaymentService;
@@ -33,13 +34,14 @@ public class PaymentController {
     }
 
     @PostMapping("/create-intent")
-    public ResponseEntity<ApiResponse<PaymentIntent>> createPaymentIntent(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<ApiResponse<PaymentIntent>> createPaymentIntent(@RequestBody PaymentIntentRequest request) {
         try {
-            UUID accountId = UUID.fromString((String) request.get("accountId"));
-            BigDecimal amount = new BigDecimal(request.get("amount").toString());
-            String currency = (String) request.get("currency");
-
-            PaymentIntent paymentIntent = paymentService.createPaymentIntent(accountId, amount, currency);
+            PaymentIntent paymentIntent = paymentService.createPaymentIntent(
+                request.getAccountId(),
+                request.getAmount(),
+                request.getCurrency(),
+                request.getReturnUrl()
+            );
             return ResponseWrapper.ok(paymentIntent);
         } catch (Exception e) {
             return ResponseWrapper.badRequest(e.getMessage());

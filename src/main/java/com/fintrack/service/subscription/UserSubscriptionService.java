@@ -453,6 +453,7 @@ public class UserSubscriptionService {
         paymentIntentParams.put("payment_method", paymentMethodId);
         paymentIntentParams.put("payment_method_types", Arrays.asList("card"));
         paymentIntentParams.put("setup_future_usage", "off_session");
+        paymentIntentParams.put("return_url", returnUrl);
         paymentIntentParams.put("metadata", Map.of(
             "subscription_id", stripeSubscription.getId(),
             "account_id", currentSubscription.getAccountId().toString()
@@ -531,10 +532,8 @@ public class UserSubscriptionService {
         paymentIntentParams.put("customer", customerId);
         paymentIntentParams.put("payment_method", paymentMethodId);
         paymentIntentParams.put("payment_method_types", Arrays.asList("card"));
-        paymentIntentParams.put("confirm", true);
         paymentIntentParams.put("setup_future_usage", "off_session");
         paymentIntentParams.put("return_url", returnUrl);
-        paymentIntentParams.put("capture_method", "automatic");
         paymentIntentParams.put("metadata", Map.of(
             "account_id", accountId.toString(),
             "plan_id", planId,
@@ -573,8 +572,8 @@ public class UserSubscriptionService {
         subscription.setPlanId(planId);
         subscription.setStripeCustomerId(customerId);
         subscription.setStripeSubscriptionId(stripeSubscription.getId());
-        subscription.setStatus(stripeSubscription.getStatus());
-        subscription.setActive("active".equals(stripeSubscription.getStatus()));
+        subscription.setStatus("incomplete");
+        subscription.setActive(false);
         subscription.setSubscriptionStartDate(LocalDateTime.now());
         subscription.setCreatedAt(LocalDateTime.now());
         subscription = userSubscriptionRepository.save(subscription);
@@ -792,6 +791,7 @@ public class UserSubscriptionService {
         paymentIntentParams.put("payment_method", paymentMethodId);
         paymentIntentParams.put("payment_method_types", Arrays.asList("card"));
         paymentIntentParams.put("setup_future_usage", "off_session");
+        paymentIntentParams.put("return_url", returnUrl);
         paymentIntentParams.put("metadata", Map.of(
             "subscription_id", currentSubscription.getStripeSubscriptionId(),
             "account_id", currentSubscription.getAccountId().toString()
