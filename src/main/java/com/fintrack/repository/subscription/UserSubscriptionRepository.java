@@ -4,6 +4,7 @@ import com.fintrack.model.subscription.UserSubscription;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,4 +12,5 @@ import java.util.UUID;
 public interface UserSubscriptionRepository extends JpaRepository<UserSubscription, Long> {
     Optional<UserSubscription> findByAccountId(UUID accountId);
     Optional<UserSubscription> findByStripeSubscriptionId(String stripeSubscriptionId);
+    List<UserSubscription> findAllByAccountId(UUID accountId);
 } 

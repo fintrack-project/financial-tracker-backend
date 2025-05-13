@@ -19,34 +19,34 @@ public class PaymentIntent {
     @Column(name = "stripe_payment_intent_id", nullable = false, unique = true)
     private String stripePaymentIntentId;
 
-    @Column(name = "amount", nullable = false, precision = 10, scale = 2)
+    @Column(name = "amount", nullable = false)
     private BigDecimal amount;
 
-    @Column(name = "currency", nullable = false, length = 3)
+    @Column(name = "currency", nullable = false, length = 10)
     private String currency;
 
-    @Column(name = "status", nullable = false, length = 50)
+    @Column(name = "status", length = 50)
     private String status;
 
-    @Column(name = "payment_method_id")
+    @Column(name = "payment_method_id", length = 255)
     private String paymentMethodId;
 
-    @Column(name = "client_secret")
+    @Column(name = "client_secret", length = 255)
     private String clientSecret;
 
-    @Column(name = "stripe_customer_id")
+    @Column(name = "stripe_customer_id", length = 255)
     private String stripeCustomerId;
 
     @Column(name = "setup_future_usage", length = 20)
     private String setupFutureUsage;
 
-    @Column(name = "payment_method_types")
+    @Column(name = "payment_method_types", length = 255)
     private String paymentMethodTypes;
 
-    @Column(name = "next_action")
+    @Column(name = "next_action", columnDefinition = "TEXT")
     private String nextAction;
 
-    @Column(name = "last_payment_error")
+    @Column(name = "last_payment_error", columnDefinition = "TEXT")
     private String lastPaymentError;
 
     @Column(name = "cancellation_reason", length = 50)
@@ -66,9 +66,6 @@ public class PaymentIntent {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
 
     // Getters and Setters
     public Long getId() {
@@ -221,13 +218,5 @@ public class PaymentIntent {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 } 

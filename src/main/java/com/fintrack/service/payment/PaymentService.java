@@ -38,21 +38,26 @@ public class PaymentService {
     }
 
     @Transactional
-    public PaymentIntent createPaymentIntent(UUID accountId, BigDecimal amount, String currency) throws StripeException {
+    public PaymentIntent createPaymentIntent(UUID accountId, BigDecimal amount, String currency, String returnUrl) throws StripeException {
         Stripe.apiKey = stripeSecretKey;
 
         // Create payment intent in Stripe
-        PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
+        PaymentIntentCreateParams.Builder paramsBuilder = PaymentIntentCreateParams.builder()
                 .setAmount(amount.multiply(new BigDecimal("100")).longValue()) // Convert to cents
                 .setCurrency(currency.toLowerCase())
                 .setAutomaticPaymentMethods(
                         PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
                                 .setEnabled(true)
                                 .build()
-                )
-                .build();
+                );
 
-        com.stripe.model.PaymentIntent stripePaymentIntent = com.stripe.model.PaymentIntent.create(params);
+        // Only set return_url and confirm if returnUrl is provided
+        if (returnUrl != null && !returnUrl.isEmpty()) {
+            paramsBuilder.setReturnUrl(returnUrl)
+                        .setConfirm(true);
+        }
+
+        com.stripe.model.PaymentIntent stripePaymentIntent = com.stripe.model.PaymentIntent.create(paramsBuilder.build());
 
         // Save payment intent in our database
         PaymentIntent paymentIntent = new PaymentIntent();
@@ -63,7 +68,6 @@ public class PaymentService {
         paymentIntent.setStatus(stripePaymentIntent.getStatus());
         paymentIntent.setClientSecret(stripePaymentIntent.getClientSecret());
         paymentIntent.setCreatedAt(LocalDateTime.now());
-        paymentIntent.setUpdatedAt(LocalDateTime.now());
 
         return paymentIntentRepository.save(paymentIntent);
     }
@@ -163,7 +167,6 @@ public class PaymentService {
             PaymentIntent paymentIntent = paymentIntentOpt.get();
             paymentIntent.setStatus(stripePaymentIntent.getStatus());
             paymentIntent.setPaymentMethodId(paymentMethodId);
-            paymentIntent.setUpdatedAt(LocalDateTime.now());
             return paymentIntentRepository.save(paymentIntent);
         }
 

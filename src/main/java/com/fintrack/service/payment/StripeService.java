@@ -17,7 +17,7 @@ public class StripeService {
     @Value("${stripe.secret.key}")
     private String stripeSecretKey;
 
-    public PaymentIntent createPaymentIntent(BigDecimal amount, String currency, String paymentMethodId, String customerId) throws StripeException {
+    public PaymentIntent createPaymentIntent(BigDecimal amount, String currency, String paymentMethodId, String customerId, String returnUrl) throws StripeException {
         Stripe.apiKey = stripeSecretKey;
         
         Map<String, Object> params = new HashMap<>();
@@ -25,8 +25,15 @@ public class StripeService {
         params.put("currency", currency.toLowerCase());
         params.put("payment_method", paymentMethodId);
         params.put("customer", customerId);
-        params.put("confirm", false);
         params.put("setup_future_usage", "off_session");
+        
+        // Only set return_url and confirm if returnUrl is provided
+        if (returnUrl != null && !returnUrl.isEmpty()) {
+            params.put("return_url", returnUrl);
+            params.put("confirm", true);
+        } else {
+            params.put("confirm", false);
+        }
         
         return PaymentIntent.create(params);
     }
