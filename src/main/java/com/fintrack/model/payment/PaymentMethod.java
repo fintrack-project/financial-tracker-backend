@@ -1,13 +1,19 @@
 package com.fintrack.model.payment;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fintrack.model.user.User;
 import jakarta.persistence.*;
+import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "payment_methods")
+@Data
 public class PaymentMethod {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -15,10 +21,10 @@ public class PaymentMethod {
     @Column(name = "account_id", nullable = false)
     private UUID accountId;
 
-    @Column(name = "stripe_payment_method_id", nullable = false, unique = true)
+    @Column(name = "stripe_payment_method_id", nullable = false)
     private String stripePaymentMethodId;
 
-    @Column(name = "type", nullable = false, length = 50)
+    @Column(nullable = false)
     private String type;
 
     @Column(name = "card_last4")
@@ -28,117 +34,27 @@ public class PaymentMethod {
     private String cardBrand;
 
     @Column(name = "card_exp_month")
-    private Integer cardExpMonth;
+    private String cardExpMonth;
 
     @Column(name = "card_exp_year")
-    private Integer cardExpYear;
+    private String cardExpYear;
 
     @Column(name = "is_default", nullable = false)
-    private boolean isDefault;
+    private boolean isDefault = false;
 
-    @Column(name = "billing_address_id")
-    private String billingAddressId;
+    @Column(name = "billing_address", columnDefinition = "text")
+    private String billingAddress;
 
-    @Column(name = "created_at", nullable = false)
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public UUID getAccountId() {
-        return accountId;
-    }
-
-    public void setAccountId(UUID accountId) {
-        this.accountId = accountId;
-    }
-
-    public String getStripePaymentMethodId() {
-        return stripePaymentMethodId;
-    }
-
-    public void setStripePaymentMethodId(String stripePaymentMethodId) {
-        this.stripePaymentMethodId = stripePaymentMethodId;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public String getCardLast4() {
-        return cardLast4;
-    }
-
-    public void setCardLast4(String cardLast4) {
-        this.cardLast4 = cardLast4;
-    }
-
-    public String getCardBrand() {
-        return cardBrand;
-    }
-
-    public void setCardBrand(String cardBrand) {
-        this.cardBrand = cardBrand;
-    }
-
-    public Integer getCardExpMonth() {
-        return cardExpMonth;
-    }
-
-    public void setCardExpMonth(Integer cardExpMonth) {
-        this.cardExpMonth = cardExpMonth;
-    }
-
-    public Integer getCardExpYear() {
-        return cardExpYear;
-    }
-
-    public void setCardExpYear(Integer cardExpYear) {
-        this.cardExpYear = cardExpYear;
-    }
-
-    public boolean isDefault() {
-        return isDefault;
-    }
-
-    public void setDefault(boolean isDefault) {
-        this.isDefault = isDefault;
-    }
-
-    public String getBillingAddressId() {
-        return billingAddressId;
-    }
-
-    public void setBillingAddressId(String billingAddressId) {
-        this.billingAddressId = billingAddressId;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id", insertable = false, updatable = false)
+    private User user;
 } 

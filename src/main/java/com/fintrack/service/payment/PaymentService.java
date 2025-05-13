@@ -122,8 +122,8 @@ public class PaymentService {
             if ("card".equals(stripePaymentMethod.getType())) {
                 paymentMethod.setCardLast4(stripePaymentMethod.getCard().getLast4());
                 paymentMethod.setCardBrand(stripePaymentMethod.getCard().getBrand());
-                paymentMethod.setCardExpMonth(stripePaymentMethod.getCard().getExpMonth().intValue());
-                paymentMethod.setCardExpYear(stripePaymentMethod.getCard().getExpYear().intValue());
+                paymentMethod.setCardExpMonth(String.valueOf(stripePaymentMethod.getCard().getExpMonth()));
+                paymentMethod.setCardExpYear(String.valueOf(stripePaymentMethod.getCard().getExpYear()));
                 logger.trace("Added card details for payment method: brand={}, last4={}", 
                     stripePaymentMethod.getCard().getBrand(), 
                     stripePaymentMethod.getCard().getLast4());
