@@ -68,7 +68,6 @@ public class PaymentService {
         paymentIntent.setStatus(stripePaymentIntent.getStatus());
         paymentIntent.setClientSecret(stripePaymentIntent.getClientSecret());
         paymentIntent.setCreatedAt(LocalDateTime.now());
-        paymentIntent.setUpdatedAt(LocalDateTime.now());
 
         return paymentIntentRepository.save(paymentIntent);
     }
@@ -168,7 +167,6 @@ public class PaymentService {
             PaymentIntent paymentIntent = paymentIntentOpt.get();
             paymentIntent.setStatus(stripePaymentIntent.getStatus());
             paymentIntent.setPaymentMethodId(paymentMethodId);
-            paymentIntent.setUpdatedAt(LocalDateTime.now());
             return paymentIntentRepository.save(paymentIntent);
         }
 

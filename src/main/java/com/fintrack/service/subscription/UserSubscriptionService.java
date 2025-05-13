@@ -51,7 +51,24 @@ public class UserSubscriptionService {
     }
 
     public Optional<UserSubscription> getSubscriptionByAccountId(UUID accountId) {
-        return userSubscriptionRepository.findByAccountId(accountId);
+        List<UserSubscription> subscriptions = userSubscriptionRepository.findAllByAccountId(accountId);
+        
+        if (subscriptions.isEmpty()) {
+            return Optional.empty();
+        }
+        
+        // If there's only one subscription, return it
+        if (subscriptions.size() == 1) {
+            return Optional.of(subscriptions.get(0));
+        }
+        
+        // If there are multiple subscriptions, prioritize paid subscriptions over free ones
+        return subscriptions.stream()
+            .filter(sub -> !sub.getStripeSubscriptionId().startsWith("free_"))
+            .findFirst()
+            .or(() -> subscriptions.stream()
+                .filter(sub -> sub.getStripeSubscriptionId().startsWith("free_"))
+                .findFirst());
     }
 
     /**
@@ -112,7 +129,14 @@ public class UserSubscriptionService {
         Optional<UserSubscription> existingSubscription = userSubscriptionRepository.findByAccountId(accountId);
         
         if (existingSubscription.isPresent()) {
-            return handleDowngradeToFreePlan(existingSubscription.get(), planId);
+            UserSubscription subscription = existingSubscription.get();
+            // If it's already a free subscription, just return it
+            if (subscription.getStripeSubscriptionId().startsWith("free_")) {
+                logger.info("User already has a free subscription, returning existing subscription");
+                return subscription;
+            }
+            // Otherwise, downgrade to free
+            return handleDowngradeToFreePlan(subscription, planId);
         } else {
             // Create a new free subscription
             UserSubscription subscription = new UserSubscription();
@@ -624,7 +648,6 @@ public class UserSubscriptionService {
         dbPaymentIntent.setMetadata(String.format("{\"subscription_id\":\"%s\",\"plan_id\":\"%s\"}", 
             stripeSubscription.getId(), planId));
         dbPaymentIntent.setCreatedAt(LocalDateTime.now());
-        dbPaymentIntent.setUpdatedAt(LocalDateTime.now());
         paymentIntentRepository.save(dbPaymentIntent);
         logger.trace("Payment intent saved to database - ID: {}", dbPaymentIntent.getId());
 
@@ -792,22 +815,34 @@ public class UserSubscriptionService {
             
             UUID accountId = UUID.fromString(accountIdStr);
             
-            UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
+            // Try to find existing subscription
+            UserSubscription subscription = userSubscriptionRepository.findByAccountId(accountId)
                     .orElseGet(() -> {
-                        logger.info("Creating new subscription record for Stripe subscription: {}", subscriptionId);
+                        logger.info("Creating new subscription record for account: {}", accountId);
                         UserSubscription newSubscription = new UserSubscription();
-                        newSubscription.setStripeSubscriptionId(subscriptionId);
                         newSubscription.setAccountId(accountId);
-                        newSubscription.setPlanId(planId);
-                        newSubscription.setActive("active".equals(status));
                         newSubscription.setCreatedAt(LocalDateTime.now());
                         return newSubscription;
                     });
             
+            // Update subscription details
+            subscription.setStripeSubscriptionId(subscriptionId);
+            subscription.setPlanId(planId);
             subscription.setStatus(status);
             subscription.setActive("active".equals(status));
             subscription.setSubscriptionStartDate(LocalDateTime.now());
+            subscription.setStripeCustomerId(stripeSubscription.getCustomer());
+            
+            // Calculate next billing date
+            if (stripeSubscription.getItems() != null && !stripeSubscription.getItems().getData().isEmpty()) {
+                Long periodEnd = stripeSubscription.getItems().getData().get(0).getCurrentPeriodEnd();
+                if (periodEnd != null) {
+                    subscription.setNextBillingDate(LocalDateTime.ofEpochSecond(periodEnd, 0, ZoneOffset.UTC));
+                }
+            }
+            
             userSubscriptionRepository.save(subscription);
+            logger.info("Subscription record updated for account: {}, status: {}", accountId, status);
             
         } catch (StripeException e) {
             logger.error("Error retrieving subscription from Stripe: {}", e.getMessage());

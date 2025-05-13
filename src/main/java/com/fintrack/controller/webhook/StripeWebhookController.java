@@ -114,7 +114,6 @@ public class StripeWebhookController {
             if (dbPaymentIntent.isPresent()) {
                 PaymentIntent intent = dbPaymentIntent.get();
                 intent.setStatus(paymentIntent.getStatus());
-                intent.setUpdatedAt(LocalDateTime.now());
                 paymentIntentRepository.save(intent);
                 logger.trace("✓ Payment intent status updated in database");
             }
@@ -138,7 +137,6 @@ public class StripeWebhookController {
                 intent.setStatus(failedPaymentIntent.getStatus());
                 intent.setLastPaymentError(failedPaymentIntent.getLastPaymentError() != null ? 
                     failedPaymentIntent.getLastPaymentError().getMessage() : null);
-                intent.setUpdatedAt(LocalDateTime.now());
                 paymentIntentRepository.save(intent);
                 logger.trace("✓ Failed payment intent status updated in database");
             }
