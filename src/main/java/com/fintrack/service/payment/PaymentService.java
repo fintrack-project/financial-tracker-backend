@@ -42,18 +42,22 @@ public class PaymentService {
         Stripe.apiKey = stripeSecretKey;
 
         // Create payment intent in Stripe
-        PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
+        PaymentIntentCreateParams.Builder paramsBuilder = PaymentIntentCreateParams.builder()
                 .setAmount(amount.multiply(new BigDecimal("100")).longValue()) // Convert to cents
                 .setCurrency(currency.toLowerCase())
                 .setAutomaticPaymentMethods(
                         PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
                                 .setEnabled(true)
                                 .build()
-                )
-                .setReturnUrl(returnUrl)
-                .build();
+                );
 
-        com.stripe.model.PaymentIntent stripePaymentIntent = com.stripe.model.PaymentIntent.create(params);
+        // Only set return_url and confirm if returnUrl is provided
+        if (returnUrl != null && !returnUrl.isEmpty()) {
+            paramsBuilder.setReturnUrl(returnUrl)
+                        .setConfirm(true);
+        }
+
+        com.stripe.model.PaymentIntent stripePaymentIntent = com.stripe.model.PaymentIntent.create(paramsBuilder.build());
 
         // Save payment intent in our database
         PaymentIntent paymentIntent = new PaymentIntent();

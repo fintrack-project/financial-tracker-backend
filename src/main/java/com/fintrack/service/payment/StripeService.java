@@ -25,9 +25,15 @@ public class StripeService {
         params.put("currency", currency.toLowerCase());
         params.put("payment_method", paymentMethodId);
         params.put("customer", customerId);
-        params.put("confirm", false);
         params.put("setup_future_usage", "off_session");
-        params.put("return_url", returnUrl);
+        
+        // Only set return_url and confirm if returnUrl is provided
+        if (returnUrl != null && !returnUrl.isEmpty()) {
+            params.put("return_url", returnUrl);
+            params.put("confirm", true);
+        } else {
+            params.put("confirm", false);
+        }
         
         return PaymentIntent.create(params);
     }

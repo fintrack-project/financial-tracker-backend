@@ -44,18 +44,22 @@ public class StripeWebhookController {
     public ResponseEntity<ApiResponse<String>> handleStripeWebhook(@RequestBody String payload, @RequestHeader("Stripe-Signature") String sigHeader) {
         Event event = null;
         try {
+            logger.info("Received webhook event with signature: {}", sigHeader);
+            
             event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
+            logger.info("Successfully verified webhook signature for event: {}", event.getId());
         } catch (SignatureVerificationException e) {
             logger.error("❌ Webhook signature verification failed: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ApiResponse<>(false, "Webhook signature verification failed", null));
         }
 
-        logger.trace("╔══════════════════════════════════════════════════════════════");
-        logger.trace("║ Processing Stripe Webhook Event");
-        logger.trace("║ Event Type: {}", event.getType());
-        logger.trace("║ Event ID: {}", event.getId());
-        logger.trace("╚══════════════════════════════════════════════════════════════");
+        logger.info("╔══════════════════════════════════════════════════════════════");
+        logger.info("║ Processing Stripe Webhook Event");
+        logger.info("║ Event Type: {}", event.getType());
+        logger.info("║ Event ID: {}", event.getId());
+        // logger.info("║ Event Data: {}", event.getData().getObject());
+        logger.info("╚══════════════════════════════════════════════════════════════");
 
         try {
             switch (event.getType()) {
