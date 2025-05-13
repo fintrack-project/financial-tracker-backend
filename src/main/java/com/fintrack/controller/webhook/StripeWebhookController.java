@@ -58,7 +58,7 @@ public class StripeWebhookController {
         logger.info("║ Processing Stripe Webhook Event");
         logger.info("║ Event Type: {}", event.getType());
         logger.info("║ Event ID: {}", event.getId());
-        // logger.info("║ Event Data: {}", event.getData().getObject());
+        logger.info("║ Event Data: {}", event.getData().getObject());
         logger.info("╚══════════════════════════════════════════════════════════════");
 
         try {
