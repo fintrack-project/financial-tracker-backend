@@ -124,11 +124,6 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
                     "upgrade_from", "free"
                 ));
 
-        // Don't set default payment method - let frontend handle it
-        // if (paymentMethodId != null && !paymentMethodId.isEmpty()) {
-        //     paramsBuilder.setDefaultPaymentMethod(paymentMethodId);
-        // }
-
         Subscription stripeSubscription = Subscription.create(paramsBuilder.build());
         logger.trace("✓ Stripe subscription created");
         logger.trace("║ - Subscription ID: {}", stripeSubscription.getId());
@@ -164,6 +159,12 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         logger.trace("✓ Payment Intent created");
         logger.trace("║ - ID: {}", stripePaymentIntent.getId());
         logger.trace("║ - Status: {}", stripePaymentIntent.getStatus());
+        logger.trace("║ - Amount: {}", stripePaymentIntent.getAmount());
+        logger.trace("║ - Currency: {}", stripePaymentIntent.getCurrency());
+        logger.trace("║ - Payment Method Types: {}", stripePaymentIntent.getPaymentMethodTypes());
+        logger.trace("║ - Client Secret: {}", stripePaymentIntent.getClientSecret());
+        logger.trace("║ - Requires Action: {}", stripePaymentIntent.getStatus().equals("requires_action"));
+        logger.trace("║ - Requires Confirmation: {}", stripePaymentIntent.getStatus().equals("requires_confirmation"));
 
         // Save payment intent to our database
         com.fintrack.model.payment.PaymentIntent dbPaymentIntent = new com.fintrack.model.payment.PaymentIntent();
@@ -206,13 +207,6 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         logger.trace("╚══════════════════════════════════════════════════════════════");
 
         try {
-            // Don't update payment method - let frontend handle it
-            // if (paymentMethodId != null && !paymentMethodId.isEmpty()) {
-            //     Customer customer = Customer.retrieve(currentSubscription.getStripeCustomerId());
-            //     customer.update(Map.of("invoice_settings", Map.of("default_payment_method", paymentMethodId)));
-            //     logger.trace("✓ Payment method updated");
-            // }
-
             // Update subscription in Stripe
             Subscription stripeSubscription = Subscription.retrieve(currentSubscription.getStripeSubscriptionId());
             String subscriptionItemId = stripeSubscription.getItems().getData().get(0).getId();
@@ -264,6 +258,12 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
             logger.trace("✓ Payment Intent created");
             logger.trace("║ - ID: {}", stripePaymentIntent.getId());
             logger.trace("║ - Status: {}", stripePaymentIntent.getStatus());
+            logger.trace("║ - Amount: {}", stripePaymentIntent.getAmount());
+            logger.trace("║ - Currency: {}", stripePaymentIntent.getCurrency());
+            logger.trace("║ - Payment Method Types: {}", stripePaymentIntent.getPaymentMethodTypes());
+            logger.trace("║ - Client Secret: {}", stripePaymentIntent.getClientSecret());
+            logger.trace("║ - Requires Action: {}", stripePaymentIntent.getStatus().equals("requires_action"));
+            logger.trace("║ - Requires Confirmation: {}", stripePaymentIntent.getStatus().equals("requires_confirmation"));
 
             // Save payment intent to our database
             com.fintrack.model.payment.PaymentIntent dbPaymentIntent = new com.fintrack.model.payment.PaymentIntent();

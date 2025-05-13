@@ -3,7 +3,7 @@ package com.fintrack.service.user;
 import com.fintrack.model.user.User;
 import com.fintrack.repository.user.UserRepository;
 import com.fintrack.security.JwtService;
-import com.fintrack.service.subscription.OldUserSubscriptionService;
+import com.fintrack.service.subscription.UserSubscriptionService;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,7 +24,7 @@ public class UserService {
     private final UserEmailService userEmailService;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final OldUserSubscriptionService userSubscriptionService;
+    private final UserSubscriptionService userSubscriptionService;
 
     private static final int MAX_LOGIN_ATTEMPTS = 5;
     private static final int LOCK_TIME_DURATION = 1; // in minutes
@@ -34,7 +34,7 @@ public class UserService {
         UserEmailService userEmailService,
         BCryptPasswordEncoder passwordEncoder,
         JwtService jwtService,
-        OldUserSubscriptionService userSubscriptionService) {
+        UserSubscriptionService userSubscriptionService) {
         this.userRepository = userRepository;
         this.userEmailService = userEmailService;
         this.passwordEncoder = passwordEncoder;

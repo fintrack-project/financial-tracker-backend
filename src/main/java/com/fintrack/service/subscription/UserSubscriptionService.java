@@ -89,14 +89,43 @@ public class UserSubscriptionService {
                 .findByStripePaymentIntentId(paymentIntentId)
                 .orElseThrow(() -> new RuntimeException("Payment intent not found: " + paymentIntentId));
         
-        // Confirm the payment in Stripe
-        paymentService.confirmPaymentIntent(paymentIntentId, paymentIntent.getPaymentMethodId());
+        // Log payment intent details before confirmation
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ Payment Intent Details (Before Confirmation)");
+        logger.trace("║ - ID: {}", paymentIntent.getStripePaymentIntentId());
+        logger.trace("║ - Status: {}", paymentIntent.getStatus());
+        logger.trace("║ - Amount: {}", paymentIntent.getAmount());
+        logger.trace("║ - Currency: {}", paymentIntent.getCurrency());
+        logger.trace("║ - Payment Method ID: {}", paymentIntent.getPaymentMethodId());
+        logger.trace("║ - Client Secret: {}", paymentIntent.getClientSecret());
+        logger.trace("║ - Requires Action: {}", paymentIntent.getStatus().equals("requires_action"));
+        logger.trace("╚══════════════════════════════════════════════════════════════");
         
-        // Update subscription status
-        subscription.setStatus("active");
-        subscription.setActive(true);
-        subscription.setLastPaymentDate(java.time.LocalDateTime.now());
-        subscription = userSubscriptionRepository.save(subscription);
+        // Get updated payment intent from Stripe
+        com.stripe.model.PaymentIntent stripePaymentIntent = com.stripe.model.PaymentIntent.retrieve(paymentIntentId);
+        logger.trace("╔══════════════════════════════════════════════════════════════");
+        logger.trace("║ Payment Intent Details (After Frontend Confirmation)");
+        logger.trace("║ - ID: {}", stripePaymentIntent.getId());
+        logger.trace("║ - Status: {}", stripePaymentIntent.getStatus());
+        logger.trace("║ - Amount: {}", stripePaymentIntent.getAmount());
+        logger.trace("║ - Currency: {}", stripePaymentIntent.getCurrency());
+        logger.trace("║ - Payment Method Types: {}", stripePaymentIntent.getPaymentMethodTypes());
+        logger.trace("║ - Client Secret: {}", stripePaymentIntent.getClientSecret());
+        logger.trace("║ - Requires Action: {}", stripePaymentIntent.getStatus().equals("requires_action"));
+        logger.trace("║ - Requires Confirmation: {}", stripePaymentIntent.getStatus().equals("requires_confirmation"));
+        logger.trace("╚══════════════════════════════════════════════════════════════");
+        
+        // Update payment intent status in database
+        paymentIntent.setStatus(stripePaymentIntent.getStatus());
+        paymentIntentRepository.save(paymentIntent);
+        
+        // Update subscription status if payment succeeded
+        if ("succeeded".equals(stripePaymentIntent.getStatus())) {
+            subscription.setStatus("active");
+            subscription.setActive(true);
+            subscription.setLastPaymentDate(java.time.LocalDateTime.now());
+            subscription = userSubscriptionRepository.save(subscription);
+        }
         
         return SubscriptionUpdateResponse.fromUserSubscription(subscription, null, false, null, null);
     }
@@ -136,5 +165,46 @@ public class UserSubscriptionService {
         
         // Perform the downgrade
         return downgradeService.downgradeSubscription(accountId, planId);
+    }
+
+    @Transactional
+    public void createFreeSubscription(UUID accountId, String planName) {
+        // Find the free plan by name
+        Optional<SubscriptionPlan> planOpt = subscriptionPlanService.getPlanById("plan_free");
+        if (planOpt.isEmpty()) {
+            throw new RuntimeException("Free plan not found");
+        }
+        SubscriptionPlan plan = planOpt.get();
+
+        // Create a new UserSubscription
+        UserSubscription subscription = new UserSubscription();
+        subscription.setAccountId(accountId);
+        subscription.setPlanId(plan.getId());
+        subscription.setStripeSubscriptionId("free_" + accountId.toString());
+        subscription.setStatus("active");
+        subscription.setActive(true);
+        subscription.setSubscriptionStartDate(java.time.LocalDateTime.now());
+        subscription.setNextBillingDate(null);
+        subscription.setCreatedAt(java.time.LocalDateTime.now());
+        subscription.setCancelAtPeriodEnd(false);
+        userSubscriptionRepository.save(subscription);
+        logger.info("Created free subscription for account: {}", accountId);
+    }
+
+    // Stubbed webhook handler methods for StripeWebhookController
+    public void handlePaymentRequiresAction(String paymentIntentId, String subscriptionId, String nextAction) {
+        logger.info("[Webhook] handlePaymentRequiresAction called: paymentIntentId={}, subscriptionId={}, nextAction={}", paymentIntentId, subscriptionId, nextAction);
+    }
+
+    public void handleSubscriptionCreated(String subscriptionId, String customerId) {
+        logger.info("[Webhook] handleSubscriptionCreated called: subscriptionId={}, customerId={}", subscriptionId, customerId);
+    }
+
+    public void handleSubscriptionUpdated(String subscriptionId, String customerId, Boolean cancelAtPeriodEnd) {
+        logger.info("[Webhook] handleSubscriptionUpdated called: subscriptionId={}, customerId={}, cancelAtPeriodEnd={}", subscriptionId, customerId, cancelAtPeriodEnd);
+    }
+
+    public void handleSubscriptionDeleted(String subscriptionId) {
+        logger.info("[Webhook] handleSubscriptionDeleted called: subscriptionId={}", subscriptionId);
     }
 }

@@ -1,6 +1,6 @@
 package com.fintrack.controller.webhook;
 
-import com.fintrack.service.subscription.OldUserSubscriptionService;
+import com.fintrack.service.subscription.UserSubscriptionService;
 import com.fintrack.service.payment.PaymentService;
 import com.fintrack.repository.payment.PaymentIntentRepository;
 import com.fintrack.model.payment.PaymentIntent;
@@ -28,14 +28,14 @@ import java.util.Optional;
 public class StripeWebhookController {
     private static final Logger logger = LoggerFactory.getLogger(StripeWebhookController.class);
     
-    private final OldUserSubscriptionService userSubscriptionService;
+    private final UserSubscriptionService userSubscriptionService;
     private final PaymentIntentRepository paymentIntentRepository;
     
     @Value("${stripe.webhook.secret}")
     private String webhookSecret;
 
     @Autowired
-    public StripeWebhookController(OldUserSubscriptionService userSubscriptionService, PaymentIntentRepository paymentIntentRepository) {
+    public StripeWebhookController(UserSubscriptionService userSubscriptionService, PaymentIntentRepository paymentIntentRepository) {
         this.userSubscriptionService = userSubscriptionService;
         this.paymentIntentRepository = paymentIntentRepository;
     }
