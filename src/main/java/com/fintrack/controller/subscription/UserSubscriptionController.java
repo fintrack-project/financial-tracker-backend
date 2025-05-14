@@ -214,9 +214,8 @@ public class UserSubscriptionController {
             
             SubscriptionUpdateResponse response = userSubscriptionService.downgradeSubscriptionWithPayment(
                     request.getAccountId(), 
-                    request.getPlanId(), 
-                    request.getPaymentMethodId(),
-                    request.getReturnUrl());
+                    request.getPlanId()
+            );
             
             return ResponseWrapper.ok(response);
         } catch (StripeException e) {

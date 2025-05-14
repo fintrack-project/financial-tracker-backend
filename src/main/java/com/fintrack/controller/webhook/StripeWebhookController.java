@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/webhook")
@@ -58,7 +59,6 @@ public class StripeWebhookController {
         logger.info("║ Processing Stripe Webhook Event");
         logger.info("║ Event Type: {}", event.getType());
         logger.info("║ Event ID: {}", event.getId());
-        // logger.info("║ Event Data: {}", event.getData().getObject());
         logger.info("╚══════════════════════════════════════════════════════════════");
 
         try {
@@ -87,6 +87,38 @@ public class StripeWebhookController {
                     handleSubscriptionDeleted(event);
                     break;
                     
+                case "invoice.paid":
+                    handleInvoicePaid(event);
+                    break;
+                    
+                case "invoice.payment_failed":
+                    handleInvoicePaymentFailed(event);
+                    break;
+                    
+                case "invoice.payment_action_required":
+                    handleInvoicePaymentActionRequired(event);
+                    break;
+                    
+                case "invoice.created":
+                    handleInvoiceCreated(event);
+                    break;
+                    
+                case "invoice.finalized":
+                    handleInvoiceFinalized(event);
+                    break;
+                    
+                case "invoice.payment_succeeded":
+                    handleInvoicePaymentSucceeded(event);
+                    break;
+                    
+                case "charge.succeeded":
+                    handleChargeSucceeded(event);
+                    break;
+                    
+                case "charge.updated":
+                    handleChargeUpdated(event);
+                    break;
+                    
                 default:
                     logger.info("Unhandled event type: {}", event.getType());
             }
@@ -100,23 +132,40 @@ public class StripeWebhookController {
     }
 
     private void handlePaymentIntentSucceeded(Event event) {
-        StripeObject stripeObject = event.getData().getObject();
-        if (stripeObject instanceof com.stripe.model.PaymentIntent) {
-            com.stripe.model.PaymentIntent paymentIntent = (com.stripe.model.PaymentIntent) stripeObject;
-            logger.trace("║ Payment Intent Succeeded");
-            logger.trace("║ - ID: {}", paymentIntent.getId());
-            logger.trace("║ - Amount: {}", paymentIntent.getAmount());
-            logger.trace("║ - Status: {}", paymentIntent.getStatus());
-            
-            // Update payment intent in our database
-            Optional<PaymentIntent> dbPaymentIntent = 
-                paymentIntentRepository.findByStripePaymentIntentId(paymentIntent.getId());
-            if (dbPaymentIntent.isPresent()) {
-                PaymentIntent intent = dbPaymentIntent.get();
-                intent.setStatus(paymentIntent.getStatus());
-                paymentIntentRepository.save(intent);
-                logger.trace("✓ Payment intent status updated in database");
+        try {
+            StripeObject stripeObject = event.getData().getObject();
+            if (stripeObject instanceof com.stripe.model.PaymentIntent) {
+                com.stripe.model.PaymentIntent paymentIntent = (com.stripe.model.PaymentIntent) stripeObject;
+                logger.info("║ Payment Intent Succeeded");
+                logger.info("║ - ID: {}", paymentIntent.getId());
+                logger.info("║ - Amount: {}", paymentIntent.getAmount());
+                logger.info("║ - Status: {}", paymentIntent.getStatus());
+                
+                // Update payment intent in our database
+                Optional<PaymentIntent> dbPaymentIntent = 
+                    paymentIntentRepository.findByStripePaymentIntentId(paymentIntent.getId());
+                if (dbPaymentIntent.isPresent()) {
+                    PaymentIntent intent = dbPaymentIntent.get();
+                    intent.setStatus(paymentIntent.getStatus());
+                    paymentIntentRepository.save(intent);
+                    logger.info("✓ Payment intent status updated in database");
+                }
+
+                // If this payment intent is for a subscription, update the subscription status
+                String subscriptionId = paymentIntent.getMetadata().get("subscription_id");
+                if (subscriptionId != null) {
+                    com.stripe.model.Subscription subscription = com.stripe.model.Subscription.retrieve(subscriptionId);
+                    userSubscriptionService.handleSubscriptionUpdated(
+                        subscriptionId,
+                        subscription.getStatus(),
+                        subscription.getCancelAtPeriodEnd()
+                    );
+                    logger.info("✓ Subscription status updated after payment success: {}", subscription.getStatus());
+                }
             }
+        } catch (Exception e) {
+            logger.error("Error handling payment_intent.succeeded: ", e);
+            throw new RuntimeException("Error handling payment intent success", e);
         }
     }
 
@@ -208,6 +257,207 @@ public class StripeWebhookController {
         } catch (Exception e) {
             logger.error("Error handling customer.subscription.deleted: ", e);
             throw new RuntimeException("Error handling subscription deletion", e);
+        }
+    }
+
+    private void handleInvoicePaid(Event event) {
+        try {
+            StripeObject invoiceObject = event.getData().getObject();
+            if (invoiceObject instanceof com.stripe.model.Invoice) {
+                com.stripe.model.Invoice invoice = (com.stripe.model.Invoice) invoiceObject;
+                
+                // Get subscription ID from invoice lines
+                String subscriptionId = null;
+                if (invoice.getLines() != null && invoice.getLines().getData() != null) {
+                    for (com.stripe.model.InvoiceLineItem line : invoice.getLines().getData()) {
+                        if (line.getSubscription() != null) {
+                            subscriptionId = line.getSubscription();
+                            break;
+                        }
+                    }
+                }
+                
+                if (subscriptionId != null) {
+                    // Get the subscription from Stripe to get the latest status
+                    com.stripe.model.Subscription subscription = com.stripe.model.Subscription.retrieve(subscriptionId);
+                    
+                    // Update subscription status in our database
+                    userSubscriptionService.handleSubscriptionUpdated(
+                        subscriptionId,
+                        subscription.getStatus(),
+                        subscription.getCancelAtPeriodEnd()
+                    );
+                    
+                    logger.info("Invoice paid for subscription: {}, new status: {}", subscriptionId, subscription.getStatus());
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error handling invoice.paid: ", e);
+            throw new RuntimeException("Error handling invoice payment", e);
+        }
+    }
+
+    private void handleInvoicePaymentFailed(Event event) {
+        try {
+            StripeObject invoiceObject = event.getData().getObject();
+            if (invoiceObject instanceof com.stripe.model.Invoice) {
+                com.stripe.model.Invoice invoice = (com.stripe.model.Invoice) invoiceObject;
+                
+                // Get subscription ID from invoice lines
+                String subscriptionId = null;
+                if (invoice.getLines() != null && invoice.getLines().getData() != null) {
+                    for (com.stripe.model.InvoiceLineItem line : invoice.getLines().getData()) {
+                        if (line.getSubscription() != null) {
+                            subscriptionId = line.getSubscription();
+                            break;
+                        }
+                    }
+                }
+                
+                if (subscriptionId != null) {
+                    // Get the subscription from Stripe to get the latest status
+                    com.stripe.model.Subscription subscription = com.stripe.model.Subscription.retrieve(subscriptionId);
+                    
+                    // Update subscription status in our database
+                    userSubscriptionService.handleSubscriptionUpdated(
+                        subscriptionId,
+                        subscription.getStatus(),
+                        subscription.getCancelAtPeriodEnd()
+                    );
+                    
+                    logger.info("Invoice payment failed for subscription: {}, new status: {}", 
+                        subscriptionId, subscription.getStatus());
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error handling invoice.payment_failed: ", e);
+            throw new RuntimeException("Error handling invoice payment failure", e);
+        }
+    }
+
+    private void handleInvoicePaymentActionRequired(Event event) {
+        try {
+            StripeObject invoiceObject = event.getData().getObject();
+            if (invoiceObject instanceof com.stripe.model.Invoice) {
+                com.stripe.model.Invoice invoice = (com.stripe.model.Invoice) invoiceObject;
+                
+                // Get subscription ID from invoice lines
+                String subscriptionId = null;
+                if (invoice.getLines() != null && invoice.getLines().getData() != null) {
+                    for (com.stripe.model.InvoiceLineItem line : invoice.getLines().getData()) {
+                        if (line.getSubscription() != null) {
+                            subscriptionId = line.getSubscription();
+                            break;
+                        }
+                    }
+                }
+                
+                if (subscriptionId != null) {
+                    // Get the subscription from Stripe to get the latest status
+                    com.stripe.model.Subscription subscription = com.stripe.model.Subscription.retrieve(subscriptionId);
+                    
+                    // Update subscription status in our database
+                    userSubscriptionService.handleSubscriptionUpdated(
+                        subscriptionId,
+                        subscription.getStatus(),
+                        subscription.getCancelAtPeriodEnd()
+                    );
+                    
+                    logger.info("Invoice payment action required for subscription: {}, new status: {}", 
+                        subscriptionId, subscription.getStatus());
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error handling invoice.payment_action_required: ", e);
+            throw new RuntimeException("Error handling invoice payment action requirement", e);
+        }
+    }
+
+    private void handleInvoiceCreated(Event event) {
+        try {
+            StripeObject invoiceObject = event.getData().getObject();
+            if (invoiceObject instanceof com.stripe.model.Invoice) {
+                com.stripe.model.Invoice invoice = (com.stripe.model.Invoice) invoiceObject;
+                logger.info("Invoice created: {}, status: {}", invoice.getId(), invoice.getStatus());
+            }
+        } catch (Exception e) {
+            logger.error("Error handling invoice.created: ", e);
+        }
+    }
+
+    private void handleInvoiceFinalized(Event event) {
+        try {
+            StripeObject invoiceObject = event.getData().getObject();
+            if (invoiceObject instanceof com.stripe.model.Invoice) {
+                com.stripe.model.Invoice invoice = (com.stripe.model.Invoice) invoiceObject;
+                logger.info("Invoice finalized: {}, status: {}", invoice.getId(), invoice.getStatus());
+            }
+        } catch (Exception e) {
+            logger.error("Error handling invoice.finalized: ", e);
+        }
+    }
+
+    private void handleInvoicePaymentSucceeded(Event event) {
+        try {
+            StripeObject invoiceObject = event.getData().getObject();
+            if (invoiceObject instanceof com.stripe.model.Invoice) {
+                com.stripe.model.Invoice invoice = (com.stripe.model.Invoice) invoiceObject;
+                
+                // Get subscription ID from invoice lines
+                String subscriptionId = null;
+                if (invoice.getLines() != null && invoice.getLines().getData() != null) {
+                    for (com.stripe.model.InvoiceLineItem line : invoice.getLines().getData()) {
+                        if (line.getSubscription() != null) {
+                            subscriptionId = line.getSubscription();
+                            break;
+                        }
+                    }
+                }
+                
+                if (subscriptionId != null) {
+                    // Get the subscription from Stripe to get the latest status
+                    com.stripe.model.Subscription subscription = com.stripe.model.Subscription.retrieve(subscriptionId);
+                    
+                    // Update subscription status in our database
+                    userSubscriptionService.handleSubscriptionUpdated(
+                        subscriptionId,
+                        subscription.getStatus(),
+                        subscription.getCancelAtPeriodEnd()
+                    );
+                    
+                    logger.info("Invoice payment succeeded for subscription: {}, new status: {}", 
+                        subscriptionId, subscription.getStatus());
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error handling invoice.payment_succeeded: ", e);
+            throw new RuntimeException("Error handling invoice payment success", e);
+        }
+    }
+
+    private void handleChargeSucceeded(Event event) {
+        try {
+            StripeObject chargeObject = event.getData().getObject();
+            if (chargeObject instanceof com.stripe.model.Charge) {
+                com.stripe.model.Charge charge = (com.stripe.model.Charge) chargeObject;
+                logger.info("Charge succeeded: {}, amount: {}, status: {}", 
+                    charge.getId(), charge.getAmount(), charge.getStatus());
+            }
+        } catch (Exception e) {
+            logger.error("Error handling charge.succeeded: ", e);
+        }
+    }
+
+    private void handleChargeUpdated(Event event) {
+        try {
+            StripeObject chargeObject = event.getData().getObject();
+            if (chargeObject instanceof com.stripe.model.Charge) {
+                com.stripe.model.Charge charge = (com.stripe.model.Charge) chargeObject;
+                logger.info("Charge updated: {}, amount: {}, status: {}", 
+                    charge.getId(), charge.getAmount(), charge.getStatus());
+            }
+        } catch (Exception e) {
+            logger.error("Error handling charge.updated: ", e);
         }
     }
 } 

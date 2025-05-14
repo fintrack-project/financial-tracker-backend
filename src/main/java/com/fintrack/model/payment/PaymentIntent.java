@@ -19,7 +19,7 @@ public class PaymentIntent {
     @Column(name = "stripe_payment_intent_id", nullable = false, unique = true)
     private String stripePaymentIntentId;
 
-    @Column(name = "amount", nullable = false)
+    @Column(name = "amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
     @Column(name = "currency", nullable = false, length = 10)
@@ -28,11 +28,8 @@ public class PaymentIntent {
     @Column(name = "status", length = 50)
     private String status;
 
-    @Column(name = "payment_method_id", length = 255)
-    private String paymentMethodId;
-
-    @Column(name = "client_secret", length = 255)
-    private String clientSecret;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
     @Column(name = "stripe_customer_id", length = 255)
     private String stripeCustomerId;
@@ -64,8 +61,11 @@ public class PaymentIntent {
     @Column(name = "metadata", columnDefinition = "TEXT")
     private String metadata;
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "client_secret", length = 255)
+    private String clientSecret;
+
+    @Column(name = "payment_method_id", length = 255)
+    private String paymentMethodId;
 
     // Getters and Setters
     public Long getId() {
@@ -116,20 +116,12 @@ public class PaymentIntent {
         this.status = status;
     }
 
-    public String getPaymentMethodId() {
-        return paymentMethodId;
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
-    public void setPaymentMethodId(String paymentMethodId) {
-        this.paymentMethodId = paymentMethodId;
-    }
-
-    public String getClientSecret() {
-        return clientSecret;
-    }
-
-    public void setClientSecret(String clientSecret) {
-        this.clientSecret = clientSecret;
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
     public String getStripeCustomerId() {
@@ -212,11 +204,19 @@ public class PaymentIntent {
         this.metadata = metadata;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public String getClientSecret() {
+        return clientSecret;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+    public void setClientSecret(String clientSecret) {
+        this.clientSecret = clientSecret;
+    }
+
+    public String getPaymentMethodId() {
+        return paymentMethodId;
+    }
+
+    public void setPaymentMethodId(String paymentMethodId) {
+        this.paymentMethodId = paymentMethodId;
     }
 } 
