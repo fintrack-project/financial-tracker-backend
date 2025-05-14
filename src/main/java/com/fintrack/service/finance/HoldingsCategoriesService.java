@@ -57,7 +57,7 @@ public class HoldingsCategoriesService {
                     throw new IllegalArgumentException("Asset name cannot be null or empty.");
                 }
     
-                // Find or create the subcategory (if provided)
+                // Handle subcategory
                 Integer subcategoryId = null;
                 if (subcategoryName != null && !subcategoryName.trim().isEmpty()) {
                     subcategoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, subcategoryName);
@@ -67,12 +67,13 @@ public class HoldingsCategoriesService {
                 }
     
                 // Update the holdings_categories table with category and subcategory
+                // If subcategoryName is null, it will set the subcategory to null in the database
                 holdingsCategoriesRepository.upsertHoldingCategory(
                     accountId,
                     assetName,
                     subcategoryId != null ? subcategoryId : categoryId,
                     categoryName,
-                    subcategoryName
+                    subcategoryName  // This will be null if subcategoryName is null
                 );
             }
         }
