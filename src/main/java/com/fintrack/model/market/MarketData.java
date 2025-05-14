@@ -7,7 +7,9 @@ import java.time.LocalDateTime;
 import com.fintrack.constants.finance.AssetType;
 
 @Entity
-@Table(name = "market_data", uniqueConstraints = @UniqueConstraint(columnNames = "symbol"))
+@Table(name = "market_data", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"symbol", "asset_type"})
+})
 public class MarketData {
 
     @Id
