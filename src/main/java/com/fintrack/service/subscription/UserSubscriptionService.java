@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class UserSubscriptionService {
@@ -77,12 +78,12 @@ public class UserSubscriptionService {
     }
 
     @Transactional
-    public SubscriptionUpdateResponse confirmPayment(String paymentIntentId, String subscriptionId) throws StripeException {
-        logger.info("Confirming payment for subscription: {} with payment intent: {}", subscriptionId, paymentIntentId);
+    public SubscriptionUpdateResponse confirmPayment(String paymentIntentId, String stripeSubscriptionId) throws StripeException {
+        logger.info("Confirming payment for subscription: {} with payment intent: {}", stripeSubscriptionId, paymentIntentId);
         
         // Get the subscription
-        UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
-                .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found: " + stripeSubscriptionId));
         
         // Get the payment intent
         com.fintrack.model.payment.PaymentIntent paymentIntent = paymentIntentRepository
@@ -119,12 +120,15 @@ public class UserSubscriptionService {
         paymentIntent.setStatus(stripePaymentIntent.getStatus());
         paymentIntentRepository.save(paymentIntent);
         
-        // Update subscription status if payment succeeded
-        if ("succeeded".equals(stripePaymentIntent.getStatus())) {
-            subscription.setStatus("active");
-            subscription.setActive(true);
+        // Update subscription status based on payment intent status
+        String paymentStatus = stripePaymentIntent.getStatus();
+        logger.info("Payment status: {}, Current subscription status: {}", paymentStatus, subscription.getStatus());
+        
+        if ("succeeded".equals(paymentStatus) || "processing".equals(paymentStatus)) {
+            // Update local database only - Stripe webhook will handle subscription status
             subscription.setLastPaymentDate(java.time.LocalDateTime.now());
             subscription = userSubscriptionRepository.save(subscription);
+            logger.info("Updated last payment date for subscription: {}", stripeSubscriptionId);
         }
         
         return SubscriptionUpdateResponse.fromUserSubscription(subscription, null, false, null, null);
@@ -200,8 +204,27 @@ public class UserSubscriptionService {
         logger.info("[Webhook] handleSubscriptionCreated called: subscriptionId={}, customerId={}", subscriptionId, customerId);
     }
 
-    public void handleSubscriptionUpdated(String subscriptionId, String customerId, Boolean cancelAtPeriodEnd) {
-        logger.info("[Webhook] handleSubscriptionUpdated called: subscriptionId={}, customerId={}, cancelAtPeriodEnd={}", subscriptionId, customerId, cancelAtPeriodEnd);
+    public void handleSubscriptionUpdated(String subscriptionId, String status, Boolean cancelAtPeriodEnd) {
+        logger.info("[Webhook] handleSubscriptionUpdated called: subscriptionId={}, status={}, cancelAtPeriodEnd={}", 
+            subscriptionId, status, cancelAtPeriodEnd);
+        
+        // Get the subscription from our database
+        UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        
+        // Update subscription status
+        subscription.setStatus(status);
+        subscription.setActive("active".equals(status));
+        subscription.setCancelAtPeriodEnd(cancelAtPeriodEnd);
+        
+        // If subscription is active, update last payment date
+        if ("active".equals(status)) {
+            subscription.setLastPaymentDate(java.time.LocalDateTime.now());
+        }
+        
+        // Save the updated subscription
+        subscription = userSubscriptionRepository.save(subscription);
+        logger.info("Updated subscription status to {} for subscription: {}", status, subscriptionId);
     }
 
     public void handleSubscriptionDeleted(String subscriptionId) {
