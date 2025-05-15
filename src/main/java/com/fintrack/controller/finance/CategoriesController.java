@@ -60,18 +60,31 @@ public class CategoriesController {
         }
     }
 
-    @GetMapping("/fetch")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getCategoriesAndSubcategories(
+    @GetMapping("/fetch/color-map")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCategoryColorMap(
         @RequestParam(name = "accountId") UUID accountId) {
         try {
-            Map<String, Object> response = categoriesService.getCategoriesAndSubcategories(accountId);
+            Map<String, Object> response = categoriesService.getCategoryColorMap(accountId);
+            return ResponseWrapper.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseWrapper.badRequest(e.getMessage());
+        } catch (Exception e) {
+            return ResponseWrapper.badRequest(e.getMessage());
+        }
+    }
+
+    @GetMapping("/fetch/names-map")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCategoriesAndSubcategoriesNamesMap(
+        @RequestParam(name = "accountId") UUID accountId) {
+        try {
+            Map<String, Object> response = categoriesService.getCategoriesAndSubcategoriesNamesMap(accountId);
             return ResponseWrapper.ok(response);
         } catch (Exception e) {
             return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 
-    @GetMapping("/fetch/names")
+    @GetMapping("/fetch/category-names")
     public ResponseEntity<ApiResponse<List<String>>> getCategoryNames(
         @RequestParam(name = "accountId") UUID accountId) {
         try {

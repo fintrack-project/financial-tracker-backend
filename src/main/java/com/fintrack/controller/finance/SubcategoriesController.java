@@ -78,4 +78,18 @@ public class SubcategoriesController {
             return ResponseWrapper.badRequest(e.getMessage());
         }
     }
+
+    @GetMapping("/fetch/color-map")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getSubcategoryColorMap(
+        @RequestParam(name = "accountId") UUID accountId,
+        @RequestParam(name = "categoryName") String categoryName) {
+        try {
+            Map<String, Object> response = subcategoriesService.getSubcategoryColorMap(accountId, categoryName);
+            return ResponseWrapper.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseWrapper.badRequest(e.getMessage());
+        } catch (Exception e) {
+            return ResponseWrapper.badRequest(e.getMessage());
+        }
+    }
 }

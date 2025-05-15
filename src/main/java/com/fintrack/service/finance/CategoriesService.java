@@ -83,7 +83,7 @@ public class CategoriesService {
     }
 
     @Transactional(readOnly = true)
-    public Map<String, Object> getCategoriesAndSubcategories(UUID accountId) {
+    public Map<String, Object> getCategoriesAndSubcategoriesNamesMap(UUID accountId) {
         // Fetch all top-level categories (parent_id is NULL)
         List<Category> categories = categoriesRepository.findCategoriesByAccountId(accountId);
     
@@ -154,5 +154,25 @@ public class CategoriesService {
 
         // Update the category color
         categoriesRepository.updateCategoryColor(accountId, categoryId, hexCode.toUpperCase());
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getCategoryColorMap(UUID accountId) {
+        // Fetch all categories for the account
+        List<Category> categories = categoriesRepository.findCategoriesByAccountId(accountId);
+        
+        // Create a map of category names to their colors
+        Map<String, String> categoryColorMap = categories.stream()
+            .collect(Collectors.toMap(
+                Category::getCategoryName,
+                category -> category.getColor() != null ? category.getColor() : "#0000FF", // Default to blue if no color set
+                (existing, replacement) -> existing, // Keep existing value if duplicate
+                LinkedHashMap::new // Use LinkedHashMap to maintain insertion order
+            ));
+
+        // Prepare the response
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("categoryColors", categoryColorMap);
+        return response;
     }
 }
