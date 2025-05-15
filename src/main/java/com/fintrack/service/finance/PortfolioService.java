@@ -109,7 +109,6 @@ public class PortfolioService {
     
         logger.debug("Calculating portfolio pie chart data for account ID: {} and category name: {}", accountId, categoryName);
     
-
         // Fetch holdings for the given account ID
         List<Holdings> holdings = holdingsRepository.findHoldingsByAccount(accountId);
 
@@ -144,9 +143,13 @@ public class PortfolioService {
         Integer categoryId = (Integer) categoryData.get("categoryId");
         List<Category> subcategories = (List<Category>) categoryData.get("subcategories");
         List<HoldingsCategory> holdingsCategories = (List<HoldingsCategory>) categoryData.get("holdingsCategories");
+        
+        // Get the category object
+        Category category = categoriesRepository.findById(categoryId).orElseThrow(() -> 
+            new IllegalArgumentException("Category not found for ID: " + categoryId));
     
         // Generate a pie chart with categories and subcategories
-        PieChart pieChart = new PieChart(portfolioCalculator, holdingsCategories, subcategories, categoryName);
+        PieChart pieChart = new PieChart(portfolioCalculator, holdingsCategories, subcategories, category);
         return pieChart.getData();
     }
     
@@ -168,11 +171,11 @@ public class PortfolioService {
 
         // Use TreeMap to ensure the keys (dates) are sorted in ascending order
         Map<LocalDate, List<Holdings>> holdingsByDate = monthlyHoldings.stream()
-        .collect(Collectors.groupingBy(
-                HoldingsMonthly::getDate,
-                () -> new TreeMap<>(), // Use TreeMap to ensure sorted keys
-                Collectors.mapping(HoldingsMonthly::getHoldings, Collectors.toList())
-        ));
+            .collect(Collectors.groupingBy(
+                    HoldingsMonthly::getDate,
+                    () -> new TreeMap<>(), // Use TreeMap to ensure sorted keys
+                    Collectors.mapping(HoldingsMonthly::getHoldings, Collectors.toList())
+            ));
 
         holdingsByDate.forEach((date, holdings) -> {
             holdings.forEach(holding -> {
@@ -195,16 +198,15 @@ public class PortfolioService {
             // Ensure we have market data for the historical date
             // Note: For historical data, we don't need to refresh as it's not real-time
             List<MarketDataDto> marketDataDtoList = fetchMarketDataForPairs(symbolAssetTypePairs, baseCurrency, date);
-
-            // Create market data map
+            
+            // Create marketDataMap
             Map<String, MarketDataDto> marketDataMap = createMarketDataMap(marketDataDtoList);
-
+            
             logger.trace("Date = {}, Market Data Map: {}", date, marketDataMap);
 
             // Use PortfolioCalculator to calculate asset values
             PortfolioCalculator portfolioCalculator = new PortfolioCalculator(accountId, holdings, marketDataMap, baseCurrency);
             
-            // Handle the case when categoryName is "None"
             if ("None".equalsIgnoreCase(categoryName)) {
                 BarChart barChart = new BarChart(portfolioCalculator);
                 barChart.setLocalDate(date);
@@ -219,7 +221,11 @@ public class PortfolioService {
             List<Category> subcategories = (List<Category>) categoryData.get("subcategories");
             List<HoldingsCategory> holdingsCategories = (List<HoldingsCategory>) categoryData.get("holdingsCategories");
 
-            BarChart barChart = new BarChart(portfolioCalculator, holdingsCategories, subcategories, categoryName);
+            // Get the category object
+            Category category = categoriesRepository.findById(categoryId).orElseThrow(() -> 
+                new IllegalArgumentException("Category not found for ID: " + categoryId));
+
+            BarChart barChart = new BarChart(portfolioCalculator, holdingsCategories, subcategories, category);
             barChart.setLocalDate(date);
             barCharts.add(barChart);
         }
@@ -227,6 +233,7 @@ public class PortfolioService {
         // Add current date holdings if the current date is not the 1st of the month
         LocalDate currentDate = LocalDate.now();
         if (currentDate.getDayOfMonth() != 1) {
+            // Fetch current holdings
             List<Holdings> currentHoldings = holdingsRepository.findHoldingsByAccount(accountId);
 
             logHoldings(currentHoldings, currentDate);
@@ -257,8 +264,7 @@ public class PortfolioService {
                     BarChart barChart = new BarChart(portfolioCalculator);
                     barChart.setLocalDate(currentDate);
                     barCharts.add(barChart);
-                }
-                else{
+                } else {
                     // Fetch the category ID for the given account and category name
                     Map<String, Object> categoryData = fetchCategoryAndSubcategories(accountId, categoryName);
 
@@ -266,15 +272,28 @@ public class PortfolioService {
                     List<Category> subcategories = (List<Category>) categoryData.get("subcategories");
                     List<HoldingsCategory> holdingsCategories = (List<HoldingsCategory>) categoryData.get("holdingsCategories");
 
-                    BarChart barChart = new BarChart(portfolioCalculator, holdingsCategories, subcategories, categoryName);
+                    // Get the category object
+                    Category category = categoriesRepository.findById(categoryId).orElseThrow(() -> 
+                        new IllegalArgumentException("Category not found for ID: " + categoryId));
+
+                    BarChart barChart = new BarChart(portfolioCalculator, holdingsCategories, subcategories, category);
                     barChart.setLocalDate(currentDate);
                     barCharts.add(barChart);
                 }
             }
         }
 
-        CombinedBarChart combinedBarCharts = new CombinedBarChart(barCharts, categoryName);
+        // Get the category object for CombinedBarChart
+        Category category = null;
+        if (!"None".equalsIgnoreCase(categoryName)) {
+            Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
+            if (categoryId != null) {
+                category = categoriesRepository.findById(categoryId).orElseThrow(() -> 
+                    new IllegalArgumentException("Category not found for ID: " + categoryId));
+            }
+        }
 
+        CombinedBarChart combinedBarCharts = new CombinedBarChart(barCharts, category);
         return combinedBarCharts.getCombinedBarChartsData();
     }
 

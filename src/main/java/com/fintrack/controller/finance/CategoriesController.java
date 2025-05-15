@@ -6,6 +6,7 @@ import org.springframework.http.MediaType;
 import com.fintrack.common.ApiResponse;
 import com.fintrack.common.ResponseWrapper;
 import com.fintrack.service.finance.CategoriesService;
+import com.fintrack.constants.Color;
 
 import java.util.*;
 
@@ -59,23 +60,52 @@ public class CategoriesController {
         }
     }
 
-    @GetMapping("/fetch")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getCategoriesAndSubcategories(
+    @GetMapping("/fetch/color-map")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCategoryColorMap(
         @RequestParam(name = "accountId") UUID accountId) {
         try {
-            Map<String, Object> response = categoriesService.getCategoriesAndSubcategories(accountId);
+            Map<String, Object> response = categoriesService.getCategoryColorMap(accountId);
+            return ResponseWrapper.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseWrapper.badRequest(e.getMessage());
+        } catch (Exception e) {
+            return ResponseWrapper.badRequest(e.getMessage());
+        }
+    }
+
+    @GetMapping("/fetch/names-map")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCategoriesAndSubcategoriesNamesMap(
+        @RequestParam(name = "accountId") UUID accountId) {
+        try {
+            Map<String, Object> response = categoriesService.getCategoriesAndSubcategoriesNamesMap(accountId);
             return ResponseWrapper.ok(response);
         } catch (Exception e) {
             return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 
-    @GetMapping("/fetch/names")
+    @GetMapping("/fetch/category-names")
     public ResponseEntity<ApiResponse<List<String>>> getCategoryNames(
         @RequestParam(name = "accountId") UUID accountId) {
         try {
             List<String> categoryNames = categoriesService.getCategoryNames(accountId);
             return ResponseWrapper.ok(categoryNames);
+        } catch (Exception e) {
+            return ResponseWrapper.badRequest(e.getMessage());
+        }
+    }
+
+    @PostMapping("/color/update")
+    public ResponseEntity<ApiResponse<Void>> updateCategoryColor(@RequestBody Map<String, Object> categoryData) {
+        try {
+            UUID accountId = UUID.fromString((String) categoryData.get("accountId"));
+            String categoryName = (String) categoryData.get("category_name");
+            String hexCode = (String) categoryData.get("color");
+            
+            categoriesService.updateCategoryColor(accountId, categoryName, hexCode);
+            return ResponseWrapper.ok(null, "Category color updated successfully.");
+        } catch (IllegalArgumentException e) {
+            return ResponseWrapper.badRequest(e.getMessage());
         } catch (Exception e) {
             return ResponseWrapper.badRequest(e.getMessage());
         }

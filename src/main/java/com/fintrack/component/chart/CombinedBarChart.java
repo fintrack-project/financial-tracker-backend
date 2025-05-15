@@ -3,7 +3,7 @@ package com.fintrack.component.chart;
 import java.time.LocalDate;
 import java.util.*;
 
-import com.fintrack.constants.Color;
+import com.fintrack.model.finance.Category;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,19 +14,12 @@ public class CombinedBarChart {
 
     private List<BarChart> barCharts;
     List<Map<String, Object>> combinedBarChartsData = new ArrayList<>();
-    private Map<String, String> subcategoryColorMap = new HashMap<>();
-    private Map<String, String> assetNameColorMap = new HashMap<>();
-    private String categoryName;
+    private Category category;
 
-    private static final List<Color> COLORS = Color.getAllColors(); // Use the Color enum to get all colors
-
-    private int colorIndex = 0;
-
-    public CombinedBarChart(List<BarChart> barCharts, String categoryName) {
+    public CombinedBarChart(List<BarChart> barCharts, Category category) {
         this.barCharts = barCharts;
         this.combinedBarChartsData = generateCombinedBarChartsData();
-        this.categoryName = categoryName;
-        reassignColor();
+        this.category = category;
     }
 
     public List<BarChart> getBarCharts() {
@@ -37,47 +30,12 @@ public class CombinedBarChart {
         this.barCharts = barCharts;
     }
 
-    public String getCategoryName() {
-        return categoryName;
+    public Category getCategory() {
+        return category;
     }
 
-    public void setCategoryName(String categoryName) {
-        this.categoryName = categoryName;
-    }
-
-    private void reassignColor() {
-        logger.trace("Reassigning colors for category: " + categoryName);
-        for (BarChart barChart : barCharts) {
-            // Get or generate a color for the subcategory
-            for(BarChartData barChartData : barChart.getBarChartDatas()) {
-                if (categoryName.equals("None")) {
-                    String assetName = barChartData.getAssetName();
-                    if (!assetNameColorMap.containsKey(assetName)) {
-                        String color = assignColor();
-                        assetNameColorMap.put(assetName, color);
-                    }
-                    // Set the color for the bar chart data
-                    barChartData.setColor(assetNameColorMap.get(assetName));
-                }
-                else{
-                    String subcategory = barChartData.getSubcategory();
-                    if (!subcategoryColorMap.containsKey(subcategory)) {
-                        String color = assignColor();
-                        subcategoryColorMap.put(subcategory, color);
-                    }
-                    // Set the color for the bar chart data
-                    barChartData.setColor(subcategoryColorMap.get(subcategory));
-                }
-            }
-            logger.trace("Bar Chart Date: " + barChart.getLocalDate());
-            barChart.getBarChartDatas().forEach(
-                barChartData -> {
-                    logger.trace("Asset Name: " + barChartData.getAssetName() + ", Subcategory: " + barChartData.getSubcategory() + ", Color: " + barChartData.getColor());
-                }
-            );
-            logger.trace("Subcategory Color Map: " + subcategoryColorMap);
-            logger.trace("Asset Name Color Map: " + assetNameColorMap);
-        }
+    public void setCategory(Category category) {
+        this.category = category;
     }
 
     private List<Map<String, Object>> generateCombinedBarChartsData() {
@@ -96,11 +54,5 @@ public class CombinedBarChart {
 
     public List<Map<String, Object>> getCombinedBarChartsData() {
         return combinedBarChartsData;
-    }
-
-    private String assignColor() {
-      String color = COLORS.get(colorIndex).getHexCode(); // Get color from predefined list
-      colorIndex = (colorIndex + 1) % COLORS.size(); // Cycle through colors
-      return color; // Return color in hex format
     }
 }

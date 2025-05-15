@@ -70,4 +70,17 @@ public interface CategoriesRepository extends JpaRepository<Category, Integer> {
     @Modifying
     @Query(value = "DELETE FROM categories WHERE account_id = :accountId", nativeQuery = true)
     void deleteByAccountId(@Param("accountId") UUID accountId);
+
+    @Modifying
+    @Query(value = """
+        UPDATE categories 
+        SET color = :color, updated_at = CURRENT_TIMESTAMP 
+        WHERE account_id = :accountId 
+        AND category_id = :categoryId
+        """, nativeQuery = true)
+    void updateCategoryColor(
+        @Param("accountId") UUID accountId,
+        @Param("categoryId") Integer categoryId,
+        @Param("color") String color
+    );
 }

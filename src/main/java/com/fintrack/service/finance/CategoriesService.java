@@ -4,6 +4,7 @@ import com.fintrack.model.finance.Category;
 import com.fintrack.repository.finance.CategoriesRepository;
 import com.fintrack.repository.finance.HoldingsCategoriesRepository;
 import com.fintrack.repository.finance.SubcategoriesRepository;
+import com.fintrack.constants.Color;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -82,7 +83,7 @@ public class CategoriesService {
     }
 
     @Transactional(readOnly = true)
-    public Map<String, Object> getCategoriesAndSubcategories(UUID accountId) {
+    public Map<String, Object> getCategoriesAndSubcategoriesNamesMap(UUID accountId) {
         // Fetch all top-level categories (parent_id is NULL)
         List<Category> categories = categoriesRepository.findCategoriesByAccountId(accountId);
     
@@ -136,5 +137,42 @@ public class CategoriesService {
             Category category = remainingCategories.get(priority - 1);
             categoriesRepository.updateCategoryPriority(category.getCategoryId(), priority);
         }
+    }
+
+    @Transactional
+    public void updateCategoryColor(UUID accountId, String categoryName, String hexCode) {
+        // Validate hex code format and existence
+        if (!Color.exists(hexCode)) {
+            throw new IllegalArgumentException("Invalid color. Available colors: " + Color.getFormattedColorList());
+        }
+
+        // Find the category ID for the given category name
+        Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
+        if (categoryId == null) {
+            throw new IllegalArgumentException("Category with name '" + categoryName + "' does not exist.");
+        }
+
+        // Update the category color
+        categoriesRepository.updateCategoryColor(accountId, categoryId, hexCode.toUpperCase());
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getCategoryColorMap(UUID accountId) {
+        // Fetch all categories for the account
+        List<Category> categories = categoriesRepository.findCategoriesByAccountId(accountId);
+        
+        // Create a map of category names to their colors
+        Map<String, String> categoryColorMap = categories.stream()
+            .collect(Collectors.toMap(
+                Category::getCategoryName,
+                category -> category.getColor() != null ? category.getColor() : "#0000FF", // Default to blue if no color set
+                (existing, replacement) -> existing, // Keep existing value if duplicate
+                LinkedHashMap::new // Use LinkedHashMap to maintain insertion order
+            ));
+
+        // Prepare the response
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("categoryColors", categoryColorMap);
+        return response;
     }
 }
