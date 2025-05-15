@@ -47,11 +47,11 @@ public class CombinedBarChart {
     }
 
     private void reassignColor() {
-        logger.trace("Reassigning colors for category: " + category.getCategoryName());
+        logger.trace("Reassigning colors for category: " + (category != null ? category.getCategoryName() : "None"));
         for (BarChart barChart : barCharts) {
             // Get or generate a color for the subcategory
             for(BarChartData barChartData : barChart.getBarChartDatas()) {
-                if (category.getCategoryName().equals("None")) {
+                if (category == null || "None".equals(category.getCategoryName())) {
                     String assetName = barChartData.getAssetName();
                     if (!assetNameColorMap.containsKey(assetName)) {
                         String color = assignColor();
@@ -60,7 +60,7 @@ public class CombinedBarChart {
                     // Set the color for the bar chart data
                     barChartData.setColor(assetNameColorMap.get(assetName));
                 }
-                else{
+                else {
                     String subcategory = barChartData.getSubcategory();
                     if (!subcategoryColorMap.containsKey(subcategory)) {
                         String color = assignColor();

@@ -35,9 +35,8 @@ public class Category {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "color", length = 7)
-    private Color color = Color.BLUE;
+    private String color = Color.BLUE.getHexCode(); // Default to blue hex code
 
     // Getters and Setters
     public Integer getCategoryId() {
@@ -96,11 +95,11 @@ public class Category {
         this.updatedAt = updatedAt;
     }
 
-    public Color getColor() {
+    public String getColor() {
         return color;
     }
 
-    public void setColor(Color color) {
+    public void setColor(String color) {
         this.color = color;
     }
 }

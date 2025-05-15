@@ -170,46 +170,43 @@ public class PortfolioService {
         });
 
         // Use TreeMap to ensure the keys (dates) are sorted in ascending order
-        Map<LocalDate, List<HoldingsMonthly>> holdingsByDate = new TreeMap<>();
-        for (HoldingsMonthly monthlyHolding : monthlyHoldings) {
-            holdingsByDate.computeIfAbsent(monthlyHolding.getDate(), k -> new ArrayList<>()).add(monthlyHolding);
-        }
+        Map<LocalDate, List<Holdings>> holdingsByDate = monthlyHoldings.stream()
+            .collect(Collectors.groupingBy(
+                    HoldingsMonthly::getDate,
+                    () -> new TreeMap<>(), // Use TreeMap to ensure sorted keys
+                    Collectors.mapping(HoldingsMonthly::getHoldings, Collectors.toList())
+            ));
+
+        holdingsByDate.forEach((date, holdings) -> {
+            holdings.forEach(holding -> {
+                logger.trace("Date: {}, Holding: symbol={}, assetType = {}, quantity={}", date, holding.getSymbol(), holding.getAssetType().getAssetTypeName(), holding.getTotalBalance());
+            });
+        });
 
         List<BarChart> barCharts = new ArrayList<>();
 
-        // Process each date's holdings
-        for (Map.Entry<LocalDate, List<HoldingsMonthly>> entry : holdingsByDate.entrySet()) {
+        for (Map.Entry<LocalDate, List<Holdings>> entry : holdingsByDate.entrySet()) {
             LocalDate date = entry.getKey();
-            List<HoldingsMonthly> dateHoldings = entry.getValue();
+            List<Holdings> holdings = entry.getValue();
 
-            // Convert HoldingsMonthly to Holdings
-            List<Holdings> holdings = dateHoldings.stream()
-                .map(monthlyHolding -> {
-                    Holdings holding = new Holdings();
-                    holding.setAccountId(monthlyHolding.getAccountId());
-                    holding.setSymbol(monthlyHolding.getSymbol());
-                    holding.setAssetType(monthlyHolding.getAssetType());
-                    holding.setTotalBalance(monthlyHolding.getTotalBalance().doubleValue());
-                    return holding;
-                })
-                .collect(Collectors.toList());
-
+            // Log holdings
             logHoldings(holdings, date);
-
-            // Fetch market data for the symbols and asset types
+            
+            // Fetch market data
             List<Object[]> symbolAssetTypePairs = extractDistinctSymbolAssetTypePairs(holdings);
             
-            // Ensure we have up-to-date market data for all symbols in the portfolio
-            refreshMarketDataForPortfolio(accountId, symbolAssetTypePairs);
-            
+            // Ensure we have market data for the historical date
+            // Note: For historical data, we don't need to refresh as it's not real-time
             List<MarketDataDto> marketDataDtoList = fetchMarketDataForPairs(symbolAssetTypePairs, baseCurrency, date);
-        
+            
             // Create marketDataMap
             Map<String, MarketDataDto> marketDataMap = createMarketDataMap(marketDataDtoList);
+            
+            logger.trace("Date = {}, Market Data Map: {}", date, marketDataMap);
 
             // Use PortfolioCalculator to calculate asset values
             PortfolioCalculator portfolioCalculator = new PortfolioCalculator(accountId, holdings, marketDataMap, baseCurrency);
-
+            
             if ("None".equalsIgnoreCase(categoryName)) {
                 BarChart barChart = new BarChart(portfolioCalculator);
                 barChart.setLocalDate(date);
@@ -239,40 +236,50 @@ public class PortfolioService {
             // Fetch current holdings
             List<Holdings> currentHoldings = holdingsRepository.findHoldingsByAccount(accountId);
 
-            // Fetch market data for the symbols and asset types
-            List<Object[]> symbolAssetTypePairs = extractDistinctSymbolAssetTypePairs(currentHoldings);
-            
-            // Ensure we have up-to-date market data for all symbols in the portfolio
-            refreshMarketDataForPortfolio(accountId, symbolAssetTypePairs);
-            
-            List<MarketDataDto> marketDataDtoList = fetchMarketDataForPairs(symbolAssetTypePairs, baseCurrency, currentDate);
-        
-            // Create marketDataMap
-            Map<String, MarketDataDto> marketDataMap = createMarketDataMap(marketDataDtoList);
+            logHoldings(currentHoldings, currentDate);
 
-            // Use PortfolioCalculator to calculate asset values
-            PortfolioCalculator portfolioCalculator = new PortfolioCalculator(accountId, currentHoldings, marketDataMap, baseCurrency);
+            if (!currentHoldings.isEmpty()) {
+                logger.trace("Adding current holdings for date: {}", currentDate);
 
-            if ("None".equalsIgnoreCase(categoryName)) {
-                BarChart barChart = new BarChart(portfolioCalculator);
-                barChart.setLocalDate(currentDate);
-                barCharts.add(barChart);
-            }
-            else{
-                // Fetch the category ID for the given account and category name
-                Map<String, Object> categoryData = fetchCategoryAndSubcategories(accountId, categoryName);
+                // Fetch market data for the current holdings
+                List<Object[]> symbolAssetTypePairs = extractDistinctSymbolAssetTypePairs(currentHoldings);
+                
+                // Ensure we have up-to-date market data for current holdings
+                refreshMarketDataForPortfolio(accountId, symbolAssetTypePairs);
+                
+                List<MarketDataDto> currentMarketDataDtoList = fetchMarketDataForPairs(symbolAssetTypePairs, baseCurrency, null);
 
-                Integer categoryId = (Integer) categoryData.get("categoryId");
-                List<Category> subcategories = (List<Category>) categoryData.get("subcategories");
-                List<HoldingsCategory> holdingsCategories = (List<HoldingsCategory>) categoryData.get("holdingsCategories");
+                // Create marketDataMap for current data
+                Map<String, MarketDataDto> currentMarketDataMap = createMarketDataMap(currentMarketDataDtoList);
 
-                // Get the category object
-                Category category = categoriesRepository.findById(categoryId).orElseThrow(() -> 
-                    new IllegalArgumentException("Category not found for ID: " + categoryId));
+                logger.trace("Current Market Data Map: {}", currentMarketDataMap);
 
-                BarChart barChart = new BarChart(portfolioCalculator, holdingsCategories, subcategories, category);
-                barChart.setLocalDate(currentDate);
-                barCharts.add(barChart);
+                // Use PortfolioCalculator to calculate asset values for the current date
+                PortfolioCalculator portfolioCalculator = new PortfolioCalculator(accountId, currentHoldings, currentMarketDataMap, baseCurrency);
+
+                // Add current holdings and calculated data to the map
+                holdingsByDate.put(currentDate, currentHoldings);
+
+                if ("None".equalsIgnoreCase(categoryName)) {
+                    BarChart barChart = new BarChart(portfolioCalculator);
+                    barChart.setLocalDate(currentDate);
+                    barCharts.add(barChart);
+                } else {
+                    // Fetch the category ID for the given account and category name
+                    Map<String, Object> categoryData = fetchCategoryAndSubcategories(accountId, categoryName);
+
+                    Integer categoryId = (Integer) categoryData.get("categoryId");
+                    List<Category> subcategories = (List<Category>) categoryData.get("subcategories");
+                    List<HoldingsCategory> holdingsCategories = (List<HoldingsCategory>) categoryData.get("holdingsCategories");
+
+                    // Get the category object
+                    Category category = categoriesRepository.findById(categoryId).orElseThrow(() -> 
+                        new IllegalArgumentException("Category not found for ID: " + categoryId));
+
+                    BarChart barChart = new BarChart(portfolioCalculator, holdingsCategories, subcategories, category);
+                    barChart.setLocalDate(currentDate);
+                    barCharts.add(barChart);
+                }
             }
         }
 
@@ -287,7 +294,6 @@ public class PortfolioService {
         }
 
         CombinedBarChart combinedBarCharts = new CombinedBarChart(barCharts, category);
-
         return combinedBarCharts.getCombinedBarChartsData();
     }
 
