@@ -4,11 +4,13 @@ import com.fintrack.model.finance.Category;
 import com.fintrack.repository.finance.CategoriesRepository;
 import com.fintrack.repository.finance.HoldingsCategoriesRepository;
 import com.fintrack.repository.finance.SubcategoriesRepository;
+import com.fintrack.constants.Color;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class SubcategoriesService {
@@ -118,5 +120,24 @@ public class SubcategoriesService {
             Category subcategory = remainingSubcategories.get(priority - 1);
             categoriesRepository.updateSubcategoryPriority(subcategory.getCategoryId(), priority);
         }
+    }
+
+    @Transactional
+    public void updateSubcategoryColor(UUID accountId, String categoryName, String subcategoryName, String hexCode) {
+        // Validate hex code format and existence
+        if (!Color.exists(hexCode)) {
+            throw new IllegalArgumentException("Invalid color. Available colors: " + Color.getFormattedColorList());
+        }
+
+        // Find the subcategory ID
+        Integer subcategoryId = subcategoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
+            accountId, categoryName, subcategoryName
+        );
+        if (subcategoryId == null) {
+            throw new IllegalArgumentException("Subcategory with name '" + subcategoryName + "' does not exist in category '" + categoryName + "'.");
+        }
+
+        // Update the subcategory color
+        categoriesRepository.updateCategoryColor(accountId, subcategoryId, hexCode.toUpperCase());
     }
 }

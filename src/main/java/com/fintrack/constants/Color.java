@@ -1,6 +1,7 @@
 package com.fintrack.constants;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public enum Color {
     RED("#FF0000"),
@@ -34,5 +35,20 @@ public enum Color {
 
     public static List<Color> getAllColors() {
         return Arrays.asList(Color.values());
+    }
+
+    public static boolean exists(String hexCode) {
+        if (hexCode == null || !hexCode.matches("^#[0-9A-Fa-f]{6}$")) {
+            return false;
+        }
+        String upperHexCode = hexCode.toUpperCase();
+        return Arrays.stream(Color.values())
+            .anyMatch(color -> color.getHexCode().equals(upperHexCode));
+    }
+
+    public static String getFormattedColorList() {
+        return Arrays.stream(Color.values())
+            .map(color -> color.name() + " (" + color.getHexCode() + ")")
+            .collect(Collectors.joining(", "));
     }
 }

@@ -4,6 +4,7 @@ import com.fintrack.model.finance.Category;
 import com.fintrack.repository.finance.CategoriesRepository;
 import com.fintrack.repository.finance.HoldingsCategoriesRepository;
 import com.fintrack.repository.finance.SubcategoriesRepository;
+import com.fintrack.constants.Color;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -136,5 +137,22 @@ public class CategoriesService {
             Category category = remainingCategories.get(priority - 1);
             categoriesRepository.updateCategoryPriority(category.getCategoryId(), priority);
         }
+    }
+
+    @Transactional
+    public void updateCategoryColor(UUID accountId, String categoryName, String hexCode) {
+        // Validate hex code format and existence
+        if (!Color.exists(hexCode)) {
+            throw new IllegalArgumentException("Invalid color. Available colors: " + Color.getFormattedColorList());
+        }
+
+        // Find the category ID for the given category name
+        Integer categoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
+        if (categoryId == null) {
+            throw new IllegalArgumentException("Category with name '" + categoryName + "' does not exist.");
+        }
+
+        // Update the category color
+        categoriesRepository.updateCategoryColor(accountId, categoryId, hexCode.toUpperCase());
     }
 }

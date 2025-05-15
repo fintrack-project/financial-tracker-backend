@@ -6,6 +6,7 @@ import org.springframework.http.MediaType;
 import com.fintrack.common.ApiResponse;
 import com.fintrack.common.ResponseWrapper;
 import com.fintrack.service.finance.CategoriesService;
+import com.fintrack.constants.Color;
 
 import java.util.*;
 
@@ -76,6 +77,22 @@ public class CategoriesController {
         try {
             List<String> categoryNames = categoriesService.getCategoryNames(accountId);
             return ResponseWrapper.ok(categoryNames);
+        } catch (Exception e) {
+            return ResponseWrapper.badRequest(e.getMessage());
+        }
+    }
+
+    @PostMapping("/color/update")
+    public ResponseEntity<ApiResponse<Void>> updateCategoryColor(@RequestBody Map<String, Object> categoryData) {
+        try {
+            UUID accountId = UUID.fromString((String) categoryData.get("accountId"));
+            String categoryName = (String) categoryData.get("category_name");
+            String hexCode = (String) categoryData.get("color");
+            
+            categoriesService.updateCategoryColor(accountId, categoryName, hexCode);
+            return ResponseWrapper.ok(null, "Category color updated successfully.");
+        } catch (IllegalArgumentException e) {
+            return ResponseWrapper.badRequest(e.getMessage());
         } catch (Exception e) {
             return ResponseWrapper.badRequest(e.getMessage());
         }
