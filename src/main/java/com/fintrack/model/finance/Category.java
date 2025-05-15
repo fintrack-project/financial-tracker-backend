@@ -1,5 +1,6 @@
 package com.fintrack.model.finance;
 
+import com.fintrack.constants.Color;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -33,6 +34,10 @@ public class Category {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "color", length = 7)
+    private Color color = Color.BLUE;
 
     // Getters and Setters
     public Integer getCategoryId() {
@@ -89,5 +94,13 @@ public class Category {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Color getColor() {
+        return color;
+    }
+
+    public void setColor(Color color) {
+        this.color = color;
     }
 }
