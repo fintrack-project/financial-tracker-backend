@@ -184,6 +184,20 @@ public abstract class Chart {
                 ));
         
         logger.trace("Filtered asset names and subcategories: {}", assetNamesSubcategoryMap);
+
+        // Create a map of subcategory names to their colors from the subcategories list
+        final Map<String, String> subcategoryColorMap = new HashMap<>();
+        if (subcategories != null) {
+            subcategories.stream()
+                .forEach(subcategory -> 
+                    subcategoryColorMap.put(
+                        subcategory.getCategoryName(),
+                        subcategory.getColor() != null ? subcategory.getColor() : "#0000FF" // Default to blue if no color set
+                    )
+                );
+        }
+        // Add "None" subcategory with a default color
+        subcategoryColorMap.put("None", "#0000FF"); // Blue color for "None" subcategory
     
         // Generate chart data
         List<ChartData> chartData = assetValues.entrySet().stream()
@@ -195,10 +209,10 @@ public abstract class Chart {
                     BigDecimal totalValueInBaseCurrency = values.get("totalValueInBaseCurrency");
     
                     String subcategory = assetNamesSubcategoryMap.get(assetName);
-                    String color = subcategoryColorMap.computeIfAbsent(subcategory, key -> assignColor());
+                    String color = subcategoryColorMap.getOrDefault(subcategory, "#0000FF"); // Default to blue if no color found
 
-                    logger.trace("Asset Name: {}, Symbol: {}, Subcategory: {}, Total Value in Base Currency: {}",
-                            assetName, symbol, subcategory, totalValueInBaseCurrency);
+                    logger.trace("Asset Name: {}, Symbol: {}, Subcategory: {}, Total Value in Base Currency: {}, Color: {}",
+                            assetName, symbol, subcategory, totalValueInBaseCurrency, color);
     
                     // Update total value and subcategory value
                     totalValue += totalValueInBaseCurrency.doubleValue();
