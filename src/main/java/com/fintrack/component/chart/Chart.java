@@ -27,7 +27,7 @@ public abstract class Chart {
     private List<HoldingsCategory> holdingsCategories;
     private List<Category> subcategories;
     private List<ChartData> chartData;
-    private String categoryName;
+    private Category category;
     private Map<String, String> subcategoryColorMap = new HashMap<>();
     private Double totalValue = 0.0;
     private Map<String, Double> assetValueMap = new HashMap<>();
@@ -41,29 +41,29 @@ public abstract class Chart {
         this.chartData = generateChartData();
     }
 
-    public Chart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, String categoryName) {
+    public Chart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, Category category) {
         this.portfolioCalculator = portfolioCalculator;
         this.holdings = portfolioCalculator.getHoldings();
         this.holdingsCategories = holdingsCategories;
-        this.categoryName = categoryName;
-        this.chartData = generateChartDataByCategoryName(categoryName);
+        this.category = category;
+        this.chartData = generateChartDataByCategory(category);
     }
 
-    public Chart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, String categoryName) {
+    public Chart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, Category category) {
         this.portfolioCalculator = portfolioCalculator;
         this.holdings = portfolioCalculator.getHoldings();
         this.holdingsCategories = holdingsCategories;
         this.subcategories = subcategories;
-        this.categoryName = categoryName;
-        this.chartData = generateChartDataByCategoryName(categoryName);
+        this.category = category;
+        this.chartData = generateChartDataByCategory(category);
     }
 
-    public String getCategoryName() {
-        return categoryName;
+    public Category getCategory() {
+        return category;
     }
 
-    public void setCategoryName(String categoryName) {
-        this.categoryName = categoryName;
+    public void setCategory(Category category) {
+        this.category = category;
     }
 
     public List<Holdings> getHoldings() {
@@ -167,8 +167,8 @@ public abstract class Chart {
         return chartData;
     }
 
-    private List<ChartData> generateChartDataByCategoryName(String categoryName) {
-        logger.trace("Generating chart data for category: {}", categoryName);
+    private List<ChartData> generateChartDataByCategory(Category category) {
+        logger.trace("Generating chart data for category: {}", category.getCategoryName());
     
         // Get pre-calculated asset values from PortfolioCalculator
         Map<String, Map<String, BigDecimal>> assetValues = portfolioCalculator.calculateAssetValues();
@@ -176,10 +176,10 @@ public abstract class Chart {
     
         // Filter holdings by category
         Map<String, String> assetNamesSubcategoryMap = holdingsCategories.stream()
-                .filter(category -> category.getCategory() != null && category.getCategory().equals(categoryName))
+                .filter(holdingsCategory -> holdingsCategory.getCategory() != null && holdingsCategory.getCategory().equals(category.getCategoryName()))
                 .collect(Collectors.toMap(
                         HoldingsCategory::getAssetName,
-                        category -> category.getSubcategory() != null ? category.getSubcategory() : "None",
+                        holdingsCategory -> holdingsCategory.getSubcategory() != null ? holdingsCategory.getSubcategory() : "None",
                         (existing, replacement) -> existing
                 ));
         
@@ -221,7 +221,7 @@ public abstract class Chart {
                         .thenComparing(ChartData::getValue).reversed())
                 .collect(Collectors.toList());
 
-        logger.trace("Generated chart data for category {}: {}", categoryName, chartData);
+        logger.trace("Generated chart data for category {}: {}", category.getCategoryName(), chartData);
         return chartData;
     }
 

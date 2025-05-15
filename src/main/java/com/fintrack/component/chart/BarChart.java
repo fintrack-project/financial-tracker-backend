@@ -22,14 +22,14 @@ public class BarChart extends Chart {
         this.barChartDatas = generateBarChartData();
     }
 
-    public BarChart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, String categoryName) {
-        super(portfolioCalculator, holdingsCategories, categoryName);
-        this.barChartDatas = generateBarChartDataByCategoryName(categoryName);
+    public BarChart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, Category category) {
+        super(portfolioCalculator, holdingsCategories, category);
+        this.barChartDatas = generateBarChartDataByCategory(category);
     }
 
-    public BarChart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, String categoryName) {
-        super(portfolioCalculator, holdingsCategories, subcategories, categoryName);
-        this.barChartDatas = generateBarChartDataByCategoryName(categoryName);
+    public BarChart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, Category category) {
+        super(portfolioCalculator, holdingsCategories, subcategories, category);
+        this.barChartDatas = generateBarChartDataByCategory(category);
     }
 
     public List<BarChartData> getBarChartDatas() {
@@ -83,7 +83,7 @@ public class BarChart extends Chart {
         return barChartDatas;
     }
 
-    private List<BarChartData> generateBarChartDataByCategoryName(String categoryName) {
+    private List<BarChartData> generateBarChartDataByCategory(Category category) {
         List<BarChartData> barChartDatas = getChartData().stream().map(
             data -> {
                 BarChartData barChartDatum = new BarChartData(data);

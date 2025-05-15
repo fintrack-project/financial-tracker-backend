@@ -17,14 +17,14 @@ public class PieChart extends Chart {
         this.pieChartData = generatePieChartData();
     }
 
-    public PieChart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, String categoryName) {
-        super(portfolioCalculator, holdingsCategories, categoryName);
-        this.pieChartData = generatePieChartDataByCategoryName(categoryName);
+    public PieChart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, Category category) {
+        super(portfolioCalculator, holdingsCategories, category);
+        this.pieChartData = generatePieChartDataByCategory(category);
     }
 
-    public PieChart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, String categoryName) {
-        super(portfolioCalculator, holdingsCategories, subcategories, categoryName);
-        this.pieChartData = generatePieChartDataByCategoryName(categoryName);
+    public PieChart(PortfolioCalculator portfolioCalculator, List<HoldingsCategory> holdingsCategories, List<Category> subcategories, Category category) {
+        super(portfolioCalculator, holdingsCategories, subcategories, category);
+        this.pieChartData = generatePieChartDataByCategory(category);
     }
 
     public List<PieChartData> getPieChartData() {
@@ -68,7 +68,7 @@ public class PieChart extends Chart {
         return pieChartDatas;
     }
 
-    private List<PieChartData> generatePieChartDataByCategoryName(String categoryName) {
+    private List<PieChartData> generatePieChartDataByCategory(Category category) {
         List<PieChartData> pieChartDatas = getChartData().stream().map(
             data -> {
                 PieChartData pieChartDatum = new PieChartData(data);

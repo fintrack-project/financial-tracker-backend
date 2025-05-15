@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.*;
 
 import com.fintrack.constants.Color;
+import com.fintrack.model.finance.Category;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,16 +17,16 @@ public class CombinedBarChart {
     List<Map<String, Object>> combinedBarChartsData = new ArrayList<>();
     private Map<String, String> subcategoryColorMap = new HashMap<>();
     private Map<String, String> assetNameColorMap = new HashMap<>();
-    private String categoryName;
+    private Category category;
 
     private static final List<Color> COLORS = Color.getAllColors(); // Use the Color enum to get all colors
 
     private int colorIndex = 0;
 
-    public CombinedBarChart(List<BarChart> barCharts, String categoryName) {
+    public CombinedBarChart(List<BarChart> barCharts, Category category) {
         this.barCharts = barCharts;
         this.combinedBarChartsData = generateCombinedBarChartsData();
-        this.categoryName = categoryName;
+        this.category = category;
         reassignColor();
     }
 
@@ -37,20 +38,20 @@ public class CombinedBarChart {
         this.barCharts = barCharts;
     }
 
-    public String getCategoryName() {
-        return categoryName;
+    public Category getCategory() {
+        return category;
     }
 
-    public void setCategoryName(String categoryName) {
-        this.categoryName = categoryName;
+    public void setCategory(Category category) {
+        this.category = category;
     }
 
     private void reassignColor() {
-        logger.trace("Reassigning colors for category: " + categoryName);
+        logger.trace("Reassigning colors for category: " + category.getCategoryName());
         for (BarChart barChart : barCharts) {
             // Get or generate a color for the subcategory
             for(BarChartData barChartData : barChart.getBarChartDatas()) {
-                if (categoryName.equals("None")) {
+                if (category.getCategoryName().equals("None")) {
                     String assetName = barChartData.getAssetName();
                     if (!assetNameColorMap.containsKey(assetName)) {
                         String color = assignColor();
