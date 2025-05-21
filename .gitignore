@@ -1,4 +1,7 @@
 application.properties
-.env
 firebase-service-account.json
 target
+
+# Environment files
+.env
+.env.*
