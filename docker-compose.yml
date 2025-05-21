@@ -15,7 +15,7 @@ services:
     depends_on:
       - zookeeper
     networks:
-      - fintrack-network
+      - ${DATABASE_NETWORK_NAME}
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
@@ -25,7 +25,7 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     networks:
-      - fintrack-network
+      - ${DATABASE_NETWORK_NAME}
 
   etl:
     build:
@@ -37,11 +37,11 @@ services:
       DATABASE_HOST: ${DATABASE_HOST}
       DATABASE_PORT: ${DATABASE_PORT}
       DATABASE_NAME: ${DATABASE_NAME}
-      DATABASE_USER: ${DATABASE_USER}
-      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_USER: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
-      - fintrack-network
+      - ${DATABASE_NETWORK_NAME}
 
 networks:
-  fintrack-network:
+  ${DATABASE_NETWORK_NAME}:
     external: true
