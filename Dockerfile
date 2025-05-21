@@ -27,8 +27,13 @@ COPY mvnw* ./
 COPY pom.xml ./
 COPY .mvn .mvn
 
-# Copy source code
+# Copy source code and resources
 COPY src src
+
+# Create application.properties from template if it doesn't exist
+RUN if [ ! -f src/main/resources/application.properties ]; then \
+    cp src/main/resources/application.properties.template src/main/resources/application.properties; \
+    fi
 
 EXPOSE 8080
 
