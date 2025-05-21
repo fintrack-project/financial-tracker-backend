@@ -17,8 +17,26 @@ COPY src src
 # Package the application
 RUN ./mvnw package -DskipTests
 
-# Stage 2: Create the runtime image
-FROM eclipse-temurin:21-jdk
+# Stage 2: Development environment
+FROM eclipse-temurin:21-jdk as dev
+
+WORKDIR /app
+
+# Copy Maven wrapper and pom.xml
+COPY mvnw* ./
+COPY pom.xml ./
+COPY .mvn .mvn
+
+# Copy source code
+COPY src src
+
+EXPOSE 8080
+
+# The command will be overridden by docker-compose
+CMD ["./mvnw", "spring-boot:run"]
+
+# Stage 3: Production environment
+FROM eclipse-temurin:21-jre as prod
 
 WORKDIR /app
 
