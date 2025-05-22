@@ -14,8 +14,8 @@ public class JpaConfig {
     @Bean
     public JpaVendorAdapter jpaVendorAdapter() {
         HibernateJpaVendorAdapter adapter = new HibernateJpaVendorAdapter();
-        adapter.setGenerateDdl(false); // Disable schema generation
-        adapter.setShowSql(false);     // Disable SQL logging
+        adapter.setGenerateDdl(true); // Enable schema generation
+        adapter.setShowSql(true);     // Enable SQL logging
         return adapter;
     }
 } 

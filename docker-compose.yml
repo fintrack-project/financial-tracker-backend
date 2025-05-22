@@ -1,5 +1,33 @@
 version: '3.8'
 services:
+  app:
+    build:
+      context: .
+      target: dev
+    ports:
+      - "8080:8080"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
+      - APP_BASE_URL=${APP_BASE_URL}
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9093
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - MAIL_SMTP_AUTH=true
+      - MAIL_SMTP_STARTTLS_ENABLE=true
+      - STRIPE_SECRET_KEY=${STRIPE_TEST_SECRET_KEY}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_TEST_PUBLISHABLE_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_TEST_WEBHOOK_SECRET}
+    depends_on:
+      - kafka
+      - db
+    networks:
+      - ${DATABASE_NETWORK_NAME}
+
   kafka:
     image: confluentinc/cp-kafka:7.4.0 # Use Confluent Kafka image with CLI tools
     ports:
@@ -15,7 +43,7 @@ services:
     depends_on:
       - zookeeper
     networks:
-      - fintrack-network
+      - ${DATABASE_NETWORK_NAME}
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
@@ -25,7 +53,7 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     networks:
-      - fintrack-network
+      - ${DATABASE_NETWORK_NAME}
 
   etl:
     build:
@@ -37,11 +65,11 @@ services:
       DATABASE_HOST: ${DATABASE_HOST}
       DATABASE_PORT: ${DATABASE_PORT}
       DATABASE_NAME: ${DATABASE_NAME}
-      DATABASE_USER: ${DATABASE_USER}
-      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_USER: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
-      - fintrack-network
+      - ${DATABASE_NETWORK_NAME}
 
 networks:
-  fintrack-network:
+  ${DATABASE_NETWORK_NAME}:
     external: true
