@@ -5,7 +5,7 @@ import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -20,7 +20,7 @@ import java.io.InputStream;
 import java.util.Properties;
 
 @Configuration
-@ConditionalOnProperty(name = "spring.mail.host", havingValue = "localhost", matchIfMissing = true)
+@ConditionalOnMissingBean(JavaMailSender.class)
 public class NoOpMailSender {
     private static final Logger logger = LoggerFactory.getLogger(NoOpMailSender.class);
 
