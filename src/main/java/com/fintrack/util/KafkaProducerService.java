@@ -21,13 +21,15 @@ public interface KafkaProducerService {
 }
 
 @Service
-@ConditionalOnProperty(name = "spring.kafka.bootstrap-servers", matchIfMissing = false)
+@Primary
+@ConditionalOnProperty(name = "spring.kafka.bootstrap-servers")
 class KafkaProducerServiceImpl implements KafkaProducerService {
     private static final Logger logger = LoggerFactory.getLogger(KafkaProducerServiceImpl.class);
     private final KafkaTemplate<String, String> kafkaTemplate;
 
     public KafkaProducerServiceImpl(KafkaTemplate<String, String> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
+        logger.info("Using KafkaProducerServiceImpl - Kafka is configured with bootstrap servers: {}", kafkaTemplate.getDefaultTopic());
     }
 
     @Override
@@ -84,8 +86,7 @@ class KafkaProducerServiceImpl implements KafkaProducerService {
 }
 
 @Service
-@Primary
-@ConditionalOnProperty(name = "spring.kafka.bootstrap-servers", havingValue = "", matchIfMissing = true)
+@ConditionalOnProperty(name = "spring.kafka.bootstrap-servers", havingValue = "false")
 class NoOpKafkaProducerService implements KafkaProducerService {
     private static final Logger logger = LoggerFactory.getLogger(NoOpKafkaProducerService.class);
 
