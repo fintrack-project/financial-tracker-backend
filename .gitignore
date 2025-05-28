@@ -1,4 +1,5 @@
 application.properties
+application-*.properties
 firebase-service-account.json
 target
 

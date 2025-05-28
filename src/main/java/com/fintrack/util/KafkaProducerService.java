@@ -1,7 +1,9 @@
 package com.fintrack.util;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Primary;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,28 +14,37 @@ import java.util.concurrent.TimeUnit;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Service
-public class KafkaProducerService {
+public interface KafkaProducerService {
+    void publishEvent(String topic, String message);
+    void publishEventWithRetry(String topic, String message, int maxRetries, long retryIntervalMillis);
+    void publishEventsAtomically(List<Map.Entry<String, String>> events);
+}
 
-    private static final Logger logger = LoggerFactory.getLogger(KafkaProducerService.class);
+@Service
+@Primary
+@ConditionalOnProperty(name = "spring.kafka.bootstrap-servers")
+class KafkaProducerServiceImpl implements KafkaProducerService {
+    private static final Logger logger = LoggerFactory.getLogger(KafkaProducerServiceImpl.class);
     private final KafkaTemplate<String, String> kafkaTemplate;
 
-    public KafkaProducerService(KafkaTemplate<String, String> kafkaTemplate) {
+    public KafkaProducerServiceImpl(KafkaTemplate<String, String> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
+        logger.info("Using KafkaProducerServiceImpl - Kafka is configured with bootstrap servers: {}", kafkaTemplate.getDefaultTopic());
     }
 
+    @Override
     public void publishEvent(String topic, String message) {
-        // Use the retry mechanism to handle OUT_OF_ORDER_SEQUENCE_NUMBER errors
         publishEventWithRetry(topic, message, 3, 500);
     }
 
+    @Override
     public void publishEventWithRetry(String topic, String message, int maxRetries, long retryIntervalMillis) {
-        AtomicInteger attempt = new AtomicInteger(0); // Use AtomicInteger to make it mutable
+        AtomicInteger attempt = new AtomicInteger(0);
         boolean success = false;
     
         while (attempt.get() < maxRetries && !success) {
             try {
-                attempt.incrementAndGet(); // Increment the attempt count
+                attempt.incrementAndGet();
                 CompletableFuture<Void> future = kafkaTemplate.send(topic, message)
                         .thenAccept(result -> {
                             logger.info("Message sent successfully to topic: " + topic + ", partition: " + result.getRecordMetadata().partition() + ", offset: " + result.getRecordMetadata().offset());
@@ -43,14 +54,13 @@ public class KafkaProducerService {
                             return null;
                         });
     
-                // Wait for the send to complete
-                future.get(10, TimeUnit.SECONDS); // Timeout after 10 seconds
-                success = true; // If no exception, mark as success
+                future.get(10, TimeUnit.SECONDS);
+                success = true;
             } catch (Exception e) {
                 logger.error("Attempt {}: Exception occurred while sending message to topic: {}, error: {}", attempt.get(), topic, e.getMessage());
                 if (attempt.get() < maxRetries) {
                     try {
-                        Thread.sleep(retryIntervalMillis); // Wait before retrying
+                        Thread.sleep(retryIntervalMillis);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
                         throw new RuntimeException("Retry interrupted", ie);
@@ -62,11 +72,7 @@ public class KafkaProducerService {
         }
     }
 
-    /**
-     * Publishes multiple events atomically to Kafka.
-     *
-     * @param events A list of topic-message pairs to publish.
-     */
+    @Override
     public void publishEventsAtomically(List<Map.Entry<String, String>> events) {
         kafkaTemplate.executeInTransaction(operations -> {
             for (Map.Entry<String, String> event : events) {
@@ -76,5 +82,30 @@ public class KafkaProducerService {
             }
             return null;
         });
+    }
+}
+
+@Service
+@ConditionalOnProperty(name = "spring.kafka.bootstrap-servers", havingValue = "false")
+class NoOpKafkaProducerService implements KafkaProducerService {
+    private static final Logger logger = LoggerFactory.getLogger(NoOpKafkaProducerService.class);
+
+    public NoOpKafkaProducerService() {
+        logger.info("Using NoOpKafkaProducerService - Kafka is not configured");
+    }
+
+    @Override
+    public void publishEvent(String topic, String message) {
+        logger.debug("Kafka not configured - message not sent to topic: {}", topic);
+    }
+
+    @Override
+    public void publishEventWithRetry(String topic, String message, int maxRetries, long retryIntervalMillis) {
+        logger.debug("Kafka not configured - message not sent to topic: {}", topic);
+    }
+
+    @Override
+    public void publishEventsAtomically(List<Map.Entry<String, String>> events) {
+        logger.debug("Kafka not configured - messages not sent");
     }
 }
