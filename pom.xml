@@ -35,6 +35,8 @@
         <!-- Spring Data Dependencies -->
         <spring.version>6.2.0</spring.version>
         <spring-aspects.version>6.2.0</spring-aspects.version>
+        <!-- HTTP Client -->
+        <httpclient.version>5.5</httpclient.version>
     </properties>
 
     <dependencies>
@@ -228,6 +230,12 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-orm</artifactId>
             <version>${spring.version}</version>
+        </dependency>
+        <!-- HTTP Client -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <version>${httpclient.version}</version>
         </dependency>
     </dependencies>
 
