@@ -4,6 +4,8 @@ import com.fintrack.model.user.User;
 import com.fintrack.repository.user.UserRepository;
 import com.fintrack.security.JwtService;
 import com.fintrack.service.subscription.UserSubscriptionService;
+import com.fintrack.service.user.AccountService;
+import com.fintrack.model.user.Account;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ public class UserService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final UserSubscriptionService userSubscriptionService;
+    private final AccountService accountService;
 
     private static final int MAX_LOGIN_ATTEMPTS = 5;
     private static final int LOCK_TIME_DURATION = 1; // in minutes
@@ -34,12 +37,14 @@ public class UserService {
         UserEmailService userEmailService,
         BCryptPasswordEncoder passwordEncoder,
         JwtService jwtService,
-        UserSubscriptionService userSubscriptionService) {
+        UserSubscriptionService userSubscriptionService,
+        AccountService accountService) {
         this.userRepository = userRepository;
         this.userEmailService = userEmailService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.userSubscriptionService = userSubscriptionService;
+        this.accountService = accountService;
     }
 
     public Map<String, Object> authenticateAndGenerateToken(String userId, String password) {
@@ -142,30 +147,40 @@ public class UserService {
             return "Email already exists.";
         }
 
-        // Hash the password before saving
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-
-        setDefaultValues(user);
-
-        // Set emailVerified to false
-        user.setEmailVerified(false);
-
-        // Save the user
-        userRepository.save(user);
-        
-        // Create a free subscription for the new user
         try {
-            userSubscriptionService.createFreeSubscription(user.getAccountId(), "Free");
-            logger.info("Created free subscription for new user with accountId: {}", user.getAccountId());
+            // Generate a new account ID
+            UUID accountId = UUID.randomUUID();
+            
+            // Create and save the account first
+            accountService.createAccount(accountId);
+            logger.info("Created account for new user with accountId: {}", accountId);
+
+            // Set the account ID in the user
+            user.setAccountId(accountId);
+
+            // Create free subscription
+            userSubscriptionService.createFreeSubscription(accountId, "Free");
+            logger.info("Created free subscription for new user with accountId: {}", accountId);
+
+            // Hash the password before saving
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+
+            setDefaultValues(user);
+
+            // Set emailVerified to false
+            user.setEmailVerified(false);
+
+            // Save the user
+            userRepository.save(user);
+            
+            // Send the verification email
+            userEmailService.sendVerificationEmail(user.getEmail(), user);
+
+            return "User registered successfully.";
         } catch (Exception e) {
-            logger.error("Failed to create free subscription for user: {}", e.getMessage(), e);
-            // Continue registration process even if subscription creation fails
+            logger.error("Failed to complete user registration: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to complete user registration: " + e.getMessage());
         }
-
-        // Send the verification email
-        userEmailService.sendVerificationEmail(user.getEmail(), user);
-
-        return "User registered successfully.";
     }
 
     private void setDefaultValues(User user) {

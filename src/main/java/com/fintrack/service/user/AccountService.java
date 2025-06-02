@@ -8,6 +8,7 @@ import com.fintrack.repository.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -35,24 +36,26 @@ public class AccountService {
     }
 
     public String getAccountIdByUserId(String userId) {
-        // Fetch the accountId from the database using the userId
-        Optional<UUID> accountId = accountRepository.findAccountIdByUserId(userId);
-        return accountId.map(UUID::toString).orElse(null);
+        // Fetch the user by userId
+        Optional<User> userOptional = userRepository.findByUserId(userId);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            return user.getAccountId() != null ? user.getAccountId().toString() : null;
+        }
+        return null;
     }
 
     @Transactional
-    public boolean createAccount(UUID accountId) {
-
-        // Check if the account already exists
+    public void createAccount(UUID accountId) {
+        // Check if account already exists
         if (accountRepository.existsById(accountId)) {
-            return false; // Account already exists
+            return;
         }
 
-        // Create a new account and save it to the database
+        // Create new account
         Account account = new Account();
         account.setAccountId(accountId);
+        account.setCreatedAt(LocalDateTime.now());
         accountRepository.save(account);
-
-        return true; // Account creation successful
     }
 }

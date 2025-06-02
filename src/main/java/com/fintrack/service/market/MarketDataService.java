@@ -51,10 +51,12 @@ public class MarketDataService extends AbstractMarketDataProvider {
      * @return List of MarketData objects with the requested data
      */
     public List<MarketData> fetchMarketData(UUID accountId, List<Map<String, String>> entities) {
-        logger.trace("Fetching market data for entities: {}", entities);
+        logger.info("🔍 Starting market data fetch for accountId: {} with {} entities", accountId, entities.size());
+        logger.debug("Entities to fetch: {}", entities);
 
         // Group entities by asset type
         Map<String, List<String>> entitiesByAssetType = groupEntitiesByAssetType(entities);
+        logger.info("📊 Grouped entities by asset type: {}", entitiesByAssetType);
         
         // Process each asset type with its appropriate service
         List<MarketData> allResults = new ArrayList<>();
@@ -62,30 +64,41 @@ public class MarketDataService extends AbstractMarketDataProvider {
         // Process STOCK entities
         if (entitiesByAssetType.containsKey(AssetType.STOCK.getAssetTypeName())) {
             List<String> stockSymbols = entitiesByAssetType.get(AssetType.STOCK.getAssetTypeName());
-            logger.info("Processing {} STOCK symbols", stockSymbols.size());
-            allResults.addAll(stockMarketDataService.fetchMarketData(accountId, stockSymbols));
+            logger.info("📈 Processing {} STOCK symbols: {}", stockSymbols.size(), stockSymbols);
+            List<MarketData> stockResults = stockMarketDataService.fetchMarketData(accountId, stockSymbols);
+            logger.info("✅ STOCK results: {} items", stockResults.size());
+            allResults.addAll(stockResults);
         }
         
         // Process FOREX entities
         if (entitiesByAssetType.containsKey(AssetType.FOREX.getAssetTypeName())) {
             List<String> forexSymbols = entitiesByAssetType.get(AssetType.FOREX.getAssetTypeName());
-            logger.info("Processing {} FOREX symbols", forexSymbols.size());
-            allResults.addAll(forexMarketDataService.fetchMarketData(accountId, forexSymbols));
+            logger.info("💱 Processing {} FOREX symbols: {}", forexSymbols.size(), forexSymbols);
+            List<MarketData> forexResults = forexMarketDataService.fetchMarketData(accountId, forexSymbols);
+            logger.info("✅ FOREX results: {} items", forexResults.size());
+            allResults.addAll(forexResults);
         }
         
         // Process CRYPTO entities
         if (entitiesByAssetType.containsKey(AssetType.CRYPTO.getAssetTypeName())) {
             List<String> cryptoSymbols = entitiesByAssetType.get(AssetType.CRYPTO.getAssetTypeName());
-            logger.info("Processing {} CRYPTO symbols", cryptoSymbols.size());
-            allResults.addAll(cryptoMarketDataService.fetchMarketData(accountId, cryptoSymbols));
+            logger.info("₿ Processing {} CRYPTO symbols: {}", cryptoSymbols.size(), cryptoSymbols);
+            List<MarketData> cryptoResults = cryptoMarketDataService.fetchMarketData(accountId, cryptoSymbols);
+            logger.info("✅ CRYPTO results: {} items", cryptoResults.size());
+            allResults.addAll(cryptoResults);
         }
         
         // Process COMMODITY entities
         if (entitiesByAssetType.containsKey(AssetType.COMMODITY.getAssetTypeName())) {
             List<String> commoditySymbols = entitiesByAssetType.get(AssetType.COMMODITY.getAssetTypeName());
-            logger.info("Processing {} COMMODITY symbols", commoditySymbols.size());
-            allResults.addAll(commodityMarketDataService.fetchMarketData(accountId, commoditySymbols));
+            logger.info("🪙 Processing {} COMMODITY symbols: {}", commoditySymbols.size(), commoditySymbols);
+            List<MarketData> commodityResults = commodityMarketDataService.fetchMarketData(accountId, commoditySymbols);
+            logger.info("✅ COMMODITY results: {} items", commodityResults.size());
+            allResults.addAll(commodityResults);
         }
+
+        logger.info("📊 Total market data results: {} items", allResults.size());
+        logger.debug("Market data results: {}", allResults);
         
         return allResults;
     }

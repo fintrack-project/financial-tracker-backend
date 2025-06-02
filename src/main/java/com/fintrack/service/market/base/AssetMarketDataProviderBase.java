@@ -132,45 +132,60 @@ public abstract class AssetMarketDataProviderBase extends AbstractMarketDataProv
                 .map(asset -> new Object[]{asset.get("symbol"), asset.get("asset_type")})
                 .toList();
 
+        logger.info("🔄 Starting market data fetch with retry for {} assets", assets.size());
+        logger.debug("Asset pairs to fetch: {}", symbolAssetTypePairs);
+
         while (retryCount < maxRetries) {
             result.clear();
+            logger.info("🔄 Retry attempt {}/{}", retryCount + 1, maxRetries);
 
             // Fetch market data for the given symbols and asset type pairs
             List<MarketData> recentMarketData = new ArrayList<>();
             symbolAssetTypePairs.forEach(pair -> {
                 String symbol = (String) pair[0];
                 String assetType = (String) pair[1];
-                logger.info("Fetching market data for symbol: {} assetType: {}", symbol, assetType);
+                logger.info("🔍 Fetching market data for symbol: {} assetType: {}", symbol, assetType);
                 List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(symbol, assetType);
+                logger.info("📊 Found {} market data entries for {}/{}", marketDataList.size(), symbol, assetType);
+                if (!marketDataList.isEmpty()) {
+                    logger.debug("Market data details: {}", marketDataList);
+                }
                 recentMarketData.addAll(marketDataList);
             });
 
             if (recentMarketData.isEmpty()) {
-                logger.error("No data found for symbolAssetTypePairs: {}", Arrays.deepToString(symbolAssetTypePairs.toArray()));
+                logger.warn("⚠️ No data found for any symbol/asset type pairs");
+                logger.debug("Failed pairs: {}", Arrays.deepToString(symbolAssetTypePairs.toArray()));
                 break; // Exit if no data is found
             }
 
             result.addAll(recentMarketData);
+            logger.info("✅ Found {} total market data entries", result.size());
 
             // Check if all symbolAssetTypePairs have data
             if (result.size() == symbolAssetTypePairs.size()) {
+                logger.info("🎯 Successfully fetched all requested market data");
                 break;
+            } else {
+                logger.warn("⚠️ Missing data for some pairs. Found {}/{} entries", 
+                    result.size(), symbolAssetTypePairs.size());
             }
 
             // Wait before retrying
             try {
+                logger.info("⏳ Waiting 1 second before retry...");
                 Thread.sleep(1000); // Wait for 1 second before retrying
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                logger.error("Retry interrupted: {}", e.getMessage());
+                logger.error("❌ Retry interrupted: {}", e.getMessage());
                 break;
             }
 
             retryCount++;
         }
 
-        if (result.size() < symbolAssetTypePairs.size()) {
-            logger.error("Failed to fetch data for all symbolAssetTypePairs after {} retries.", maxRetries);
+        if (result.isEmpty()) {
+            logger.error("❌ Failed to fetch market data after {} retries", maxRetries);
         }
 
         return result;

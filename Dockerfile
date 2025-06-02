@@ -1,5 +1,5 @@
 # Stage 1: Build the application
-FROM eclipse-temurin:21-jdk as builder
+FROM eclipse-temurin:21-jdk-alpine as builder
 
 WORKDIR /app
 
@@ -18,9 +18,12 @@ COPY src src
 RUN ./mvnw package -DskipTests
 
 # Stage 2: Development environment
-FROM eclipse-temurin:21-jdk as dev
+FROM eclipse-temurin:21-jdk-alpine as dev
 
 WORKDIR /app
+
+# Install only necessary packages
+RUN apk add --no-cache curl tzdata
 
 # Copy Maven wrapper and pom.xml
 COPY mvnw* ./
@@ -41,9 +44,12 @@ EXPOSE 8080
 CMD ["./mvnw", "spring-boot:run"]
 
 # Stage 3: Production environment
-FROM eclipse-temurin:21-jre as prod
+FROM eclipse-temurin:21-jre-alpine as prod
 
 WORKDIR /app
+
+# Install only necessary packages
+RUN apk add --no-cache curl tzdata
 
 # Copy the built JAR from the builder stage
 COPY --from=builder /app/target/*.jar app.jar

@@ -1,6 +1,8 @@
 package com.fintrack.model.finance;
 
+import com.fintrack.model.user.Account;
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -21,10 +23,16 @@ public class Transaction {
     private UUID accountId;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id", insertable = false, updatable = false)
+    @JsonIgnore
+    private Account account;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
         @JoinColumn(name = "account_id", referencedColumnName = "account_id", insertable = false, updatable = false),
         @JoinColumn(name = "asset_name", referencedColumnName = "asset_name", insertable = false, updatable = false)
     })
+    @JsonIgnore
     private Asset asset;
 
     @Column(name = "asset_name")
@@ -67,6 +75,17 @@ public class Transaction {
 
     public void setAccountId(UUID accountId) {
         this.accountId = accountId;
+    }
+
+    public Account getAccount() {
+        return account;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
+        if (account != null) {
+            this.accountId = account.getAccountId();
+        }
     }
 
     public Asset getAsset() {
