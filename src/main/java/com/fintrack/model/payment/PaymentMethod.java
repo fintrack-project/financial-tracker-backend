@@ -1,7 +1,7 @@
 package com.fintrack.model.payment;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fintrack.model.user.User;
+import com.fintrack.model.user.Account;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -56,5 +56,5 @@ public class PaymentMethod {
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", insertable = false, updatable = false)
-    private User user;
+    private Account account;
 } 

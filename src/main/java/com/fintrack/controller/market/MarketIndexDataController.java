@@ -27,9 +27,11 @@ public class MarketIndexDataController {
         value = "/fetch",
         produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ResponseEntity<ApiResponse<Map<String, Object>>> fetchMarketData(@RequestParam List<String> symbols) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> fetchMarketData(@RequestParam String symbols) {
         try {
-            Map<String, Object> marketData = marketIndexDataService.getMostRecentMarketIndexData(symbols);
+            // Split the comma-separated symbols and decode them
+            List<String> symbolList = Arrays.asList(symbols.split(","));
+            Map<String, Object> marketData = marketIndexDataService.getMostRecentMarketIndexData(symbolList);
             return ResponseWrapper.ok(marketData);
         } catch (IllegalArgumentException e) {
             logger.error("Invalid request format: ", e);

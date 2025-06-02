@@ -14,6 +14,9 @@ public class Account {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt; // Timestamp when the account was created
 
+    @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)
+    private User user;
+
     // Getters and Setters
     public UUID getAccountId() {
         return accountId;
@@ -29,6 +32,14 @@ public class Account {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 
     // Pre-persist method to set default values

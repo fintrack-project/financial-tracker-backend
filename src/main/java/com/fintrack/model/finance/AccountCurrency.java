@@ -1,5 +1,6 @@
 package com.fintrack.model.finance;
 
+import com.fintrack.model.user.Account;
 import jakarta.persistence.*;
 
 import java.util.UUID;
@@ -16,6 +17,10 @@ public class AccountCurrency {
 
     @Column(name = "account_id", nullable = false)
     private UUID accountId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id", insertable = false, updatable = false)
+    private Account account;
 
     @Column(name = "currency", nullable = false, length = 10)
     private String currency;
@@ -47,6 +52,17 @@ public class AccountCurrency {
 
     public void setAccountId(UUID accountId) {
         this.accountId = accountId;
+    }
+
+    public Account getAccount() {
+        return account;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
+        if (account != null) {
+            this.accountId = account.getAccountId();
+        }
     }
 
     public String getCurrency() {

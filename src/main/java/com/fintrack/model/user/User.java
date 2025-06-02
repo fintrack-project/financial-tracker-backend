@@ -13,9 +13,12 @@ import jakarta.persistence.*;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO) // Automatically generate UUID
     @Column(name = "account_id", nullable = false, updatable = false)
     private UUID accountId;
+
+    @OneToOne
+    @JoinColumn(name = "account_id", insertable = false, updatable = false)
+    private Account account;
 
     @Column(name = "user_id", nullable = false, unique = true)
     private String userId;
@@ -222,5 +225,16 @@ public class User {
 
     public void setTwoFactorSecret(String twoFactorSecret) {
         this.twoFactorSecret = twoFactorSecret;
+    }
+
+    public Account getAccount() {
+        return account;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
+        if (account != null) {
+            this.accountId = account.getAccountId();
+        }
     }
 }
