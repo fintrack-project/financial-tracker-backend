@@ -2,6 +2,7 @@ package com.fintrack.model.market;
 
 import com.fintrack.model.user.Account;
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.UUID;
 
@@ -20,6 +21,7 @@ public class WatchlistData {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", insertable = false, updatable = false)
+    @JsonIgnore
     private Account account;
 
     @Column(name = "symbol", nullable = false, length = 10)

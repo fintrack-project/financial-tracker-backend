@@ -1,6 +1,7 @@
 package com.fintrack.model.user;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.*;
 
@@ -19,6 +20,7 @@ public class UserNotificationPreference {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", insertable = false, updatable = false)
+    @JsonIgnore
     private Account account;
 
     @Enumerated(EnumType.STRING)

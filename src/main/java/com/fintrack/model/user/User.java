@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "users", uniqueConstraints = {
@@ -18,6 +19,7 @@ public class User {
 
     @OneToOne
     @JoinColumn(name = "account_id", insertable = false, updatable = false)
+    @JsonIgnore
     private Account account;
 
     @Column(name = "user_id", nullable = false, unique = true)
