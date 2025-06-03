@@ -75,11 +75,7 @@ public class AccountController {
             }
 
             // Create the account in the accounts table
-            boolean accountCreated = accountService.createAccount(UUID.fromString(accountId));
-
-            if (!accountCreated) {
-                return ResponseWrapper.badRequest("Account already exists or could not be created");
-            }
+            accountService.createAccount(UUID.fromString(accountId));
 
             Map<String, String> response = Map.of(
                 "message", "Account created successfully",

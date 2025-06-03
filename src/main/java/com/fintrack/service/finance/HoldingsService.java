@@ -2,6 +2,7 @@ package com.fintrack.service.finance;
 
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.CacheEvict;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,8 +17,7 @@ import java.util.*;
 public class HoldingsService {
 
     private static final Logger logger = LoggerFactory.getLogger(HoldingsService.class);
-
-    private HoldingsRepository holdingsRepository;
+    private final HoldingsRepository holdingsRepository;
 
     public HoldingsService(HoldingsRepository holdingsRepository) {
         this.holdingsRepository = holdingsRepository;
@@ -28,6 +28,7 @@ public class HoldingsService {
     }
 
     @KafkaListener(topics = "#{T(com.fintrack.constants.KafkaTopics).PROCESS_TRANSACTIONS_TO_HOLDINGS_COMPLETE.getTopicName()}", groupId = "holdings-group")
+    @CacheEvict(value = "holdings", allEntries = true)
     public void processTransactionsToHoldings(String message) {
         // Parse the message
         ObjectMapper objectMapper = new ObjectMapper();

@@ -1,6 +1,8 @@
 package com.fintrack.model.subscription;
 
+import com.fintrack.model.user.Account;
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -14,6 +16,11 @@ public class UserSubscription {
 
     @Column(name = "account_id", nullable = false)
     private UUID accountId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id", insertable = false, updatable = false)
+    @JsonIgnore
+    private Account account;
 
     @Column(name = "plan_id", nullable = false)
     private String planId;
@@ -66,6 +73,17 @@ public class UserSubscription {
 
     public void setAccountId(UUID accountId) {
         this.accountId = accountId;
+    }
+
+    public Account getAccount() {
+        return account;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
+        if (account != null) {
+            this.accountId = account.getAccountId();
+        }
     }
 
     public String getPlanId() {
