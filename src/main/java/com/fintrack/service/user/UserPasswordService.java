@@ -39,6 +39,9 @@ public class UserPasswordService {
     @Value("${app.reset-token-expiry}")
     private int resetTokenExpiryMinutes; // Expiry duration in minutes
 
+    @Value("${spring.mail.from}")
+    private String fromEmail; // From email address
+
     @Autowired
     public UserPasswordService(
             UserRepository userRepository, 
@@ -136,48 +139,47 @@ public class UserPasswordService {
     
     @Transactional
     public Map<String, Object> resetPassword(String token, String newPassword) {
-        logger.info("Reset password requested with token");
+        logger.info("Password reset attempted with token: {}", token);
         
-        Optional<PasswordResetToken> tokenOptional = passwordResetTokenRepository.findByToken(token);
+        // Find the reset token
+        Optional<PasswordResetToken> resetTokenOptional = passwordResetTokenRepository.findByToken(token);
         
-        if (tokenOptional.isEmpty()) {
-            logger.warn("Token not found during password reset");
-            return Map.of("success", false, "message", "Invalid or expired token.");
+        if (resetTokenOptional.isEmpty()) {
+            logger.warn("Invalid reset token: {}", token);
+            return Map.of("success", false, "message", "Invalid or expired reset token.");
         }
         
-        PasswordResetToken resetToken = tokenOptional.get();
+        PasswordResetToken resetToken = resetTokenOptional.get();
         
-        // Check if token is expired or already used
-        if (resetToken.isExpired()) {
-            logger.warn("Token is expired during password reset");
-            return Map.of("success", false, "message", "Token has expired. Please request a new password reset.");
+        // Check if token has expired or is already used
+        if (resetToken.isExpired() || resetToken.isUsed()) {
+            logger.warn("Expired or used reset token: {}", token);
+            if (resetToken.isExpired()) {
+                resetToken.setUsed(true);
+                passwordResetTokenRepository.save(resetToken);
+            }
+            return Map.of("success", false, "message", "Reset token has expired or already been used.");
         }
         
-        if (resetToken.isUsed()) {
-            logger.warn("Token is already used during password reset");
-            return Map.of("success", false, "message", "This reset link has already been used.");
-        }
-        
-        // Find user by userId stored in the token
+        // Find the user
         Optional<User> userOptional = userRepository.findByUserId(resetToken.getUserId());
-        
         if (userOptional.isEmpty()) {
-            logger.error("User not found for token: {}", resetToken.getUserId());
+            logger.warn("User not found for reset token: {}", token);
             return Map.of("success", false, "message", "User not found.");
         }
         
         User user = userOptional.get();
         
-        // Update password
+        // Update the password
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
         
-        // Mark token as used
+        // Mark the token as used
         resetToken.setUsed(true);
         passwordResetTokenRepository.save(resetToken);
         
-        logger.info("Password successfully reset for user: {}", user.getUserId());
-        return Map.of("success", true, "message", "Password has been reset successfully.");
+        logger.info("Password reset successful for user: {}", user.getUserId());
+        return Map.of("success", true, "message", "Password reset successfully.");
     }
     
     private void sendPasswordResetEmail(String email, String token) {
@@ -186,6 +188,7 @@ public class UserPasswordService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            helper.setFrom(fromEmail); // Set explicit From address
             helper.setTo(email);
             helper.setSubject("Password Reset Request");
             helper.setText(
