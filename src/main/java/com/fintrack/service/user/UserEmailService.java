@@ -31,6 +31,9 @@ public class UserEmailService {
     @Value("${app.base-url}")
     private String baseUrl; // Base URL for email verification link
 
+    @Value("${spring.mail.from}")
+    private String fromEmail; // From email address
+
     public UserEmailService(
         UserRepository userRepository, 
         JwtService jwtService,
@@ -50,6 +53,7 @@ public class UserEmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            helper.setFrom(fromEmail); // Set explicit From address
             helper.setTo(email);
             helper.setSubject("Email Verification");
             helper.setText("<p>Please verify your email by clicking the link below:</p>" +
