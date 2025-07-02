@@ -72,6 +72,18 @@
             <version>${spring.boot.version}</version>
         </dependency>
 
+        <!-- Valkey/Redis Caching -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+
         <!-- Database and Persistence -->
         <dependency>
             <groupId>jakarta.persistence</groupId>

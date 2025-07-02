@@ -5,12 +5,18 @@ import java.util.*;
 
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 @Entity
 @Table(name = "users", uniqueConstraints = {
         @UniqueConstraint(columnNames = "user_id"),
         @UniqueConstraint(columnNames = "email")
 })
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
 
     @Id

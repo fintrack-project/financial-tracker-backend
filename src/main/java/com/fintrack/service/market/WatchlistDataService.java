@@ -57,6 +57,25 @@ public class WatchlistDataService implements WatchlistDataOperations {
         return watchlistDataRepository.findWatchlistDataByAccountIdAndAssetTypes(accountId, assetTypes);
     }
 
+    /**
+     * Safely convert a string asset type to AssetType enum with proper error handling.
+     * 
+     * @param assetType The asset type string to convert
+     * @param symbol The symbol for logging purposes
+     * @return The AssetType enum value
+     * @throws IllegalArgumentException if the asset type is invalid
+     */
+    private AssetType convertToAssetType(String assetType, String symbol) {
+        try {
+            return AssetType.valueOf(assetType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid asset type '{}' provided for symbol '{}'. Valid types are: {}", 
+                assetType, symbol, java.util.Arrays.toString(AssetType.values()));
+            throw new IllegalArgumentException("Invalid asset type: " + assetType + 
+                ". Valid types are: " + java.util.Arrays.toString(AssetType.values()));
+        }
+    }
+
     @Override
     public void addWatchlistItem(UUID accountId, String symbol, String assetType) {
         logger.info("Adding item to watchlist: accountId={}, symbol={}, assetType={}", accountId, symbol, assetType);
@@ -64,7 +83,10 @@ public class WatchlistDataService implements WatchlistDataOperations {
         WatchlistData watchlistData = new WatchlistData();
         watchlistData.setAccountId(accountId);
         watchlistData.setSymbol(symbol);
-        watchlistData.setAssetType(assetType);
+        
+        // Convert string assetType to AssetType enum with proper error handling
+        AssetType assetTypeEnum = convertToAssetType(assetType, symbol);
+        watchlistData.setAssetType(assetTypeEnum);
 
         watchlistDataRepository.save(watchlistData);
 
