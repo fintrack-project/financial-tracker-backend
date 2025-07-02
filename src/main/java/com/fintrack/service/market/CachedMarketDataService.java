@@ -91,27 +91,46 @@ public class CachedMarketDataService {
     @KafkaListener(topics = "#{T(com.fintrack.constants.KafkaTopics).MARKET_DATA_UPDATE_COMPLETE.getTopicName()}", 
                   groupId = "cached-market-data-group")
     public void onMarketDataUpdateComplete(String message) {
-        logger.info("Received market data update complete message: {}", message);
+        logger.info("Received market data update complete message from ETL batch processing");
         
         try {
             // Parse the message and extract updated market data
             Map<String, Object> payload = parseMarketDataMessage(message);
             
+            // Handle single completion message with all batch results
             if (payload.containsKey("assets")) {
                 @SuppressWarnings("unchecked")
                 List<Map<String, Object>> assets = (List<Map<String, Object>>) payload.get("assets");
                 
-                // Convert to MarketData objects and update cache
+                // Convert to MarketData objects and update cache in single batch
                 List<MarketData> marketDataList = convertToMarketData(assets);
-                cacheService.setMarketDataBatch(marketDataList);
                 
-                logger.info("Updated cache with {} market data entries", marketDataList.size());
-                
-                // Optionally notify connected clients via WebSocket
-                notifyClientsOfUpdate(marketDataList);
+                if (!marketDataList.isEmpty()) {
+                    // Single bulk cache update for all processed transactions
+                    cacheService.setMarketDataBatch(marketDataList);
+                    
+                    logger.info("Successfully updated cache with {} market data entries from ETL batch processing", 
+                               marketDataList.size());
+                    
+                    // Log performance metrics
+                    logBatchProcessingMetrics(marketDataList.size(), payload);
+                    
+                    // Optionally notify connected clients via WebSocket
+                    notifyClientsOfUpdate(marketDataList);
+                } else {
+                    logger.warn("No market data entries found in completion message");
+                }
+            } else if (payload.containsKey("error")) {
+                // Handle ETL processing errors
+                String error = (String) payload.get("error");
+                logger.error("ETL batch processing failed: {}", error);
+                handleETLProcessingError(payload);
+            } else {
+                logger.warn("Unexpected message format in market data update completion: {}", payload.keySet());
             }
         } catch (Exception e) {
             logger.error("Error processing market data update complete message", e);
+            // Consider implementing retry logic or dead letter queue
         }
     }
 
@@ -181,9 +200,18 @@ public class CachedMarketDataService {
 
     private Map<String, Object> parseMarketDataMessage(String message) {
         try {
-            return objectMapper.readValue(message, Map.class);
+            Map<String, Object> payload = objectMapper.readValue(message, Map.class);
+            
+            // Validate expected fields for ETL batch completion message
+            if (payload.containsKey("assets") || payload.containsKey("error")) {
+                logger.debug("Successfully parsed ETL batch completion message");
+                return payload;
+            } else {
+                logger.warn("Message missing expected fields (assets or error): {}", payload.keySet());
+                return payload;
+            }
         } catch (Exception e) {
-            logger.error("Error parsing market data message", e);
+            logger.error("Error parsing market data message: {}", e.getMessage(), e);
             return new HashMap<>();
         }
     }
@@ -205,6 +233,52 @@ public class CachedMarketDataService {
         // TODO: Implement WebSocket notification logic
         // This would notify connected frontend clients of data updates
         logger.debug("Would notify {} clients of market data updates", marketDataList.size());
+    }
+
+    /**
+     * Log performance metrics for batch processing.
+     * 
+     * @param processedCount Number of market data entries processed
+     * @param payload The original message payload
+     */
+    private void logBatchProcessingMetrics(int processedCount, Map<String, Object> payload) {
+        try {
+            // Extract batch processing metadata if available
+            Integer totalBatches = (Integer) payload.get("totalBatches");
+            Integer totalTransactions = (Integer) payload.get("totalTransactions");
+            Long processingTimeMs = (Long) payload.get("processingTimeMs");
+            
+            logger.info("Batch processing metrics - Entries: {}, Batches: {}, Transactions: {}, Time: {}ms", 
+                       processedCount, totalBatches, totalTransactions, processingTimeMs);
+            
+            // TODO: Send metrics to monitoring system (Prometheus, etc.)
+        } catch (Exception e) {
+            logger.debug("Could not extract batch processing metrics", e);
+        }
+    }
+
+    /**
+     * Handle ETL processing errors.
+     * 
+     * @param payload The error payload from ETL
+     */
+    private void handleETLProcessingError(Map<String, Object> payload) {
+        try {
+            String errorType = (String) payload.get("errorType");
+            String batchId = (String) payload.get("batchId");
+            Integer failedBatch = (Integer) payload.get("failedBatch");
+            
+            logger.error("ETL processing error - Type: {}, Batch: {}, FailedBatch: {}", 
+                        errorType, batchId, failedBatch);
+            
+            // TODO: Implement error recovery logic
+            // - Retry failed batches
+            // - Notify administrators
+            // - Update system status
+            
+        } catch (Exception e) {
+            logger.error("Error handling ETL processing error", e);
+        }
     }
 
     // Legacy methods for backward compatibility
