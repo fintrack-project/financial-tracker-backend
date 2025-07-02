@@ -5,6 +5,8 @@ import com.fintrack.model.user.Account;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.*;
 
@@ -12,6 +14,8 @@ import java.util.*;
 @Table(name = "categories", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"account_id", "category_name", "parent_id"})
 })
+@Data
+@NoArgsConstructor
 public class Category {
 
     @Id
@@ -45,79 +49,11 @@ public class Category {
     @Column(name = "color", length = 7)
     private String color = Color.BLUE.getHexCode(); // Default to blue hex code
 
-    // Getters and Setters
-    public Integer getCategoryId() {
-        return categoryId;
-    }
-
-    public void setCategoryId(Integer categoryId) {
-        this.categoryId = categoryId;
-    }
-
-    public UUID getAccountId() {
-        return accountId;
-    }
-
-    public void setAccountId(UUID accountId) {
-        this.accountId = accountId;
-    }
-
-    public Account getAccount() {
-        return account;
-    }
-
+    // Custom setter for account to maintain the relationship
     public void setAccount(Account account) {
         this.account = account;
         if (account != null) {
             this.accountId = account.getAccountId();
         }
-    }
-
-    public Integer getParentId() {
-        return parentId;
-    }
-
-    public void setParentId(Integer parentId) {
-        this.parentId = parentId;
-    }
-
-    public String getCategoryName() {
-        return categoryName;
-    }
-
-    public void setCategoryName(String categoryName) {
-        this.categoryName = categoryName;
-    }
-
-    public Integer getLevel() {
-        return level;
-    }
-
-    public void setLevel(Integer level) {
-        this.level = level;
-    }
-
-    public Integer getPriority() {
-        return priority;
-    }
-
-    public void setPriority(Integer priority) {
-        this.priority = priority;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public String getColor() {
-        return color;
-    }
-
-    public void setColor(String color) {
-        this.color = color;
     }
 }

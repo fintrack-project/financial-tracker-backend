@@ -6,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import com.fintrack.constants.finance.AssetType;
 
@@ -13,6 +15,8 @@ import com.fintrack.constants.finance.AssetType;
 @Table(name = "holdings_monthly", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"account_id", "asset_name", "date"})
 })
+@Data
+@NoArgsConstructor
 public class HoldingsMonthly {
 
     @Id
@@ -65,79 +69,11 @@ public class HoldingsMonthly {
         return holdings;
     }
 
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public UUID getAccountId() {
-        return accountId;
-    }
-
-    public void setAccountId(UUID accountId) {
-        this.accountId = accountId;
-    }
-
-    public Account getAccount() {
-        return account;
-    }
-
+    // Custom setter for account to maintain the relationship
     public void setAccount(Account account) {
         this.account = account;
         if (account != null) {
             this.accountId = account.getAccountId();
         }
-    }
-
-    public LocalDate getDate() {
-        return date;
-    }
-
-    public void setDate(LocalDate date) {
-        this.date = date;
-    }
-
-    public String getAssetName() {
-        return assetName;
-    }
-
-    public void setAssetName(String assetName) {
-        this.assetName = assetName;
-    }
-
-    public BigDecimal getTotalBalance() {
-        return totalBalance;
-    }
-
-    public void setTotalBalance(BigDecimal totalBalance) {
-        this.totalBalance = totalBalance;
-    }
-
-    public String getUnit() {
-        return unit;
-    }
-
-    public void setUnit(String unit) {
-        this.unit = unit;
-    }
-
-    public AssetType getAssetType() {
-        return assetType;
-    }
-
-    public void setAssetType(AssetType assetType) {
-        this.assetType = assetType;
-    }
-
-    public String getSymbol() {
-        return symbol;
-    }
-
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
     }
 }

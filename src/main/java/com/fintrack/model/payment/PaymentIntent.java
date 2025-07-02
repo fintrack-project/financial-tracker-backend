@@ -6,9 +6,13 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "payment_intents")
+@Data
+@NoArgsConstructor
 public class PaymentIntent {
 
     @Id
@@ -74,167 +78,11 @@ public class PaymentIntent {
     @Column(name = "payment_method_id", length = 255)
     private String paymentMethodId;
 
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public UUID getAccountId() {
-        return accountId;
-    }
-
-    public void setAccountId(UUID accountId) {
-        this.accountId = accountId;
-    }
-
-    public Account getAccount() {
-        return account;
-    }
-
+    // Custom setter for account to maintain the relationship
     public void setAccount(Account account) {
         this.account = account;
         if (account != null) {
             this.accountId = account.getAccountId();
         }
-    }
-
-    public String getStripePaymentIntentId() {
-        return stripePaymentIntentId;
-    }
-
-    public void setStripePaymentIntentId(String stripePaymentIntentId) {
-        this.stripePaymentIntentId = stripePaymentIntentId;
-    }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
-    }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public void setCurrency(String currency) {
-        this.currency = currency;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public String getStripeCustomerId() {
-        return stripeCustomerId;
-    }
-
-    public void setStripeCustomerId(String stripeCustomerId) {
-        this.stripeCustomerId = stripeCustomerId;
-    }
-
-    public String getSetupFutureUsage() {
-        return setupFutureUsage;
-    }
-
-    public void setSetupFutureUsage(String setupFutureUsage) {
-        this.setupFutureUsage = setupFutureUsage;
-    }
-
-    public String getPaymentMethodTypes() {
-        return paymentMethodTypes;
-    }
-
-    public void setPaymentMethodTypes(String paymentMethodTypes) {
-        this.paymentMethodTypes = paymentMethodTypes;
-    }
-
-    public String getNextAction() {
-        return nextAction;
-    }
-
-    public void setNextAction(String nextAction) {
-        this.nextAction = nextAction;
-    }
-
-    public String getLastPaymentError() {
-        return lastPaymentError;
-    }
-
-    public void setLastPaymentError(String lastPaymentError) {
-        this.lastPaymentError = lastPaymentError;
-    }
-
-    public String getCancellationReason() {
-        return cancellationReason;
-    }
-
-    public void setCancellationReason(String cancellationReason) {
-        this.cancellationReason = cancellationReason;
-    }
-
-    public String getCaptureMethod() {
-        return captureMethod;
-    }
-
-    public void setCaptureMethod(String captureMethod) {
-        this.captureMethod = captureMethod;
-    }
-
-    public String getConfirmationMethod() {
-        return confirmationMethod;
-    }
-
-    public void setConfirmationMethod(String confirmationMethod) {
-        this.confirmationMethod = confirmationMethod;
-    }
-
-    public Boolean getRequiresAction() {
-        return requiresAction;
-    }
-
-    public void setRequiresAction(Boolean requiresAction) {
-        this.requiresAction = requiresAction;
-    }
-
-    public String getMetadata() {
-        return metadata;
-    }
-
-    public void setMetadata(String metadata) {
-        this.metadata = metadata;
-    }
-
-    public String getClientSecret() {
-        return clientSecret;
-    }
-
-    public void setClientSecret(String clientSecret) {
-        this.clientSecret = clientSecret;
-    }
-
-    public String getPaymentMethodId() {
-        return paymentMethodId;
-    }
-
-    public void setPaymentMethodId(String paymentMethodId) {
-        this.paymentMethodId = paymentMethodId;
     }
 } 

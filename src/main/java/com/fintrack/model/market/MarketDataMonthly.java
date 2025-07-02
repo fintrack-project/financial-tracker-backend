@@ -3,6 +3,8 @@ package com.fintrack.model.market;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import com.fintrack.constants.finance.AssetType;
 
@@ -10,6 +12,8 @@ import com.fintrack.constants.finance.AssetType;
 @Table(name = "market_data_monthly", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"symbol", "date", "asset_type"})
 })
+@Data
+@NoArgsConstructor
 public class MarketDataMonthly {
 
     @Id
@@ -28,45 +32,4 @@ public class MarketDataMonthly {
     @Enumerated(EnumType.STRING)
     @Column(name = "asset_type", nullable = false)
     private AssetType assetType;
-
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getSymbol() {
-        return symbol;
-    }
-
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
-    }
-
-    public BigDecimal getPrice() {
-        return price;
-    }
-
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-
-    public LocalDate getDate() {
-        return date;
-    }
-
-    public void setDate(LocalDate date) {
-        this.date = date;
-    }
-
-    public AssetType getAssetType() {
-        return assetType;
-    }
-
-    public void setAssetType(AssetType assetType) {
-        this.assetType = assetType;
-    }
 }
