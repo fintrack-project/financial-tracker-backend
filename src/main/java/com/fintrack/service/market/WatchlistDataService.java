@@ -64,7 +64,10 @@ public class WatchlistDataService implements WatchlistDataOperations {
         WatchlistData watchlistData = new WatchlistData();
         watchlistData.setAccountId(accountId);
         watchlistData.setSymbol(symbol);
-        watchlistData.setAssetType(assetType);
+        
+        // Convert string assetType to AssetType enum
+        AssetType assetTypeEnum = AssetType.valueOf(assetType.toUpperCase());
+        watchlistData.setAssetType(assetTypeEnum);
 
         watchlistDataRepository.save(watchlistData);
 

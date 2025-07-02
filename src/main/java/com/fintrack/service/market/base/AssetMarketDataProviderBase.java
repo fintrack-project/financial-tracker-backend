@@ -1,10 +1,11 @@
 package com.fintrack.service.market.base;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fintrack.constants.KafkaTopics;
 import com.fintrack.constants.finance.AssetType;
 import com.fintrack.model.market.MarketData;
 import com.fintrack.repository.finance.HoldingsMonthlyRepository;
-import com.fintrack.repository.market.MarketDataRepository;
+import com.fintrack.service.market.CachedMarketDataService;
 import com.fintrack.util.KafkaProducerService;
 
 import java.time.LocalDate;
@@ -16,15 +17,15 @@ import java.util.*;
  */
 public abstract class AssetMarketDataProviderBase extends AbstractMarketDataProvider {
 
-    protected final MarketDataRepository marketDataRepository;
+    protected final CachedMarketDataService cachedMarketDataService;
     protected final HoldingsMonthlyRepository holdingsMonthlyRepository;
 
     protected AssetMarketDataProviderBase(
-            MarketDataRepository marketDataRepository,
+            CachedMarketDataService cachedMarketDataService,
             HoldingsMonthlyRepository holdingsMonthlyRepository,
             KafkaProducerService kafkaProducerService) {
         super(kafkaProducerService);
-        this.marketDataRepository = marketDataRepository;
+        this.cachedMarketDataService = cachedMarketDataService;
         this.holdingsMonthlyRepository = holdingsMonthlyRepository;
     }
 
@@ -55,66 +56,63 @@ public abstract class AssetMarketDataProviderBase extends AbstractMarketDataProv
         // Process the symbols according to the asset type
         List<Map<String, String>> assets = processSymbols(symbols);
         
-        // Create the payload for market data update
-        Map<String, Object> data = new HashMap<>();
-        data.put("accountId", accountId.toString());
-        data.put("assets", assets);
-        
-        // Send the market data update request (using AbstractMarketDataProvider)
-        try {
-            String jsonPayload = objectMapper.writeValueAsString(data);
-            sendKafkaMessage(getUpdateRequestTopic().getTopicName(), jsonPayload);
-            logger.info("Sent market data update request for {} symbols", symbols.size());
-        } catch (Exception e) {
-            logger.error("Failed to send market data update request: {}", e.getMessage());
-        }
-        
-        // Also send a historical data request if needed
-        sendHistoricalDataRequest(accountId, assets);
+        // Send the request to update market data
+        sendMarketDataUpdateRequest(accountId, assets);
         
         // Fetch and return the market data with retry
         return fetchMarketDataWithRetry(assets);
     }
 
     /**
-     * Send a historical market data request via Kafka.
+     * Send a market data update request via Kafka.
      * 
      * @param accountId The account ID requesting the update
      * @param assets List of asset maps containing symbol and asset_type
      */
-    protected void sendHistoricalDataRequest(UUID accountId, List<Map<String, String>> assets) {
-        try {
+    public void sendMarketDataUpdateRequest(UUID accountId, List<Map<String, String>> assets) {
+        try {    
+            // Create a single update request with all assets
+            Map<String, Object> updateRequestPayload = new HashMap<>();
+            updateRequestPayload.put("assets", assets);
+            
+            // Convert the payload to a JSON string
+            ObjectMapper objectMapper = new ObjectMapper();
+            String updateRequestJson = objectMapper.writeValueAsString(updateRequestPayload);
+            
+            // Publish the JSON payload to the MARKET_DATA_UPDATE_REQUEST topic
+            kafkaProducerService.publishEvent(KafkaTopics.MARKET_DATA_UPDATE_REQUEST.getTopicName(), updateRequestJson);
+            logger.info("Sent market data update request: " + updateRequestJson);
+
             // Fetch the start_date and end_date from HoldingsMonthlyRepository
             LocalDate startDate = holdingsMonthlyRepository.findEarliestDateByAccountId(accountId);
             LocalDate endDate = holdingsMonthlyRepository.findLatestDateByAccountId(accountId);
 
             if (startDate == null || endDate == null) {
-                logger.warn("No holdings found for accountId: {}. Skipping historical data request.", accountId);
+                logger.warn("No holdings found for accountId: " + accountId + ". Skipping HISTORICAL_MARKET_DATA_REQUEST.");
                 return;
             }
             
             // Use current date as end_date if it's later than endDate
             LocalDate currentDate = LocalDate.now();
             if (currentDate.isAfter(endDate)) {
-                logger.debug("Using current date {} instead of {} as end_date", currentDate, endDate);
                 endDate = currentDate;
             }
-    
-            // Create the payload for HISTORICAL_MARKET_DATA_REQUEST
-            Map<String, Object> monthlyRequestPayload = new HashMap<>();
-            monthlyRequestPayload.put("assets", assets);
-            monthlyRequestPayload.put("start_date", startDate.toString());
-            monthlyRequestPayload.put("end_date", endDate.toString());
-            monthlyRequestPayload.put("accountId", accountId.toString());
-    
-            // Convert the payload to a JSON string
-            String monthlyRequestJson = objectMapper.writeValueAsString(monthlyRequestPayload);
-    
-            // Publish the JSON payload to the HISTORICAL_MARKET_DATA_REQUEST topic
-            sendKafkaMessage(KafkaTopics.HISTORICAL_MARKET_DATA_REQUEST.getTopicName(), monthlyRequestJson);
-            logger.info("Sent historical market data request for accountId: {}", accountId);
+            
+            // Create monthly update request payload
+            Map<String, Object> monthlyUpdateRequestPayload = new HashMap<>();
+            monthlyUpdateRequestPayload.put("assets", assets);
+            monthlyUpdateRequestPayload.put("start_date", startDate.toString());
+            monthlyUpdateRequestPayload.put("end_date", endDate.toString());
+            
+            // Convert the monthly payload to a JSON string
+            String monthlyUpdateRequestJson = objectMapper.writeValueAsString(monthlyUpdateRequestPayload);
+            
+            // Publish the monthly JSON payload to the HISTORICAL_MARKET_DATA_REQUEST topic
+            kafkaProducerService.publishEvent(KafkaTopics.HISTORICAL_MARKET_DATA_REQUEST.getTopicName(), monthlyUpdateRequestJson);
+            logger.info("Sent market data monthly update request: " + monthlyUpdateRequestJson);
+            
         } catch (Exception e) {
-            logger.error("Failed to send historical market data request: {}", e.getMessage());
+            logger.error("Error sending market data update request: " + e.getMessage(), e);
         }
     }
 
@@ -145,7 +143,7 @@ public abstract class AssetMarketDataProviderBase extends AbstractMarketDataProv
                 String symbol = (String) pair[0];
                 String assetType = (String) pair[1];
                 logger.info("🔍 Fetching market data for symbol: {} assetType: {}", symbol, assetType);
-                List<MarketData> marketDataList = marketDataRepository.findMarketDataBySymbolAndAssetType(symbol, assetType);
+                List<MarketData> marketDataList = cachedMarketDataService.findMarketDataBySymbolAndAssetType(symbol, assetType);
                 logger.info("📊 Found {} market data entries for {}/{}", marketDataList.size(), symbol, assetType);
                 if (!marketDataList.isEmpty()) {
                     logger.debug("Market data details: {}", marketDataList);
@@ -154,38 +152,31 @@ public abstract class AssetMarketDataProviderBase extends AbstractMarketDataProv
             });
 
             if (recentMarketData.isEmpty()) {
-                logger.warn("⚠️ No data found for any symbol/asset type pairs");
-                logger.debug("Failed pairs: {}", Arrays.deepToString(symbolAssetTypePairs.toArray()));
+                logger.error("No data found for symbolAssetTypePairs: " + Arrays.deepToString(symbolAssetTypePairs.toArray()));
                 break; // Exit if no data is found
             }
 
             result.addAll(recentMarketData);
-            logger.info("✅ Found {} total market data entries", result.size());
 
             // Check if all symbolAssetTypePairs have data
             if (result.size() == symbolAssetTypePairs.size()) {
-                logger.info("🎯 Successfully fetched all requested market data");
                 break;
-            } else {
-                logger.warn("⚠️ Missing data for some pairs. Found {}/{} entries", 
-                    result.size(), symbolAssetTypePairs.size());
             }
 
             // Wait before retrying
             try {
-                logger.info("⏳ Waiting 1 second before retry...");
                 Thread.sleep(1000); // Wait for 1 second before retrying
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                logger.error("❌ Retry interrupted: {}", e.getMessage());
+                logger.error("Retry interrupted: " + e.getMessage());
                 break;
             }
 
             retryCount++;
         }
 
-        if (result.isEmpty()) {
-            logger.error("❌ Failed to fetch market data after {} retries", maxRetries);
+        if (result.size() < symbolAssetTypePairs.size()) {
+            logger.error("Failed to fetch data for all symbolAssetTypePairs after " + maxRetries + " retries.");
         }
 
         return result;
