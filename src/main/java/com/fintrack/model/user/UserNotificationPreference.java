@@ -2,6 +2,8 @@ package com.fintrack.model.user;
 
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.*;
 
@@ -9,6 +11,8 @@ import com.fintrack.constants.user.UserNotificationType;
 
 @Entity
 @Table(name = "user_notification_preferences")
+@Data
+@NoArgsConstructor
 public class UserNotificationPreference {
 
     @Id
@@ -30,46 +34,11 @@ public class UserNotificationPreference {
     @Column(name = "is_enabled", nullable = false)
     private boolean isEnabled;
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public UUID getAccountId() {
-        return accountId;
-    }
-
-    public void setAccountId(UUID accountId) {
-        this.accountId = accountId;
-    }
-
-    public Account getAccount() {
-        return account;
-    }
-
+    // Custom setter for account to maintain the relationship
     public void setAccount(Account account) {
         this.account = account;
         if (account != null) {
             this.accountId = account.getAccountId();
         }
-    }
-
-    public UserNotificationType getNotificationType() {
-        return notificationType;
-    }
-
-    public void setNotificationType(UserNotificationType notificationType) {
-        this.notificationType = notificationType;
-    }
-
-    public boolean isEnabled() {
-        return isEnabled;
-    }
-
-    public void setEnabled(boolean isEnabled) {
-        this.isEnabled = isEnabled;
     }
 }

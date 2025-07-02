@@ -2,9 +2,13 @@ package com.fintrack.model.market;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "market_index_data", uniqueConstraints = @UniqueConstraint(columnNames = "symbol"))
+@Data
+@NoArgsConstructor
 public class MarketIndexData {
 
     @Id
@@ -31,69 +35,4 @@ public class MarketIndexData {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getSymbol() {
-        return symbol;
-    }
-
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
-    }
-
-    public String getPrice() {
-        return price;
-    }
-
-    public void setPrice(String price) {
-        this.price = price;
-    }
-
-    public Double getPriceChange() {
-        return priceChange;
-    }
-
-    public void setPriceChange(Double priceChange) {
-        this.priceChange = priceChange;
-    }
-
-    public String getPercentChange() {
-        return percentChange;
-    }
-
-    public void setPercentChange(String percentChange) {
-        this.percentChange = percentChange;
-    }
-
-    public Double getPriceHigh() {
-        return priceHigh;
-    }
-
-    public void setPriceHigh(Double priceHigh) {
-        this.priceHigh = priceHigh;
-    }
-
-    public Double getPriceLow() {
-        return priceLow;
-    }
-
-    public void setPriceLow(Double priceLow) {
-        this.priceLow = priceLow;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
 }
