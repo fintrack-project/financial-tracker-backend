@@ -48,9 +48,10 @@ public class UserService {
     }
 
     public Map<String, Object> authenticateAndGenerateToken(String userId, String password) {
-        logger.trace("Starting authentication for userId: {}", userId);
-        // Find the user by email
-        Optional<User> userOptional = userRepository.findByUserId(userId);;
+        logger.trace("Authenticating user with userId: {}", userId);
+
+        // Find the user by userId
+        Optional<User> userOptional = userRepository.findByUserId(userId);
         if (userOptional.isEmpty()) {
             logger.warn("User not found for userId: {}", userId);
             throw new IllegalArgumentException("Invalid userId or password.");
@@ -60,13 +61,13 @@ public class UserService {
         logger.trace("User found for userId: {}", userId);
 
         // Check if email is verified
-        if (!user.getEmailVerified()) {
+        if (!user.isEmailVerified()) {
             logger.warn("Email not verified for userId: {}", userId);
             throw new IllegalArgumentException("Please verify your email before logging in.");
         }
 
         // Check if the account is locked
-        if (user.getAccountLocked()) {
+        if (user.isAccountLocked()) {
             logger.warn("Account is locked for userId: {}", userId);
             // Check if the blocking time has passed
             if (isBlockingTimeOver(user)) {

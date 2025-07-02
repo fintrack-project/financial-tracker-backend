@@ -78,7 +78,7 @@ public class UserEmailService {
             }
     
             User existingUser = user.get();
-            if (existingUser.getEmailVerified()) {
+            if (existingUser.isEmailVerified()) {
                 return "Email already verified.";
             }
     
@@ -101,7 +101,7 @@ public class UserEmailService {
         }
     
         User user = userOptional.get();
-        return user.getEmailVerified();
+        return user.isEmailVerified();
     }
 
     public void sendEmailVerification(UUID accountId, String email) {
