@@ -21,6 +21,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query(value = "SELECT * FROM transactions WHERE account_id = :accountId AND deleted_at IS NULL AND date < :date ORDER BY date DESC", nativeQuery = true)
     List<Transaction> findByAccountIdAndDateBefore(@Param("accountId") UUID accountId, @Param("date") LocalDate date);
 
+    // New method: Fetch transactions by accountId and date range, excluding soft-deleted ones
+    @Query(value = "SELECT * FROM transactions WHERE account_id = :accountId AND deleted_at IS NULL AND date BETWEEN :startDate AND :endDate ORDER BY date DESC", nativeQuery = true)
+    List<Transaction> findByAccountIdAndDateBetweenOrderByDateDesc(@Param("accountId") UUID accountId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
     // Soft delete transactions by setting the deleted_at column
     @Modifying
     @Query(value = "UPDATE transactions SET deleted_at = CURRENT_TIMESTAMP WHERE transaction_id IN (:transactionIds)", nativeQuery = true)

@@ -15,6 +15,7 @@ import org.springframework.http.MediaType;
 import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,9 +43,21 @@ public class TransactionController {
     }
 
     @GetMapping("/{accountId}/overview-transactions")
-    public ResponseEntity<ApiResponse<List<OverviewTransaction>>> getOverviewTransactionsByAccountId(@PathVariable UUID accountId) {
+    public ResponseEntity<ApiResponse<List<OverviewTransaction>>> getOverviewTransactionsByAccountId(
+            @PathVariable UUID accountId,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
         try {
-            List<OverviewTransaction> transactions = transactionService.getOverviewTransactionsByAccountId(accountId);
+            List<OverviewTransaction> transactions;
+            
+            if (startDate != null && endDate != null) {
+                LocalDate start = LocalDate.parse(startDate);
+                LocalDate end = LocalDate.parse(endDate);
+                transactions = transactionService.getOverviewTransactionsByAccountIdAndDateRange(accountId, start, end);
+            } else {
+                transactions = transactionService.getOverviewTransactionsByAccountId(accountId);
+            }
+            
             return ResponseWrapper.ok(transactions);
         } catch (Exception e) {
             return ResponseWrapper.badRequest(e.getMessage());
