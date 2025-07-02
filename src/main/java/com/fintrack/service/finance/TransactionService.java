@@ -52,8 +52,18 @@ public class TransactionService {
 
     @Transactional(readOnly = true)
     public List<OverviewTransaction> getOverviewTransactionsByAccountId(UUID accountId) {
-        // Step 1: Get transactions by account ID in descending order of date
-        List<Transaction> transactions = transactionRepository.findByAccountIdOrderByDateDesc(accountId);
+        return getOverviewTransactionsByAccountIdAndDateRange(accountId, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OverviewTransaction> getOverviewTransactionsByAccountIdAndDateRange(UUID accountId, LocalDate startDate, LocalDate endDate) {
+        // Step 1: Get transactions by account ID in descending order of date (with optional date range filter)
+        List<Transaction> transactions;
+        if (startDate != null && endDate != null) {
+            transactions = transactionRepository.findByAccountIdAndDateBetweenOrderByDateDesc(accountId, startDate, endDate);
+        } else {
+            transactions = transactionRepository.findByAccountIdOrderByDateDesc(accountId);
+        }
 
         transactions.forEach(
             transaction -> { 
@@ -104,21 +114,23 @@ public class TransactionService {
 
         logger.trace("Initial total balance before map: " + initialTotalBalanceBeforeMap);
 
-        // Step 6: Add transactions up to the initial date
-        List<Transaction> transactionsBeforeEarliestDate = transactionRepository.findByAccountIdAndDateBefore(accountId, earliestDate);
+        // Step 6: Add transactions up to the initial date (only if no date range filter is applied)
+        if (startDate == null || endDate == null) {
+            List<Transaction> transactionsBeforeEarliestDate = transactionRepository.findByAccountIdAndDateBefore(accountId, earliestDate);
 
-        logger.trace("Transactions before earliest date: " + earliestDate);
-        transactionsBeforeEarliestDate.forEach(
-            transaction -> { 
-                logger.trace("transaction, account id: " + accountId + ", date : " + transaction.getDate() + ", asset name: " + transaction.getAssetName() + ", credit: " + transaction.getCredit() + ", debit: " + transaction.getDebit());
-            }
-        );
+            logger.trace("Transactions before earliest date: " + earliestDate);
+            transactionsBeforeEarliestDate.forEach(
+                transaction -> { 
+                    logger.trace("transaction, account id: " + accountId + ", date : " + transaction.getDate() + ", asset name: " + transaction.getAssetName() + ", credit: " + transaction.getCredit() + ", debit: " + transaction.getDebit());
+                }
+            );
 
-        transactionTable.addTransactions(
-            transactionsBeforeEarliestDate.stream()
-                .map(transaction -> new OverviewTransaction(transaction))
-                .collect(Collectors.toList())
-        );
+            transactionTable.addTransactions(
+                transactionsBeforeEarliestDate.stream()
+                    .map(transaction -> new OverviewTransaction(transaction))
+                    .collect(Collectors.toList())
+            );
+        }
 
         // Step 7: Update total balance information in the TransactionTable
         transactionTable.setInitialTotalBalanceBeforeMap(initialTotalBalanceBeforeMap);
