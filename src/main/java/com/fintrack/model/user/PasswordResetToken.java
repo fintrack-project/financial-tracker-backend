@@ -2,7 +2,6 @@ package com.fintrack.model.user;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.UUID;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -16,38 +15,34 @@ public class PasswordResetToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "account_id", nullable = false)
-    private UUID accountId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", insertable = false, updatable = false)
-    private Account account;
-
     @Column(name = "token", nullable = false, unique = true)
     private String token;
+
+    @Column(name = "user_id", nullable = false)
+    private String userId;
 
     @Column(name = "expiry_date", nullable = false)
     private LocalDateTime expiryDate;
 
-    @Column(name = "used", nullable = false)
+    @Column(name = "is_used", nullable = false)
     private boolean used = false;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     // Constructor for convenience
-    public PasswordResetToken(UUID accountId, String token, LocalDateTime expiryDate) {
-        this.accountId = accountId;
+    public PasswordResetToken(String token, String userId, LocalDateTime expiryDate) {
         this.token = token;
+        this.userId = userId;
         this.expiryDate = expiryDate;
         this.createdAt = LocalDateTime.now();
     }
 
-    // Custom setter for account to maintain the relationship
-    public void setAccount(Account account) {
-        this.account = account;
-        if (account != null) {
-            this.accountId = account.getAccountId();
-        }
+    /**
+     * Check if the token has expired
+     * @return true if the token has expired, false otherwise
+     */
+    public boolean isExpired() {
+        return LocalDateTime.now().isAfter(expiryDate);
     }
 } 

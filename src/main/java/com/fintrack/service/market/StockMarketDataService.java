@@ -3,7 +3,7 @@ package com.fintrack.service.market;
 import com.fintrack.constants.KafkaTopics;
 import com.fintrack.constants.finance.AssetType;
 import com.fintrack.repository.finance.HoldingsMonthlyRepository;
-import com.fintrack.repository.market.MarketDataRepository;
+import com.fintrack.service.market.CachedMarketDataService;
 import com.fintrack.service.market.base.AssetMarketDataProviderBase;
 import com.fintrack.util.KafkaProducerService;
 
@@ -19,10 +19,10 @@ import java.util.*;
 public class StockMarketDataService extends AssetMarketDataProviderBase {
 
     public StockMarketDataService(
-            MarketDataRepository marketDataRepository,
+            CachedMarketDataService cachedMarketDataService,
             HoldingsMonthlyRepository holdingsMonthlyRepository,
             KafkaProducerService kafkaProducerService) {
-        super(marketDataRepository, holdingsMonthlyRepository, kafkaProducerService);
+        super(cachedMarketDataService, holdingsMonthlyRepository, kafkaProducerService);
     }
 
     @Override

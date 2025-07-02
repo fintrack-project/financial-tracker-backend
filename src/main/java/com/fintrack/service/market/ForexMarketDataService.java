@@ -5,7 +5,7 @@ import com.fintrack.constants.finance.AssetType;
 import com.fintrack.model.finance.AccountCurrency;
 import com.fintrack.repository.finance.AccountCurrenciesRepository;
 import com.fintrack.repository.finance.HoldingsMonthlyRepository;
-import com.fintrack.repository.market.MarketDataRepository;
+import com.fintrack.service.market.CachedMarketDataService;
 import com.fintrack.service.market.base.AssetMarketDataProviderBase;
 import com.fintrack.util.KafkaProducerService;
 
@@ -24,11 +24,11 @@ public class ForexMarketDataService extends AssetMarketDataProviderBase {
     private static final String DEFAULT_BASE_CURRENCY = "USD";
 
     public ForexMarketDataService(
-            MarketDataRepository marketDataRepository,
+            CachedMarketDataService cachedMarketDataService,
             HoldingsMonthlyRepository holdingsMonthlyRepository,
             KafkaProducerService kafkaProducerService,
             AccountCurrenciesRepository accountCurrenciesRepository) {
-        super(marketDataRepository, holdingsMonthlyRepository, kafkaProducerService);
+        super(cachedMarketDataService, holdingsMonthlyRepository, kafkaProducerService);
         this.accountCurrenciesRepository = accountCurrenciesRepository;
     }
 
