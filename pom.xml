@@ -84,6 +84,16 @@
             <version>${spring.boot.version}</version>
         </dependency>
 
+        <!-- Monitoring and Metrics -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
         <!-- Database and Persistence -->
         <dependency>
             <groupId>jakarta.persistence</groupId>
