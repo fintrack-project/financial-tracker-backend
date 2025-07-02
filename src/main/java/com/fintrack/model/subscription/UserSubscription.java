@@ -5,9 +5,13 @@ import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "user_subscriptions")
+@Data
+@NoArgsConstructor
 public class UserSubscription {
 
     @Id
@@ -58,127 +62,11 @@ public class UserSubscription {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public UUID getAccountId() {
-        return accountId;
-    }
-
-    public void setAccountId(UUID accountId) {
-        this.accountId = accountId;
-    }
-
-    public Account getAccount() {
-        return account;
-    }
-
+    // Custom setter for account to maintain the relationship
     public void setAccount(Account account) {
         this.account = account;
         if (account != null) {
             this.accountId = account.getAccountId();
         }
-    }
-
-    public String getPlanId() {
-        return planId;
-    }
-
-    public void setPlanId(String planId) {
-        this.planId = planId;
-    }
-
-    public String getStripeSubscriptionId() {
-        return stripeSubscriptionId;
-    }
-
-    public void setStripeSubscriptionId(String stripeSubscriptionId) {
-        this.stripeSubscriptionId = stripeSubscriptionId;
-    }
-
-    public String getStripeCustomerId() {
-        return stripeCustomerId;
-    }
-
-    public void setStripeCustomerId(String stripeCustomerId) {
-        this.stripeCustomerId = stripeCustomerId;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getSubscriptionStartDate() {
-        return subscriptionStartDate;
-    }
-
-    public void setSubscriptionStartDate(LocalDateTime subscriptionStartDate) {
-        this.subscriptionStartDate = subscriptionStartDate;
-    }
-
-    public LocalDateTime getSubscriptionEndDate() {
-        return subscriptionEndDate;
-    }
-
-    public void setSubscriptionEndDate(LocalDateTime subscriptionEndDate) {
-        this.subscriptionEndDate = subscriptionEndDate;
-    }
-
-    public LocalDateTime getNextBillingDate() {
-        return nextBillingDate;
-    }
-
-    public void setNextBillingDate(LocalDateTime nextBillingDate) {
-        this.nextBillingDate = nextBillingDate;
-    }
-
-    public LocalDateTime getLastPaymentDate() {
-        return lastPaymentDate;
-    }
-
-    public void setLastPaymentDate(LocalDateTime lastPaymentDate) {
-        this.lastPaymentDate = lastPaymentDate;
-    }
-
-    public Boolean getCancelAtPeriodEnd() {
-        return cancelAtPeriodEnd;
-    }
-
-    public void setCancelAtPeriodEnd(Boolean cancelAtPeriodEnd) {
-        this.cancelAtPeriodEnd = cancelAtPeriodEnd;
-    }
-
-    public Boolean getPendingPlanChange() {
-        return pendingPlanChange;
-    }
-
-    public void setPendingPlanChange(Boolean pendingPlanChange) {
-        this.pendingPlanChange = pendingPlanChange;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
     }
 } 

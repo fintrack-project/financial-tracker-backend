@@ -3,13 +3,19 @@ package com.fintrack.model.market;
 import com.fintrack.model.user.Account;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
+import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import com.fintrack.constants.finance.AssetType;
 
 @Entity
-@Table(name = "watchlist_data", uniqueConstraints = @UniqueConstraint(columnNames = {"account_id", "symbol", "asset_type"}))
+@Table(name = "watchlist_data", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"account_id", "symbol", "asset_type"})
+})
+@Data
+@NoArgsConstructor
 public class WatchlistData {
 
     @Id
@@ -24,58 +30,21 @@ public class WatchlistData {
     @JsonIgnore
     private Account account;
 
-    @Column(name = "symbol", nullable = false, length = 10)
+    @Column(name = "symbol", nullable = false)
     private String symbol;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "asset_type", nullable = false)
     private AssetType assetType;
 
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
+    @Column(name = "added_at", nullable = false)
+    private LocalDateTime addedAt;
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public UUID getAccountId() {
-        return accountId;
-    }
-
-    public void setAccountId(UUID accountId) {
-        this.accountId = accountId;
-    }
-
-    public Account getAccount() {
-        return account;
-    }
-
+    // Custom setter for account to maintain the relationship
     public void setAccount(Account account) {
         this.account = account;
         if (account != null) {
             this.accountId = account.getAccountId();
         }
-    }
-
-    public String getSymbol() {
-        return symbol;
-    }
-
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
-    }
-
-    public AssetType getAssetType() {
-        return assetType;
-    }
-
-    public void setAssetType(AssetType assetType) {
-        this.assetType = assetType;
-    }
-
-    public void setAssetType(String assetType) {
-        this.assetType = AssetType.valueOf(assetType);
     }
 }

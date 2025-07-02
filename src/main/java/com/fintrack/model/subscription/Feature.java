@@ -1,55 +1,23 @@
 package com.fintrack.model.subscription;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "features")
+@Data
+@NoArgsConstructor
 public class Feature {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    @Column(name = "feature_id")
+    private Integer featureId;
 
-    @Column(name = "name", nullable = false, length = 100, unique = true)
-    private String name;
+    @Column(name = "feature_name", nullable = false, unique = true)
+    private String featureName;
 
-    @Column(name = "description")
-    private String description;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
-
-    // Getters and Setters
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
+    @Column(name = "feature_description")
+    private String featureDescription;
 } 

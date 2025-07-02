@@ -1,9 +1,13 @@
 package com.fintrack.model.subscription;
 
 import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "plan_features")
+@Data
+@NoArgsConstructor
 public class PlanFeature {
 
     @Id
@@ -18,37 +22,4 @@ public class PlanFeature {
     
     @Column(name = "feature_description")
     private String featureDescription;
-    
-    // Getters and Setters
-    public String getPlanId() {
-        return planId;
-    }
-
-    public void setPlanId(String planId) {
-        this.planId = planId;
-    }
-
-    public Integer getFeatureId() {
-        return featureId;
-    }
-
-    public void setFeatureId(Integer featureId) {
-        this.featureId = featureId;
-    }
-
-    public String getFeatureName() {
-        return featureName;
-    }
-
-    public void setFeatureName(String featureName) {
-        this.featureName = featureName;
-    }
-
-    public String getFeatureDescription() {
-        return featureDescription;
-    }
-
-    public void setFeatureDescription(String featureDescription) {
-        this.featureDescription = featureDescription;
-    }
 } 
