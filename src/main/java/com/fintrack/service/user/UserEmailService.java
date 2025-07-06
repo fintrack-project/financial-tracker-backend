@@ -20,6 +20,7 @@ import java.util.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.io.IOException;
+import org.springframework.core.io.ClassPathResource;
 
 @Service
 public class UserEmailService {
@@ -62,8 +63,8 @@ public class UserEmailService {
             
             // Load and process email template
             String htmlContent = loadEmailTemplate(user.getUserId(), verificationLink);
-            
             helper.setText(htmlContent, true);
+
             mailSender.send(message);
         } catch (MessagingException e) {
             throw new RuntimeException("Failed to send email", e);
