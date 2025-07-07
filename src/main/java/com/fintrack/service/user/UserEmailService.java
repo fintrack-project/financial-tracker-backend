@@ -17,6 +17,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.io.IOException;
+import org.springframework.core.io.ClassPathResource;
 
 @Service
 public class UserEmailService {
@@ -55,13 +59,39 @@ public class UserEmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
             helper.setFrom(fromEmail); // Set explicit From address
             helper.setTo(email);
-            helper.setSubject("Email Verification");
-            helper.setText("<p>Please verify your email by clicking the link below:</p>" +
-                    "<a href=\"" + verificationLink + "\">Verify Email</a>", true);
+            helper.setSubject("Verify Your Email Address");
+            
+            // Load and process email template
+            String htmlContent = loadEmailTemplate(user.getUserId(), verificationLink);
+            helper.setText(htmlContent, true);
 
             mailSender.send(message);
         } catch (MessagingException e) {
             throw new RuntimeException("Failed to send email", e);
+        }
+    }
+
+    private String loadEmailTemplate(String userName, String verificationLink) {
+        try {
+            // Load template from resources
+            String template = new String(Files.readAllBytes(
+                Paths.get(getClass().getClassLoader().getResource("templates/email-verification.html").toURI())
+            ));
+            
+            // Replace placeholders
+            return template
+                .replace("{{userName}}", userName)
+                .replace("{{verificationLink}}", verificationLink);
+                
+        } catch (Exception e) {
+            logger.error("Failed to load email template", e);
+            // Fallback to simple template if file loading fails
+            return String.format(
+                "<p>Hello %s,</p>" +
+                "<p>Please verify your email by clicking the link below:</p>" +
+                "<a href=\"%s\">Verify Email</a>",
+                userName, verificationLink
+            );
         }
     }
 
