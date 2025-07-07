@@ -13,18 +13,20 @@ services:
       - JWT_EXPIRATION=${JWT_EXPIRATION}
       - APP_BASE_URL=${APP_BASE_URL}
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9093
-      - SMTP_HOST=smtp.gmail.com
-      - SMTP_PORT=587
-      - SMTP_USERNAME=${SMTP_USERNAME}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - MAIL_SMTP_AUTH=true
-      - MAIL_SMTP_STARTTLS_ENABLE=true
+      # MailHog for dev/local
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+      - SMTP_USERNAME=
+      - SMTP_PASSWORD=
+      - MAIL_SMTP_AUTH=false
+      - MAIL_SMTP_STARTTLS_ENABLE=false
       - STRIPE_SECRET_KEY=${STRIPE_TEST_SECRET_KEY}
       - STRIPE_PUBLISHABLE_KEY=${STRIPE_TEST_PUBLISHABLE_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_TEST_WEBHOOK_SECRET}
     depends_on:
       - kafka
       - db
+      # Only include mailhog in dev/local, not prod
     networks:
       - ${DATABASE_NETWORK_NAME}
 
