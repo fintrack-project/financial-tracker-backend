@@ -60,12 +60,6 @@ public class UserService {
         User user = userOptional.get();
         logger.trace("User found for userId: {}", userId);
 
-        // Check if email is verified
-        if (!user.isEmailVerified()) {
-            logger.warn("Email not verified for userId: {}", userId);
-            throw new IllegalArgumentException("Please verify your email before logging in.");
-        }
-
         // Check if the account is locked
         if (user.isAccountLocked()) {
             logger.warn("Account is locked for userId: {}", userId);
@@ -173,9 +167,6 @@ public class UserService {
 
             // Save the user
             userRepository.save(user);
-            
-            // Send the verification email
-            userEmailService.sendVerificationEmail(user.getEmail(), user);
 
             return "User registered successfully.";
         } catch (Exception e) {
