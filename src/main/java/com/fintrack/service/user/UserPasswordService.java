@@ -87,8 +87,7 @@ public class UserPasswordService {
         
         if (userOptional.isEmpty()) {
             logger.warn("No user found with identifier: {}", identifier);
-            // For security reasons, don't reveal if the user exists or not
-            return Map.of("success", true, "message", "If the account exists, a password reset link will be sent.");
+            return Map.of("success", false, "message", "No account found with the provided email or user ID. Please check your input and try again.");
         }
         
         User user = userOptional.get();
