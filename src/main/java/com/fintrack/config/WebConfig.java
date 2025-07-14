@@ -6,6 +6,7 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -54,6 +55,14 @@ public class WebConfig {
                 jsonMediaTypes.add(new MediaType("application", "*+json", StandardCharsets.UTF_8));
                 jsonConverter.setSupportedMediaTypes(jsonMediaTypes);
                 converters.add(jsonConverter);
+            }
+
+            @Override
+            public void addResourceHandlers(ResourceHandlerRegistry registry) {
+                // Serve favicon files
+                registry.addResourceHandler("/fintrack_favicon.png", "/favicon.ico")
+                    .addResourceLocations("classpath:/static/")
+                    .setCachePeriod(3600); // Cache for 1 hour
             }
         };
     }
