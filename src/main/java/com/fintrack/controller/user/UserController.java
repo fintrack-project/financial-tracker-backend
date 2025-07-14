@@ -50,11 +50,14 @@ public class UserController {
         produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<ApiResponse<String>> registerUser(@RequestBody User user) {
-        String result = userService.registerUser(user);
-        if (result.equals("User registered successfully.")) {
+        try {
+            String result = userService.registerUser(user);
             return ResponseWrapper.ok(result);
-        } else {
-            return ResponseWrapper.badRequest(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseWrapper.badRequest(e.getMessage());
+        } catch (Exception e) {
+            logger.error("Registration error: ", e);
+            return ResponseWrapper.internalServerError("An unexpected error occurred during registration");
         }
     }
 

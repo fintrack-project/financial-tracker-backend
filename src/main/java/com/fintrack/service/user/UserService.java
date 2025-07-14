@@ -134,12 +134,12 @@ public class UserService {
     public String registerUser(User user) {
         // Check if user ID already exists
         if (userRepository.findByUserId(user.getUserId()).isPresent()) {
-            return "User ID already exists.";
+            throw new IllegalArgumentException("User ID already exists.");
         }
 
         // Check if user email already exists
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
-            return "Email already exists.";
+            throw new IllegalArgumentException("Email already exists.");
         }
 
         try {
