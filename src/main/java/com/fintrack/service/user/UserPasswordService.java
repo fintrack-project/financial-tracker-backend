@@ -21,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 @Service
 public class UserPasswordService {
@@ -109,7 +111,7 @@ public class UserPasswordService {
         passwordResetTokenRepository.save(resetToken);
         
         // Send email with reset link
-        sendPasswordResetEmail(user.getEmail(), jwtToken);
+        sendPasswordResetEmail(user.getEmail(), user.getUserId(), jwtToken);
         
         logger.info("Password reset token generated for user: {}", user.getUserId());
         return Map.of("success", true, "message", "Password reset link has been sent to your email.");
@@ -182,7 +184,7 @@ public class UserPasswordService {
         return Map.of("success", true, "message", "Password reset successfully.");
     }
     
-    private void sendPasswordResetEmail(String email, String token) {
+    private void sendPasswordResetEmail(String email, String userName, String token) {
         String resetLink = baseUrl + "/reset-password?token=" + token;
         
         try {
@@ -190,20 +192,44 @@ public class UserPasswordService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
             helper.setFrom(fromEmail); // Set explicit From address
             helper.setTo(email);
-            helper.setSubject("Password Reset Request");
-            helper.setText(
-                "<p>You have requested to reset your password. Please click the link below to reset your password:</p>" +
-                "<a href=\"" + resetLink + "\">Reset Password</a>" +
-                "<p>This link will expire in " + resetTokenExpiryMinutes + " minutes.</p>" +
-                "<p>If you did not request a password reset, please ignore this email or contact support if you have concerns.</p>", 
-                true
-            );
+            helper.setSubject("Reset Your Password");
+            
+            // Load and process email template
+            String htmlContent = loadPasswordResetTemplate(userName, resetLink);
+            helper.setText(htmlContent, true);
             
             mailSender.send(message);
             logger.info("Password reset email sent to: {}", email);
         } catch (MessagingException e) {
             logger.error("Failed to send password reset email: {}", e.getMessage());
             throw new RuntimeException("Failed to send password reset email", e);
+        }
+    }
+    
+    private String loadPasswordResetTemplate(String userName, String resetLink) {
+        try {
+            // Load template from resources
+            String template = new String(Files.readAllBytes(
+                Paths.get(getClass().getClassLoader().getResource("templates/password-reset.html").toURI())
+            ));
+            
+            // Replace placeholders
+            return template
+                .replace("{{userName}}", userName)
+                .replace("{{resetLink}}", resetLink)
+                .replace("{{expiryMinutes}}", String.valueOf(resetTokenExpiryMinutes));
+                
+        } catch (Exception e) {
+            logger.error("Failed to load password reset email template", e);
+            // Fallback to simple template if file loading fails
+            return String.format(
+                "<p>Hello %s,</p>" +
+                "<p>You have requested to reset your password. Please click the link below to reset your password:</p>" +
+                "<a href=\"%s\">Reset Password</a>" +
+                "<p>This link will expire in %d minutes.</p>" +
+                "<p>If you did not request a password reset, please ignore this email or contact support if you have concerns.</p>",
+                userName, resetLink, resetTokenExpiryMinutes
+            );
         }
     }
 }
