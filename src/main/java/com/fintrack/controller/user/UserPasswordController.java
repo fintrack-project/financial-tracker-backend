@@ -62,7 +62,12 @@ public class UserPasswordController {
             }
             
             Map<String, Object> response = userPasswordService.requestPasswordReset(identifier);
-            return ResponseWrapper.ok(response);
+            
+            if ((boolean) response.get("success")) {
+                return ResponseWrapper.ok(response);
+            } else {
+                return ResponseWrapper.badRequest((String) response.get("message"));
+            }
         } catch (Exception e) {
             logger.error("Error requesting password reset: ", e);
             return ResponseWrapper.internalServerError("Failed to process password reset request");
