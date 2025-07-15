@@ -245,7 +245,7 @@ public class NewUserSubscriptionService extends BaseUserSubscriptionService {
         subscription.setPlanId(planId);
         subscription.setStripeSubscriptionId(stripeSubscription.getId());
         subscription.setStripeCustomerId(customerId);
-        subscription.setStatus("pending_payment");
+        subscription.setStatus("incomplete");
         subscription.setActive(false);
         subscription.setCreatedAt(LocalDateTime.now());
         subscription.setLastPaymentDate(LocalDateTime.now());

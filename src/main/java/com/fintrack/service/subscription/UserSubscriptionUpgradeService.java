@@ -334,7 +334,7 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         logger.info("║ STEP 3.2: Updating Subscription in Database");
         currentSubscription.setStripeSubscriptionId(stripeSubscription.getId());
         currentSubscription.setPlanId(newPlan.getId());
-        currentSubscription.setStatus("pending_payment");
+        currentSubscription.setStatus("incomplete");
         currentSubscription.setActive(false);
         currentSubscription.setLastPaymentDate(LocalDateTime.now());
         

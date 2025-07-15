@@ -125,10 +125,24 @@ public class UserSubscriptionService {
         logger.info("Payment status: {}, Current subscription status: {}", paymentStatus, subscription.getStatus());
         
         if ("succeeded".equals(paymentStatus) || "processing".equals(paymentStatus)) {
-            // Update local database only - Stripe webhook will handle subscription status
+            // Update subscription status immediately after successful payment
+            subscription.setStatus("active");
+            subscription.setActive(true);
             subscription.setLastPaymentDate(java.time.LocalDateTime.now());
             subscription = userSubscriptionRepository.save(subscription);
-            logger.info("Updated last payment date for subscription: {}", stripeSubscriptionId);
+            logger.info("✅ Payment succeeded - Updated subscription status to active: {}", stripeSubscriptionId);
+        } else if ("requires_action".equals(paymentStatus)) {
+            // Payment requires 3D Secure authentication - use Stripe's incomplete status
+            subscription.setStatus("incomplete");
+            subscription.setActive(false);
+            subscription = userSubscriptionRepository.save(subscription);
+            logger.info("⏳ Payment requires action - Updated subscription status to incomplete: {}", stripeSubscriptionId);
+        } else {
+            // Payment failed or other status - use Stripe's incomplete status
+            subscription.setStatus("incomplete");
+            subscription.setActive(false);
+            subscription = userSubscriptionRepository.save(subscription);
+            logger.warn("❌ Payment failed - Updated subscription status to incomplete: {}", stripeSubscriptionId);
         }
         
         return SubscriptionUpdateResponse.fromUserSubscription(subscription, null, false, null, null);
