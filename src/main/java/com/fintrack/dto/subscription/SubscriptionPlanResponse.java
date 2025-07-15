@@ -27,7 +27,7 @@ public class SubscriptionPlanResponse {
 
     // Subscription details
     private String subscriptionId;
-    private String status;  // "active", "pending", "failed"
+    private String status;  // Stripe standard statuses: "active", "canceled", "incomplete", "incomplete_expired", "past_due", "trialing", "unpaid", "paused"
     private LocalDateTime currentPeriodEnd;
     private String clientSecret;  // Stripe payment intent client secret
     private boolean paymentRequired;
