@@ -17,10 +17,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import com.stripe.Stripe;
+import com.stripe.model.Subscription;
+import com.fintrack.repository.subscription.UserSubscriptionRepository;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping(value = "/api/user/subscriptions", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -29,12 +34,18 @@ public class UserSubscriptionController {
     private static final Logger logger = LoggerFactory.getLogger(UserSubscriptionController.class);
     private final UserSubscriptionService userSubscriptionService;
     private final SubscriptionPlanService subscriptionPlanService;
+    private final UserSubscriptionRepository userSubscriptionRepository;
+    
+    @Value("${stripe.secret.key}")
+    private String stripeSecretKey;
 
     public UserSubscriptionController(
             UserSubscriptionService userSubscriptionService,
-            SubscriptionPlanService subscriptionPlanService) {
+            SubscriptionPlanService subscriptionPlanService,
+            UserSubscriptionRepository userSubscriptionRepository) {
         this.userSubscriptionService = userSubscriptionService;
         this.subscriptionPlanService = subscriptionPlanService;
+        this.userSubscriptionRepository = userSubscriptionRepository;
     }
 
     @PostMapping("/fetch")
@@ -192,6 +203,24 @@ public class UserSubscriptionController {
             return ResponseWrapper.badRequest(e.getMessage());
         }
     }
+
+    @PostMapping("/sync-status")
+    public ResponseEntity<ApiResponse<String>> syncSubscriptionStatus(@RequestBody Map<String, String> requestBody) {
+        String stripeSubscriptionId = requestBody.get("stripeSubscriptionId");
+        if (stripeSubscriptionId == null || stripeSubscriptionId.isEmpty()) {
+            return ResponseWrapper.badRequest("Stripe subscription ID is required");
+        }
+
+        try {
+            userSubscriptionService.syncSubscriptionStatusFromStripe(stripeSubscriptionId);
+            return ResponseWrapper.ok("Subscription status synced successfully");
+        } catch (RuntimeException e) {
+            logger.error("Error syncing subscription status: {}", e.getMessage());
+            return ResponseWrapper.badRequest(e.getMessage());
+        }
+    }
+
+
 
     @PostMapping("/downgrade")
     public ResponseEntity<ApiResponse<SubscriptionUpdateResponse>> downgradeUserSubscription(@RequestBody SubscriptionPlanRequest request) {

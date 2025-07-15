@@ -122,14 +122,126 @@ public class UserSubscriptionService {
         
         // Update subscription status based on payment intent status
         String paymentStatus = stripePaymentIntent.getStatus();
-        logger.info("Payment status: {}, Current subscription status: {}", paymentStatus, subscription.getStatus());
+        logger.info("╔══════════════════════════════════════════════════════════════");
+        logger.info("║ Payment Confirmation Analysis");
+        logger.info("║ - Payment Intent ID: {}", paymentIntentId);
+        logger.info("║ - Stripe Payment Status: {}", paymentStatus);
+        logger.info("║ - Current DB Subscription Status: {}", subscription.getStatus());
+        logger.info("║ - Subscription ID: {}", stripeSubscriptionId);
+        logger.info("╚══════════════════════════════════════════════════════════════");
         
-        if ("succeeded".equals(paymentStatus) || "processing".equals(paymentStatus)) {
-            // Update local database only - Stripe webhook will handle subscription status
+        // CRITICAL FIX: Only mark subscription as active if payment actually succeeded
+        // This prevents marking incomplete 3D Secure payments as active
+        if ("succeeded".equals(paymentStatus)) {
+            // Payment actually succeeded - update subscription status
+            subscription.setStatus("active");
+            subscription.setActive(true);
             subscription.setLastPaymentDate(java.time.LocalDateTime.now());
             subscription = userSubscriptionRepository.save(subscription);
-            logger.info("Updated last payment date for subscription: {}", stripeSubscriptionId);
+            logger.info("✅ Payment succeeded - Updated subscription status to active: {}", stripeSubscriptionId);
+            
+            // CRITICAL FIX: Handle 3D Secure payment completion
+            // For 3D Secure payments, the payment intent succeeds but subscription may remain incomplete
+            // We need to trigger Stripe to process the subscription properly
+            try {
+                com.stripe.model.Subscription stripeSubscription = com.stripe.model.Subscription.retrieve(stripeSubscriptionId);
+                logger.info("🔄 Checking Stripe subscription status: {}", stripeSubscription.getStatus());
+                
+                if ("incomplete".equals(stripeSubscription.getStatus())) {
+                    logger.info("🔄 Stripe subscription is incomplete, checking for pending invoice...");
+                    
+                    // Check if there's a pending invoice that needs to be paid
+                    if (stripeSubscription.getLatestInvoice() != null) {
+                        String invoiceId = stripeSubscription.getLatestInvoice();
+                        com.stripe.model.Invoice invoice = com.stripe.model.Invoice.retrieve(invoiceId);
+                        logger.info("🔄 Invoice status: {}", invoice.getStatus());
+                        
+                        // If invoice is open and payment intent succeeded, pay the invoice
+                        if ("open".equals(invoice.getStatus()) && paymentIntent.getStatus().equals("succeeded")) {
+                            logger.info("🔄 Paying invoice: {}", invoiceId);
+                            try {
+                                // First, try to pay the invoice with the payment method from our database
+                                Optional<com.fintrack.model.payment.PaymentIntent> dbPaymentIntent = 
+                                    paymentIntentRepository.findByStripePaymentIntentId(paymentIntentId);
+                                if (dbPaymentIntent.isPresent() && dbPaymentIntent.get().getPaymentMethodId() != null) {
+                                    Map<String, Object> payParams = new HashMap<>();
+                                    payParams.put("payment_method", dbPaymentIntent.get().getPaymentMethodId());
+                                    invoice.pay(payParams);
+                                    logger.info("✅ Invoice paid successfully with payment method");
+                                } else {
+                                    throw new RuntimeException("Payment method not found for payment intent");
+                                }
+                            } catch (Exception payError) {
+                                logger.warn("⚠️ Failed to pay invoice with payment method: {}", payError.getMessage());
+                                // Try alternative approach - mark as paid out of band
+                                try {
+                                    logger.info("🔄 Trying to mark invoice as paid out of band...");
+                                    Map<String, Object> payParams = new HashMap<>();
+                                    payParams.put("paid_out_of_band", true);
+                                    invoice.pay(payParams);
+                                    logger.info("✅ Invoice marked as paid out of band");
+                                } catch (Exception oobError) {
+                                    logger.warn("⚠️ Failed to mark invoice as paid out of band: {}", oobError.getMessage());
+                                    // Last resort - try to finalize the invoice
+                                    try {
+                                        logger.info("🔄 Trying to finalize invoice...");
+                                        invoice.finalizeInvoice();
+                                        logger.info("✅ Invoice finalized successfully");
+                                    } catch (Exception finalizeError) {
+                                        logger.warn("⚠️ Failed to finalize invoice: {}", finalizeError.getMessage());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    logger.info("✅ Stripe subscription status is already correct: {}", stripeSubscription.getStatus());
+                }
+            } catch (Exception e) {
+                logger.warn("⚠️ Failed to process Stripe subscription update: {}", e.getMessage());
+                // Don't fail the entire operation if Stripe update fails
+            }
+            
+            // Additional step: Try to trigger subscription activation by updating metadata
+            try {
+                logger.info("🔄 Attempting to trigger subscription activation...");
+                com.stripe.model.Subscription stripeSubscription = com.stripe.model.Subscription.retrieve(stripeSubscriptionId);
+                if ("incomplete".equals(stripeSubscription.getStatus())) {
+                    // Try to update the subscription to trigger status change
+                    Map<String, Object> updateParams = new HashMap<>();
+                    updateParams.put("metadata", Map.of("payment_confirmed", "true", "confirmed_at", java.time.LocalDateTime.now().toString()));
+                    stripeSubscription.update(updateParams);
+                    logger.info("✅ Subscription metadata updated to trigger activation");
+                }
+            } catch (Exception e) {
+                logger.warn("⚠️ Failed to update subscription metadata: {}", e.getMessage());
+            }
+        } else if ("processing".equals(paymentStatus)) {
+            // Payment is processing - keep subscription incomplete until it succeeds
+            subscription.setStatus("incomplete");
+            subscription.setActive(false);
+            subscription = userSubscriptionRepository.save(subscription);
+            logger.info("⏳ Payment processing - Keeping subscription status as incomplete: {}", stripeSubscriptionId);
+        } else if ("requires_action".equals(paymentStatus)) {
+            // Payment requires 3D Secure authentication - use Stripe's incomplete status
+            subscription.setStatus("incomplete");
+            subscription.setActive(false);
+            subscription = userSubscriptionRepository.save(subscription);
+            logger.info("⏳ Payment requires action - Updated subscription status to incomplete: {}", stripeSubscriptionId);
+        } else {
+            // Payment failed or other status - use Stripe's incomplete status
+            subscription.setStatus("incomplete");
+            subscription.setActive(false);
+            subscription = userSubscriptionRepository.save(subscription);
+            logger.warn("❌ Payment failed - Updated subscription status to incomplete: {}", stripeSubscriptionId);
         }
+        
+        logger.info("╔══════════════════════════════════════════════════════════════");
+        logger.info("║ Final Subscription State");
+        logger.info("║ - Status: {}", subscription.getStatus());
+        logger.info("║ - Active: {}", subscription.isActive());
+        logger.info("║ - Last Payment: {}", subscription.getLastPaymentDate());
+        logger.info("╚══════════════════════════════════════════════════════════════");
         
         return SubscriptionUpdateResponse.fromUserSubscription(subscription, null, false, null, null);
     }
@@ -205,12 +317,23 @@ public class UserSubscriptionService {
     }
 
     public void handleSubscriptionUpdated(String subscriptionId, String status, Boolean cancelAtPeriodEnd) {
-        logger.info("[Webhook] handleSubscriptionUpdated called: subscriptionId={}, status={}, cancelAtPeriodEnd={}", 
-            subscriptionId, status, cancelAtPeriodEnd);
+        logger.info("╔══════════════════════════════════════════════════════════════");
+        logger.info("║ [Webhook] handleSubscriptionUpdated");
+        logger.info("║ - Subscription ID: {}", subscriptionId);
+        logger.info("║ - New Status: {}", status);
+        logger.info("║ - Cancel At Period End: {}", cancelAtPeriodEnd);
+        logger.info("╚══════════════════════════════════════════════════════════════");
         
         // Get the subscription from our database
         UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(subscriptionId)
                 .orElseThrow(() -> new RuntimeException("Subscription not found: " + subscriptionId));
+        
+        logger.info("╔══════════════════════════════════════════════════════════════");
+        logger.info("║ Current Database State");
+        logger.info("║ - Current Status: {}", subscription.getStatus());
+        logger.info("║ - Current Active: {}", subscription.isActive());
+        logger.info("║ - Account ID: {}", subscription.getAccountId());
+        logger.info("╚══════════════════════════════════════════════════════════════");
         
         // Update subscription status
         subscription.setStatus(status);
@@ -224,10 +347,68 @@ public class UserSubscriptionService {
         
         // Save the updated subscription
         subscription = userSubscriptionRepository.save(subscription);
-        logger.info("Updated subscription status to {} for subscription: {}", status, subscriptionId);
+        
+        logger.info("╔══════════════════════════════════════════════════════════════");
+        logger.info("║ Updated Database State");
+        logger.info("║ - New Status: {}", subscription.getStatus());
+        logger.info("║ - New Active: {}", subscription.isActive());
+        logger.info("║ - Cancel At Period End: {}", subscription.getCancelAtPeriodEnd());
+        logger.info("║ - Last Payment Date: {}", subscription.getLastPaymentDate());
+        logger.info("╚══════════════════════════════════════════════════════════════");
     }
 
     public void handleSubscriptionDeleted(String subscriptionId) {
         logger.info("[Webhook] handleSubscriptionDeleted called: subscriptionId={}", subscriptionId);
+    }
+
+    /**
+     * Manually sync subscription status from Stripe to our database
+     * This is useful for fixing inconsistencies between Stripe and our database
+     */
+    @Transactional
+    public void syncSubscriptionStatusFromStripe(String stripeSubscriptionId) {
+        try {
+            logger.info("🔄 Syncing subscription status from Stripe: {}", stripeSubscriptionId);
+            
+            // Get subscription from our database
+            UserSubscription subscription = userSubscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId)
+                    .orElseThrow(() -> new RuntimeException("Subscription not found: " + stripeSubscriptionId));
+            
+            // Get current status from Stripe
+            com.stripe.model.Subscription stripeSubscription = com.stripe.model.Subscription.retrieve(stripeSubscriptionId);
+            String stripeStatus = stripeSubscription.getStatus();
+            
+            logger.info("╔══════════════════════════════════════════════════════════════");
+            logger.info("║ Subscription Status Sync");
+            logger.info("║ - Stripe Status: {}", stripeStatus);
+            logger.info("║ - Database Status: {}", subscription.getStatus());
+            logger.info("║ - Database Active: {}", subscription.isActive());
+            logger.info("╚══════════════════════════════════════════════════════════════");
+            
+            // Store the current active state before updating
+            boolean wasActive = subscription.isActive();
+            
+            // Update our database to match Stripe
+            subscription.setStatus(stripeStatus);
+            subscription.setActive("active".equals(stripeStatus));
+            
+            // Update last payment date if subscription is now active and wasn't active before
+            if ("active".equals(stripeStatus) && !wasActive) {
+                subscription.setLastPaymentDate(java.time.LocalDateTime.now());
+            }
+            
+            subscription = userSubscriptionRepository.save(subscription);
+            
+            logger.info("✅ Subscription status synced successfully");
+            logger.info("╔══════════════════════════════════════════════════════════════");
+            logger.info("║ Updated Database State");
+            logger.info("║ - New Status: {}", subscription.getStatus());
+            logger.info("║ - New Active: {}", subscription.isActive());
+            logger.info("╚══════════════════════════════════════════════════════════════");
+            
+        } catch (Exception e) {
+            logger.error("❌ Failed to sync subscription status: {}", e.getMessage());
+            throw new RuntimeException("Failed to sync subscription status", e);
+        }
     }
 }

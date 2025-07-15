@@ -152,7 +152,44 @@ public class StripeWebhookController {
                 }
 
                 // If this payment intent is for a subscription, update the subscription status
-                String subscriptionId = paymentIntent.getMetadata().get("subscription_id");
+                // Look for subscription_id in our database payment intent metadata
+                String subscriptionId = null;
+                if (dbPaymentIntent.isPresent()) {
+                    String metadata = dbPaymentIntent.get().getMetadata();
+                    logger.info("║ Payment Intent Metadata: {}", metadata);
+                    
+                    if (metadata != null && metadata.contains("subscription_id")) {
+                        // Parse the JSON metadata to extract subscription_id
+                        try {
+                            // Use proper JSON parsing instead of string manipulation
+                            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                            com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(metadata);
+                            com.fasterxml.jackson.databind.JsonNode subscriptionIdNode = jsonNode.get("subscription_id");
+                            if (subscriptionIdNode != null && !subscriptionIdNode.isNull()) {
+                                subscriptionId = subscriptionIdNode.asText();
+                                logger.info("✓ Successfully parsed subscription_id from metadata: {}", subscriptionId);
+                            } else {
+                                logger.warn("subscription_id key is null or missing in metadata: {}", metadata);
+                            }
+                        } catch (Exception e) {
+                            logger.warn("Failed to parse subscription_id from metadata: {} - Error: {}", metadata, e.getMessage());
+                            // Fallback to simple string parsing
+                            try {
+                                int startIndex = metadata.indexOf("\"subscription_id\":\"") + 18;
+                                int endIndex = metadata.indexOf("\"", startIndex);
+                                if (startIndex > 17 && endIndex > startIndex) {
+                                    subscriptionId = metadata.substring(startIndex, endIndex);
+                                    logger.info("✓ Fallback parsing successful: {}", subscriptionId);
+                                }
+                            } catch (Exception fallbackError) {
+                                logger.error("Fallback parsing also failed: {}", fallbackError.getMessage());
+                            }
+                        }
+                    } else {
+                        logger.info("No subscription_id found in metadata");
+                    }
+                }
+                
                 if (subscriptionId != null) {
                     com.stripe.model.Subscription subscription = com.stripe.model.Subscription.retrieve(subscriptionId);
                     userSubscriptionService.handleSubscriptionUpdated(
@@ -161,6 +198,8 @@ public class StripeWebhookController {
                         subscription.getCancelAtPeriodEnd()
                     );
                     logger.info("✓ Subscription status updated after payment success: {}", subscription.getStatus());
+                } else {
+                    logger.info("No subscription found for payment intent: {}", paymentIntent.getId());
                 }
             }
         } catch (Exception e) {
@@ -197,7 +236,46 @@ public class StripeWebhookController {
             StripeObject paymentIntentObject = event.getData().getObject();
             if (paymentIntentObject instanceof com.stripe.model.PaymentIntent) {
                 com.stripe.model.PaymentIntent paymentIntent = (com.stripe.model.PaymentIntent) paymentIntentObject;
-                String subscriptionId = paymentIntent.getMetadata().get("subscription_id");
+                
+                // Look for subscription_id in our database payment intent metadata
+                String subscriptionId = null;
+                Optional<PaymentIntent> dbPaymentIntent = 
+                    paymentIntentRepository.findByStripePaymentIntentId(paymentIntent.getId());
+                if (dbPaymentIntent.isPresent()) {
+                    String metadata = dbPaymentIntent.get().getMetadata();
+                    logger.info("║ Payment Intent Metadata (Requires Action): {}", metadata);
+                    
+                    if (metadata != null && metadata.contains("subscription_id")) {
+                        // Parse the JSON metadata to extract subscription_id
+                        try {
+                            // Use proper JSON parsing instead of string manipulation
+                            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                            com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(metadata);
+                            com.fasterxml.jackson.databind.JsonNode subscriptionIdNode = jsonNode.get("subscription_id");
+                            if (subscriptionIdNode != null && !subscriptionIdNode.isNull()) {
+                                subscriptionId = subscriptionIdNode.asText();
+                                logger.info("✓ Successfully parsed subscription_id from metadata: {}", subscriptionId);
+                            } else {
+                                logger.warn("subscription_id key is null or missing in metadata: {}", metadata);
+                            }
+                        } catch (Exception e) {
+                            logger.warn("Failed to parse subscription_id from metadata: {} - Error: {}", metadata, e.getMessage());
+                            // Fallback to simple string parsing
+                            try {
+                                int startIndex = metadata.indexOf("\"subscription_id\":\"") + 18;
+                                int endIndex = metadata.indexOf("\"", startIndex);
+                                if (startIndex > 17 && endIndex > startIndex) {
+                                    subscriptionId = metadata.substring(startIndex, endIndex);
+                                    logger.info("✓ Fallback parsing successful: {}", subscriptionId);
+                                }
+                            } catch (Exception fallbackError) {
+                                logger.error("Fallback parsing also failed: {}", fallbackError.getMessage());
+                            }
+                        }
+                    } else {
+                        logger.info("No subscription_id found in metadata");
+                    }
+                }
                 
                 if (subscriptionId != null) {
                     userSubscriptionService.handlePaymentRequiresAction(
@@ -206,6 +284,8 @@ public class StripeWebhookController {
                         paymentIntent.getNextAction() != null ? paymentIntent.getNextAction().toString() : null
                     );
                     logger.info("Payment requires action for subscription: {}", subscriptionId);
+                } else {
+                    logger.info("No subscription found for payment intent requiring action: {}", paymentIntent.getId());
                 }
             }
         } catch (Exception e) {

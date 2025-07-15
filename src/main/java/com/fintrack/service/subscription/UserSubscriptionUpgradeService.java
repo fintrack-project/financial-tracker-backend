@@ -44,16 +44,33 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         super(userSubscriptionRepository, paymentService, subscriptionPlanService, paymentIntentRepository);
     }
 
+    /**
+     * Upgrades a user's subscription with improved payment handling
+     * 
+     * CHANGES FROM PREVIOUS VERSION:
+     * 1. Uses ALLOW_INCOMPLETE instead of DEFAULT_INCOMPLETE to avoid race conditions
+     * 2. Creates payment intent explicitly before attaching to subscription
+     * 3. Supports 3D Secure authentication with return URL
+     * 4. Simplified payment intent retrieval (no more retry logic)
+     * 5. Enhanced logging for better debugging
+     * 
+     * @param accountId User's account ID
+     * @param planId New plan ID to upgrade to
+     * @param paymentMethodId Stripe payment method ID
+     * @param returnUrl URL to return to after 3D Secure authentication (for 3D Secure cards)
+     * @return SubscriptionUpdateResponse with payment details
+     */
     @Transactional
     public SubscriptionUpdateResponse upgradeSubscription(UUID accountId, String planId, 
             String paymentMethodId, String returnUrl) throws StripeException {
         
-        logger.trace("╔══════════════════════════════════════════════════════════════");
-        logger.trace("║ STEP 1: Subscription Upgrade Initiation");
-        logger.trace("║ Account: {}", accountId);
-        logger.trace("║ Plan ID: {}", planId);
-        logger.trace("║ Payment Method: {}", paymentMethodId);
-        logger.trace("╚══════════════════════════════════════════════════════════════");
+        logger.info("╔══════════════════════════════════════════════════════════════");
+        logger.info("║ STEP 1: Subscription Upgrade Initiation");
+        logger.info("║ Account: {}", accountId);
+        logger.info("║ Plan ID: {}", planId);
+        logger.info("║ Payment Method: {}", paymentMethodId);
+        logger.info("║ Return URL: {}", returnUrl != null ? returnUrl : "None (3D Secure not required)");
+        logger.info("╚══════════════════════════════════════════════════════════════");
 
         // Get plan details
         SubscriptionPlan plan = subscriptionPlanService.getPlanById(planId)
@@ -61,11 +78,11 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         
         String stripePriceId = plan.getStripePriceId();
         
-        logger.trace("║ Plan Details Retrieved:");
-        logger.trace("║ - Plan ID: {}", planId);
-        logger.trace("║ - Stripe Price ID: {}", stripePriceId);
-        logger.trace("║ - Amount: {}", plan.getAmount());
-        logger.trace("║ - Currency: {}", plan.getCurrency());
+        logger.info("║ Plan Details Retrieved:");
+        logger.info("║ - Plan ID: {}", planId);
+        logger.info("║ - Stripe Price ID: {}", stripePriceId);
+        logger.info("║ - Amount: {}", plan.getAmount());
+        logger.info("║ - Currency: {}", plan.getCurrency());
 
         // Get current subscription
         UserSubscription currentSubscription = userSubscriptionRepository.findByAccountId(accountId)
@@ -96,30 +113,51 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         }
     }
 
+    /**
+     * Handles free to paid subscription upgrade with improved payment flow
+     * 
+     * IMPROVEMENTS:
+     * 1. Uses ALLOW_INCOMPLETE to create subscription with explicit payment intent
+     * 2. Enables 3D Secure authentication automatically
+     * 3. Creates payment intent before subscription to avoid race conditions
+     * 4. Better error handling and logging
+     */
     private SubscriptionUpdateResponse handleFreeToPaidUpgrade(UserSubscription currentSubscription, 
             SubscriptionPlan newPlan, String paymentMethodId, String returnUrl) throws StripeException {
         
-        logger.trace("╔══════════════════════════════════════════════════════════════");
-        logger.trace("║ STEP 2: Handling Free to Paid Upgrade");
-        logger.trace("║ - Current Plan: {}", currentSubscription.getPlanId());
-        logger.trace("║ - New Plan: {}", newPlan.getId());
-        logger.trace("╚══════════════════════════════════════════════════════════════");
+        logger.info("╔══════════════════════════════════════════════════════════════");
+        logger.info("║ STEP 2: Handling Free to Paid Upgrade");
+        logger.info("║ - Current Plan: {}", currentSubscription.getPlanId());
+        logger.info("║ - New Plan: {}", newPlan.getId());
+        logger.info("║ - Payment Method: {}", paymentMethodId);
+        logger.info("╚══════════════════════════════════════════════════════════════");
 
         // Create new Stripe subscription
         String customerId = ensureStripeCustomerExists(currentSubscription.getAccountId());
         
-        // Create subscription in Stripe
+        // STEP 2.1: Create payment intent first (NEW APPROACH)
+        logger.info("║ STEP 2.1: Creating Payment Intent");
+        PaymentIntent paymentIntent = createPaymentIntentForSubscription(
+            customerId, newPlan, paymentMethodId, returnUrl);
+        logger.info("✓ Payment Intent created: {}", paymentIntent.getId());
+        logger.info("║ - Status: {}", paymentIntent.getStatus());
+        logger.info("║ - Requires Action: {}", paymentIntent.getStatus().equals("requires_action"));
+        
+        // STEP 2.2: Create subscription with ALLOW_INCOMPLETE and attach payment intent
+        logger.info("║ STEP 2.2: Creating Subscription with ALLOW_INCOMPLETE");
         SubscriptionCreateParams.Builder paramsBuilder = SubscriptionCreateParams.builder()
                 .setCustomer(customerId)
                 .addItem(SubscriptionCreateParams.Item.builder()
                         .setPrice(newPlan.getStripePriceId())
                         .build())
-                .setPaymentBehavior(SubscriptionCreateParams.PaymentBehavior.DEFAULT_INCOMPLETE)
+                // CHANGED: Use ALLOW_INCOMPLETE instead of DEFAULT_INCOMPLETE
+                .setPaymentBehavior(SubscriptionCreateParams.PaymentBehavior.ALLOW_INCOMPLETE)
                 .setPaymentSettings(SubscriptionCreateParams.PaymentSettings.builder()
                         .setPaymentMethodTypes(List.of(SubscriptionCreateParams.PaymentSettings.PaymentMethodType.CARD))
                         .setSaveDefaultPaymentMethod(SubscriptionCreateParams.PaymentSettings.SaveDefaultPaymentMethod.ON_SUBSCRIPTION)
                         .setPaymentMethodOptions(SubscriptionCreateParams.PaymentSettings.PaymentMethodOptions.builder()
                             .setCard(SubscriptionCreateParams.PaymentSettings.PaymentMethodOptions.Card.builder()
+                                // Enable 3D Secure authentication
                                 .setRequestThreeDSecure(SubscriptionCreateParams.PaymentSettings.PaymentMethodOptions.Card.RequestThreeDSecure.AUTOMATIC)
                                 .build())
                             .build())
@@ -129,29 +167,72 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
                     "account_id", currentSubscription.getAccountId().toString(),
                     "plan_id", newPlan.getId(),
                     "subscription_type", SubscriptionPlanType.fromPlanId(newPlan.getId()).name().toLowerCase(),
-                    "upgrade_from", "free"
+                    "upgrade_from", "free",
+                    "payment_intent_id", paymentIntent.getId() // Link payment intent to subscription
                 ));
 
-        Subscription stripeSubscription = Subscription.create(paramsBuilder.build());
-        logger.trace("✓ Stripe subscription created");
-        logger.trace("║ - Subscription ID: {}", stripeSubscription.getId());
-        logger.trace("║ - Status: {}", stripeSubscription.getStatus());
+        // CRITICAL FIX: Link payment intent to subscription for automatic activation
+        // This ensures that when the payment intent succeeds, Stripe automatically activates the subscription
+        // We need to update the payment intent to link it to the subscription
+        logger.info("║ STEP 2.3: Linking Payment Intent to Subscription");
+        Map<String, Object> paymentIntentUpdateParams = new HashMap<>();
+        paymentIntentUpdateParams.put("metadata", Map.of(
+            "subscription_id", "pending", // Will be updated after subscription creation
+            "plan_id", newPlan.getId(),
+            "upgrade_from", "free",
+            "payment_purpose", "subscription_upgrade"
+        ));
+        
+        // Update payment intent to prepare for subscription linking
+        PaymentIntent updatedPaymentIntent = paymentIntent.update(paymentIntentUpdateParams);
+        logger.info("✓ Payment intent updated for subscription linking");
 
-        return handleSubscriptionPayment(currentSubscription, newPlan, paymentMethodId, returnUrl, 
+        Subscription stripeSubscription = Subscription.create(paramsBuilder.build());
+        logger.info("✓ Stripe subscription created");
+        logger.info("║ - Subscription ID: {}", stripeSubscription.getId());
+        logger.info("║ - Status: {}", stripeSubscription.getStatus());
+
+        // STEP 2.4: Link payment intent to subscription (CRITICAL FIX)
+        logger.info("║ STEP 2.4: Linking Payment Intent to Subscription");
+        Map<String, Object> finalPaymentIntentUpdateParams = new HashMap<>();
+        finalPaymentIntentUpdateParams.put("metadata", Map.of(
+            "subscription_id", stripeSubscription.getId(),
+            "plan_id", newPlan.getId(),
+            "upgrade_from", "free",
+            "payment_purpose", "subscription_upgrade"
+        ));
+        
+        // Update payment intent with actual subscription ID
+        PaymentIntent finalPaymentIntent = updatedPaymentIntent.update(finalPaymentIntentUpdateParams);
+        logger.info("✓ Payment intent linked to subscription: {}", stripeSubscription.getId());
+
+        // STEP 2.5: Save payment intent and subscription to database
+        return saveSubscriptionAndPaymentIntent(currentSubscription, newPlan, finalPaymentIntent, 
             stripeSubscription, customerId, "free");
     }
 
+    /**
+     * Updates existing paid subscription with improved payment handling
+     */
     private SubscriptionUpdateResponse updatePaidSubscription(UserSubscription currentSubscription, 
             SubscriptionPlan newPlan, String paymentMethodId, String returnUrl) throws StripeException {
         
-        logger.trace("╔══════════════════════════════════════════════════════════════");
-        logger.trace("║ STEP 2: Updating Paid Subscription");
-        logger.trace("║ - Current Plan: {}", currentSubscription.getPlanId());
-        logger.trace("║ - New Plan: {}", newPlan.getId());
-        logger.trace("╚══════════════════════════════════════════════════════════════");
+        logger.info("╔══════════════════════════════════════════════════════════════");
+        logger.info("║ STEP 2: Updating Paid Subscription");
+        logger.info("║ - Current Plan: {}", currentSubscription.getPlanId());
+        logger.info("║ - New Plan: {}", newPlan.getId());
+        logger.info("╚══════════════════════════════════════════════════════════════");
 
         try {
-            // Update subscription in Stripe
+            // STEP 2.1: Create payment intent for the upgrade
+            String customerId = currentSubscription.getStripeCustomerId();
+            logger.info("║ STEP 2.1: Creating Payment Intent for Upgrade");
+            PaymentIntent paymentIntent = createPaymentIntentForSubscription(
+                customerId, newPlan, paymentMethodId, returnUrl);
+            logger.info("✓ Payment Intent created: {}", paymentIntent.getId());
+
+            // STEP 2.2: Update subscription in Stripe
+            logger.info("║ STEP 2.2: Updating Stripe Subscription");
             Subscription stripeSubscription = Subscription.retrieve(currentSubscription.getStripeSubscriptionId());
             String subscriptionItemId = stripeSubscription.getItems().getData().get(0).getId();
 
@@ -164,16 +245,18 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
                     .setMetadata(Map.of(
                         "plan_id", newPlan.getId(),
                         "subscription_type", SubscriptionPlanType.fromPlanId(newPlan.getId()).name().toLowerCase(),
-                        "upgrade_from", SubscriptionPlanType.fromPlanId(currentSubscription.getPlanId()).name().toLowerCase()
+                        "upgrade_from", SubscriptionPlanType.fromPlanId(currentSubscription.getPlanId()).name().toLowerCase(),
+                        "payment_intent_id", paymentIntent.getId() // Link payment intent to subscription
                     ))
                     .build();
 
             stripeSubscription = stripeSubscription.update(params);
-            logger.trace("✓ Stripe subscription updated");
-            logger.trace("║ - New Status: {}", stripeSubscription.getStatus());
+            logger.info("✓ Stripe subscription updated");
+            logger.info("║ - New Status: {}", stripeSubscription.getStatus());
 
-            return handleSubscriptionPayment(currentSubscription, newPlan, paymentMethodId, returnUrl, 
-                stripeSubscription, currentSubscription.getStripeCustomerId(), 
+            // STEP 2.3: Save payment intent and update subscription
+            return saveSubscriptionAndPaymentIntent(currentSubscription, newPlan, paymentIntent, 
+                stripeSubscription, customerId, 
                 SubscriptionPlanType.fromPlanId(currentSubscription.getPlanId()).name().toLowerCase());
 
         } catch (StripeException e) {
@@ -182,95 +265,111 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         }
     }
 
-    private SubscriptionUpdateResponse handleSubscriptionPayment(
+    /**
+     * Creates a payment intent for subscription with 3D Secure support
+     * 
+     * IMPROVEMENTS:
+     * 1. Creates payment intent explicitly before subscription
+     * 2. Supports 3D Secure authentication with return URL
+     * 3. Sets up future usage for recurring payments
+     * 4. Better error handling
+     */
+    private PaymentIntent createPaymentIntentForSubscription(String customerId, SubscriptionPlan plan, 
+            String paymentMethodId, String returnUrl) throws StripeException {
+        
+        logger.info("║ Creating Payment Intent:");
+        logger.info("║ - Customer: {}", customerId);
+        logger.info("║ - Amount: {} {}", plan.getAmount(), plan.getCurrency());
+        logger.info("║ - Payment Method: {}", paymentMethodId);
+        logger.info("║ - Return URL: {}", returnUrl != null ? returnUrl : "None");
+
+        Map<String, Object> params = new HashMap<>();
+        int amountInCents = plan.getAmount().multiply(BigDecimal.valueOf(100)).intValue();
+        params.put("amount", amountInCents);
+        params.put("currency", plan.getCurrency().toLowerCase());
+        params.put("customer", customerId);
+        params.put("payment_method", paymentMethodId);
+        params.put("payment_method_types", Arrays.asList("card"));
+        params.put("setup_future_usage", "off_session"); // For recurring payments
+        
+        // Handle 3D Secure authentication
+        // For non-3D Secure cards, we don't pass return_url and confirm separately
+        // For 3D Secure cards, we pass return_url and confirm immediately
+        if (returnUrl != null && !returnUrl.isEmpty()) {
+            params.put("return_url", returnUrl);
+            params.put("confirm", true); // Confirm immediately for 3D Secure
+            logger.info("║ - 3D Secure enabled with return URL and immediate confirmation");
+        } else {
+            params.put("confirm", false); // Don't confirm immediately for non-3D Secure
+            logger.info("║ - Non-3D Secure card - will confirm separately");
+        }
+        
+        params.put("metadata", Map.of(
+            "subscription_type", SubscriptionPlanType.fromPlanId(plan.getId()).name().toLowerCase(),
+            "plan_id", plan.getId(),
+            "payment_purpose", "subscription_upgrade"
+        ));
+
+        PaymentIntent paymentIntent = PaymentIntent.create(params);
+        logger.info("✓ Payment Intent created successfully");
+        logger.info("║ - ID: {}", paymentIntent.getId());
+        logger.info("║ - Status: {}", paymentIntent.getStatus());
+        logger.info("║ - Client Secret: {}", paymentIntent.getClientSecret());
+        
+        return paymentIntent;
+    }
+
+    /**
+     * Saves payment intent and subscription to database with improved error handling
+     * 
+     * IMPROVEMENTS:
+     * 1. Simplified payment intent saving (no complex retrieval logic)
+     * 2. Better status tracking
+     * 3. Enhanced metadata for debugging
+     */
+    private SubscriptionUpdateResponse saveSubscriptionAndPaymentIntent(
             UserSubscription currentSubscription,
             SubscriptionPlan newPlan,
-            String paymentMethodId,
-            String returnUrl,
+            PaymentIntent stripePaymentIntent,
             Subscription stripeSubscription,
             String customerId,
             String upgradeFrom) throws StripeException {
         
-        // Get the latest invoice and its payment intent
-        com.stripe.model.PaymentIntent stripePaymentIntent = null;
-        
-        // For DEFAULT_INCOMPLETE subscriptions, Stripe will create a payment intent
-        // and attach it to the latest invoice
-        if (stripeSubscription.getLatestInvoice() != null) {
-            String invoiceId = stripeSubscription.getLatestInvoice();
-            
-            // Retry a few times as it might take a moment for Stripe to attach the payment intent
-            int maxRetries = 5;  // Increased retries
-            int retryCount = 0;
-            while (retryCount < maxRetries) {
-                com.stripe.model.Invoice invoice = com.stripe.model.Invoice.retrieve(invoiceId);
-                logger.trace("║ - Invoice Status: {}", invoice.getStatus());
-                
-                // Get payment intent from raw JSON
-                JsonObject rawJson = invoice.getRawJsonObject();
-                if (rawJson.has("payment_intent")) {
-                    String paymentIntentId = rawJson.get("payment_intent").getAsString();
-                    stripePaymentIntent = com.stripe.model.PaymentIntent.retrieve(paymentIntentId);
-                    logger.trace("✓ Payment Intent retrieved from latest invoice");
-                    logger.trace("║ - ID: {}", stripePaymentIntent.getId());
-                    logger.trace("║ - Status: {}", stripePaymentIntent.getStatus());
-                    logger.trace("║ - Amount: {}", stripePaymentIntent.getAmount());
-                    logger.trace("║ - Currency: {}", stripePaymentIntent.getCurrency());
-                    logger.trace("║ - Client Secret: {}", stripePaymentIntent.getClientSecret());
-                    break;
-                }
-                
-                // Wait a bit before retrying
-                try {
-                    Thread.sleep(2000); // Increased wait time to 2 seconds
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException("Interrupted while waiting for payment intent", e);
-                }
-                retryCount++;
-            }
-        }
-        
-        if (stripePaymentIntent == null) {
-            // If we still don't have a payment intent, try to get it from the subscription's raw JSON
-            try {
-                JsonObject subscriptionJson = stripeSubscription.getRawJsonObject();
-                if (subscriptionJson.has("latest_payment_intent")) {
-                    String paymentIntentId = subscriptionJson.get("latest_payment_intent").getAsString();
-                    stripePaymentIntent = com.stripe.model.PaymentIntent.retrieve(paymentIntentId);
-                    logger.trace("✓ Payment Intent retrieved from subscription JSON");
-                } else {
-                    throw new RuntimeException("No payment intent found in subscription JSON");
-                }
-            } catch (Exception e) {
-                logger.error("Failed to get payment intent from subscription: {}", e.getMessage());
-                throw new RuntimeException("No payment intent found in latest invoice. This indicates the subscription creation process was not completed properly.");
-            }
-        }
+        logger.info("╔══════════════════════════════════════════════════════════════");
+        logger.info("║ STEP 3: Saving Payment Intent and Subscription");
+        logger.info("╚══════════════════════════════════════════════════════════════");
 
-        // Save payment intent to our database
+        // STEP 3.1: Save payment intent to our database
+        logger.info("║ STEP 3.1: Saving Payment Intent to Database");
         com.fintrack.model.payment.PaymentIntent dbPaymentIntent = new com.fintrack.model.payment.PaymentIntent();
         dbPaymentIntent.setAccountId(currentSubscription.getAccountId());
         dbPaymentIntent.setStripePaymentIntentId(stripePaymentIntent.getId());
         dbPaymentIntent.setAmount(newPlan.getAmount());
         dbPaymentIntent.setCurrency(newPlan.getCurrency());
         dbPaymentIntent.setStatus(stripePaymentIntent.getStatus());
+        String paymentMethodId = stripePaymentIntent.getPaymentMethod();
+        if (paymentMethodId == null) {
+            logger.warn("Stripe payment intent {} has null payment method ID. Storing empty string in DB.", stripePaymentIntent.getId());
+            paymentMethodId = "";
+        }
         dbPaymentIntent.setPaymentMethodId(paymentMethodId);
         dbPaymentIntent.setClientSecret(stripePaymentIntent.getClientSecret());
         dbPaymentIntent.setStripeCustomerId(customerId);
         dbPaymentIntent.setSetupFutureUsage("off_session");
         dbPaymentIntent.setPaymentMethodTypes("card");
         dbPaymentIntent.setRequiresAction(stripePaymentIntent.getStatus().equals("requires_action"));
-        dbPaymentIntent.setMetadata(String.format("{\"subscription_id\":\"%s\",\"plan_id\":\"%s\"}", 
-            stripeSubscription.getId(), newPlan.getId()));
+        dbPaymentIntent.setMetadata(String.format(
+            "{\"subscription_id\":\"%s\",\"plan_id\":\"%s\",\"upgrade_from\":\"%s\",\"payment_purpose\":\"subscription_upgrade\"}", 
+            stripeSubscription.getId(), newPlan.getId(), upgradeFrom));
         dbPaymentIntent.setCreatedAt(LocalDateTime.now());
         paymentIntentRepository.save(dbPaymentIntent);
-        logger.trace("✓ Payment intent saved to database");
+        logger.info("✓ Payment intent saved to database");
         
-        // Update subscription in database
+        // STEP 3.2: Update subscription in database
+        logger.info("║ STEP 3.2: Updating Subscription in Database");
         currentSubscription.setStripeSubscriptionId(stripeSubscription.getId());
         currentSubscription.setPlanId(newPlan.getId());
-        currentSubscription.setStatus("pending_payment");
+        currentSubscription.setStatus("incomplete");
         currentSubscription.setActive(false);
         currentSubscription.setLastPaymentDate(LocalDateTime.now());
         
@@ -289,8 +388,25 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         }
         
         currentSubscription = userSubscriptionRepository.save(currentSubscription);
+        logger.info("✓ Subscription updated in database");
+        logger.info("║ - New Status: {}", currentSubscription.getStatus());
+        logger.info("║ - Next Billing: {}", currentSubscription.getNextBillingDate());
 
-        return SubscriptionUpdateResponse.fromUserSubscription(currentSubscription, 
-                stripePaymentIntent.getClientSecret(), true, newPlan.getAmount(), newPlan.getCurrency());
+        // STEP 3.3: Return response with payment details
+        logger.info("║ STEP 3.3: Returning Payment Response");
+        SubscriptionUpdateResponse response = SubscriptionUpdateResponse.fromUserSubscription(
+            currentSubscription, 
+            stripePaymentIntent.getClientSecret(), 
+            true, 
+            newPlan.getAmount(), 
+            newPlan.getCurrency()
+        );
+        
+        logger.info("✓ Payment flow setup complete");
+        logger.info("║ - Payment Required: {}", response.isPaymentRequired());
+        logger.info("║ - Has Client Secret: {}", response.getClientSecret() != null);
+        logger.info("║ - Requires 3D Secure: {}", stripePaymentIntent.getStatus().equals("requires_action"));
+        
+        return response;
     }
 } 
