@@ -164,8 +164,13 @@ public class StripeWebhookController {
                             // Use proper JSON parsing instead of string manipulation
                             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                             com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(metadata);
-                            subscriptionId = jsonNode.get("subscription_id").asText();
-                            logger.info("✓ Successfully parsed subscription_id from metadata: {}", subscriptionId);
+                            com.fasterxml.jackson.databind.JsonNode subscriptionIdNode = jsonNode.get("subscription_id");
+                            if (subscriptionIdNode != null && !subscriptionIdNode.isNull()) {
+                                subscriptionId = subscriptionIdNode.asText();
+                                logger.info("✓ Successfully parsed subscription_id from metadata: {}", subscriptionId);
+                            } else {
+                                logger.warn("subscription_id key is null or missing in metadata: {}", metadata);
+                            }
                         } catch (Exception e) {
                             logger.warn("Failed to parse subscription_id from metadata: {} - Error: {}", metadata, e.getMessage());
                             // Fallback to simple string parsing
@@ -246,8 +251,13 @@ public class StripeWebhookController {
                             // Use proper JSON parsing instead of string manipulation
                             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                             com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(metadata);
-                            subscriptionId = jsonNode.get("subscription_id").asText();
-                            logger.info("✓ Successfully parsed subscription_id from metadata: {}", subscriptionId);
+                            com.fasterxml.jackson.databind.JsonNode subscriptionIdNode = jsonNode.get("subscription_id");
+                            if (subscriptionIdNode != null && !subscriptionIdNode.isNull()) {
+                                subscriptionId = subscriptionIdNode.asText();
+                                logger.info("✓ Successfully parsed subscription_id from metadata: {}", subscriptionId);
+                            } else {
+                                logger.warn("subscription_id key is null or missing in metadata: {}", metadata);
+                            }
                         } catch (Exception e) {
                             logger.warn("Failed to parse subscription_id from metadata: {} - Error: {}", metadata, e.getMessage());
                             // Fallback to simple string parsing
