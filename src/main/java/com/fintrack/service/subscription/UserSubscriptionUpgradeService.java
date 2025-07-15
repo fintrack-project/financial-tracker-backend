@@ -347,7 +347,12 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         dbPaymentIntent.setAmount(newPlan.getAmount());
         dbPaymentIntent.setCurrency(newPlan.getCurrency());
         dbPaymentIntent.setStatus(stripePaymentIntent.getStatus());
-        dbPaymentIntent.setPaymentMethodId(stripePaymentIntent.getPaymentMethod());
+        String paymentMethodId = stripePaymentIntent.getPaymentMethod();
+        if (paymentMethodId == null) {
+            logger.warn("Stripe payment intent {} has null payment method ID. Storing empty string in DB.", stripePaymentIntent.getId());
+            paymentMethodId = "";
+        }
+        dbPaymentIntent.setPaymentMethodId(paymentMethodId);
         dbPaymentIntent.setClientSecret(stripePaymentIntent.getClientSecret());
         dbPaymentIntent.setStripeCustomerId(customerId);
         dbPaymentIntent.setSetupFutureUsage("off_session");
