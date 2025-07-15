@@ -171,13 +171,43 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
                     "payment_intent_id", paymentIntent.getId() // Link payment intent to subscription
                 ));
 
+        // CRITICAL FIX: Link payment intent to subscription for automatic activation
+        // This ensures that when the payment intent succeeds, Stripe automatically activates the subscription
+        // We need to update the payment intent to link it to the subscription
+        logger.info("║ STEP 2.3: Linking Payment Intent to Subscription");
+        Map<String, Object> paymentIntentUpdateParams = new HashMap<>();
+        paymentIntentUpdateParams.put("metadata", Map.of(
+            "subscription_id", "pending", // Will be updated after subscription creation
+            "plan_id", newPlan.getId(),
+            "upgrade_from", "free",
+            "payment_purpose", "subscription_upgrade"
+        ));
+        
+        // Update payment intent to prepare for subscription linking
+        PaymentIntent updatedPaymentIntent = paymentIntent.update(paymentIntentUpdateParams);
+        logger.info("✓ Payment intent updated for subscription linking");
+
         Subscription stripeSubscription = Subscription.create(paramsBuilder.build());
         logger.info("✓ Stripe subscription created");
         logger.info("║ - Subscription ID: {}", stripeSubscription.getId());
         logger.info("║ - Status: {}", stripeSubscription.getStatus());
 
-        // STEP 2.3: Save payment intent and subscription to database
-        return saveSubscriptionAndPaymentIntent(currentSubscription, newPlan, paymentIntent, 
+        // STEP 2.4: Link payment intent to subscription (CRITICAL FIX)
+        logger.info("║ STEP 2.4: Linking Payment Intent to Subscription");
+        Map<String, Object> finalPaymentIntentUpdateParams = new HashMap<>();
+        finalPaymentIntentUpdateParams.put("metadata", Map.of(
+            "subscription_id", stripeSubscription.getId(),
+            "plan_id", newPlan.getId(),
+            "upgrade_from", "free",
+            "payment_purpose", "subscription_upgrade"
+        ));
+        
+        // Update payment intent with actual subscription ID
+        PaymentIntent finalPaymentIntent = updatedPaymentIntent.update(finalPaymentIntentUpdateParams);
+        logger.info("✓ Payment intent linked to subscription: {}", stripeSubscription.getId());
+
+        // STEP 2.5: Save payment intent and subscription to database
+        return saveSubscriptionAndPaymentIntent(currentSubscription, newPlan, finalPaymentIntent, 
             stripeSubscription, customerId, "free");
     }
 

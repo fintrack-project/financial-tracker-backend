@@ -91,18 +91,31 @@ public class NewUserSubscriptionService extends BaseUserSubscriptionService {
         Subscription stripeSubscription = createStripeSubscription(customerId, plan.getStripePriceId(), 
             paymentMethodId, paymentIntent.getId());
         
-        // STEP 2.3: Save subscription and payment intent to database
-        logger.info("║ STEP 2.3: Saving Subscription and Payment Intent");
-        UserSubscription subscription = saveSubscription(accountId, planId, customerId, stripeSubscription, paymentIntent);
+        // STEP 2.3: Link payment intent to subscription (CRITICAL FIX)
+        logger.info("║ STEP 2.3: Linking Payment Intent to Subscription");
+        Map<String, Object> paymentIntentUpdateParams = new HashMap<>();
+        paymentIntentUpdateParams.put("metadata", Map.of(
+            "subscription_id", stripeSubscription.getId(),
+            "plan_id", planId,
+            "payment_purpose", "new_subscription"
+        ));
+        
+        // Update payment intent with actual subscription ID
+        PaymentIntent updatedPaymentIntent = paymentIntent.update(paymentIntentUpdateParams);
+        logger.info("✓ Payment intent linked to subscription: {}", stripeSubscription.getId());
+        
+        // STEP 2.4: Save subscription and payment intent to database
+        logger.info("║ STEP 2.4: Saving Subscription and Payment Intent");
+        UserSubscription subscription = saveSubscription(accountId, planId, customerId, stripeSubscription, updatedPaymentIntent);
         
         logger.info("✓ New subscription created successfully");
         logger.info("║ - Subscription ID: {}", subscription.getId());
         logger.info("║ - Stripe Subscription ID: {}", subscription.getStripeSubscriptionId());
-        logger.info("║ - Payment Required: {}", paymentIntent.getStatus().equals("requires_confirmation"));
-        logger.info("║ - Requires 3D Secure: {}", paymentIntent.getStatus().equals("requires_action"));
+        logger.info("║ - Payment Required: {}", updatedPaymentIntent.getStatus().equals("requires_confirmation"));
+        logger.info("║ - Requires 3D Secure: {}", updatedPaymentIntent.getStatus().equals("requires_action"));
         
         return SubscriptionUpdateResponse.fromUserSubscription(subscription, 
-                paymentIntent.getClientSecret(), true, plan.getAmount(), plan.getCurrency());
+                updatedPaymentIntent.getClientSecret(), true, plan.getAmount(), plan.getCurrency());
     }
 
     /**
@@ -191,6 +204,8 @@ public class NewUserSubscriptionService extends BaseUserSubscriptionService {
             logger.info("║ - Non-3D Secure card - will confirm separately");
         }
         
+        // Note: We can't set subscription_id here because the subscription doesn't exist yet
+        // The subscription_id will be set in the database metadata after subscription creation
         params.put("metadata", Map.of(
             "subscription_type", SubscriptionPlanType.fromPlanId(plan.getId()).name().toLowerCase(),
             "plan_id", plan.getId(),

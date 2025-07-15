@@ -204,117 +204,23 @@ public class UserSubscriptionController {
         }
     }
 
-    /**
-     * Manual sync endpoint to update subscription status from Stripe
-     * This is useful for debugging when webhooks might not be working
-     */
     @PostMapping("/sync-status")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> syncSubscriptionStatus(@RequestBody Map<String, String> requestBody) {
+    public ResponseEntity<ApiResponse<String>> syncSubscriptionStatus(@RequestBody Map<String, String> requestBody) {
         String stripeSubscriptionId = requestBody.get("stripeSubscriptionId");
         if (stripeSubscriptionId == null || stripeSubscriptionId.isEmpty()) {
             return ResponseWrapper.badRequest("Stripe subscription ID is required");
         }
 
         try {
-            logger.info("Manual sync requested for subscription: {}", stripeSubscriptionId);
-            
-            // Get subscription from Stripe
-            Stripe.apiKey = stripeSecretKey;
-            com.stripe.model.Subscription stripeSubscription = com.stripe.model.Subscription.retrieve(stripeSubscriptionId);
-            
-            logger.info("Stripe subscription status: {}", stripeSubscription.getStatus());
-            
-            // Update our database
-            userSubscriptionService.handleSubscriptionUpdated(
-                stripeSubscriptionId,
-                stripeSubscription.getStatus(),
-                stripeSubscription.getCancelAtPeriodEnd()
-            );
-            
-            // Get updated subscription from our database
-            UserSubscription dbSubscription = userSubscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId)
-                .orElseThrow(() -> new RuntimeException("Subscription not found in database: " + stripeSubscriptionId));
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("stripeStatus", stripeSubscription.getStatus());
-            result.put("databaseStatus", dbSubscription.getStatus());
-            result.put("isActive", dbSubscription.isActive());
-            result.put("cancelAtPeriodEnd", stripeSubscription.getCancelAtPeriodEnd());
-            result.put("lastPaymentDate", dbSubscription.getLastPaymentDate());
-            result.put("nextBillingDate", dbSubscription.getNextBillingDate());
-            
-            logger.info("Sync completed successfully. Stripe: {}, Database: {}", 
-                stripeSubscription.getStatus(), dbSubscription.getStatus());
-            
-            return ResponseWrapper.ok(result);
-        } catch (StripeException e) {
-            logger.error("Stripe error syncing subscription: {}", e.getMessage());
-            return ResponseWrapper.badRequest("Error syncing subscription: " + e.getMessage());
+            userSubscriptionService.syncSubscriptionStatusFromStripe(stripeSubscriptionId);
+            return ResponseWrapper.ok("Subscription status synced successfully");
         } catch (RuntimeException e) {
-            logger.error("Error syncing subscription: {}", e.getMessage());
+            logger.error("Error syncing subscription status: {}", e.getMessage());
             return ResponseWrapper.badRequest(e.getMessage());
         }
     }
 
-    /**
-     * Get subscription status from both Stripe and database for comparison
-     */
-    @GetMapping("/status/{stripeSubscriptionId}")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getSubscriptionStatus(@PathVariable String stripeSubscriptionId) {
-        try {
-            logger.info("Getting status for subscription: {}", stripeSubscriptionId);
-            
-            Map<String, Object> result = new HashMap<>();
-            
-            // Get from Stripe
-            try {
-                Stripe.apiKey = stripeSecretKey;
-                com.stripe.model.Subscription stripeSubscription = com.stripe.model.Subscription.retrieve(stripeSubscriptionId);
-                
-                Map<String, Object> stripeData = new HashMap<>();
-                stripeData.put("status", stripeSubscription.getStatus());
-                stripeData.put("cancelAtPeriodEnd", stripeSubscription.getCancelAtPeriodEnd());
-                stripeData.put("created", stripeSubscription.getCreated());
-                
-                // Get period info from subscription items
-                if (stripeSubscription.getItems() != null && !stripeSubscription.getItems().getData().isEmpty()) {
-                    stripeData.put("currentPeriodStart", stripeSubscription.getItems().getData().get(0).getCurrentPeriodStart());
-                    stripeData.put("currentPeriodEnd", stripeSubscription.getItems().getData().get(0).getCurrentPeriodEnd());
-                }
-                
-                result.put("stripe", stripeData);
-            } catch (StripeException e) {
-                result.put("stripeError", e.getMessage());
-            }
-            
-            // Get from database
-            try {
-                UserSubscription dbSubscription = userSubscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId)
-                    .orElse(null);
-                
-                if (dbSubscription != null) {
-                    Map<String, Object> dbData = new HashMap<>();
-                    dbData.put("status", dbSubscription.getStatus());
-                    dbData.put("isActive", dbSubscription.isActive());
-                    dbData.put("cancelAtPeriodEnd", dbSubscription.getCancelAtPeriodEnd());
-                    dbData.put("lastPaymentDate", dbSubscription.getLastPaymentDate());
-                    dbData.put("nextBillingDate", dbSubscription.getNextBillingDate());
-                    dbData.put("planId", dbSubscription.getPlanId());
-                    
-                    result.put("database", dbData);
-                } else {
-                    result.put("databaseError", "Subscription not found in database");
-                }
-            } catch (Exception e) {
-                result.put("databaseError", e.getMessage());
-            }
-            
-            return ResponseWrapper.ok(result);
-        } catch (Exception e) {
-            logger.error("Error getting subscription status: {}", e.getMessage());
-            return ResponseWrapper.badRequest("Error getting subscription status: " + e.getMessage());
-        }
-    }
+
 
     @PostMapping("/downgrade")
     public ResponseEntity<ApiResponse<SubscriptionUpdateResponse>> downgradeUserSubscription(@RequestBody SubscriptionPlanRequest request) {
