@@ -385,12 +385,15 @@ public class UserSubscriptionService {
             logger.info("║ - Database Active: {}", subscription.isActive());
             logger.info("╚══════════════════════════════════════════════════════════════");
             
+            // Store the current active state before updating
+            boolean wasActive = subscription.isActive();
+            
             // Update our database to match Stripe
             subscription.setStatus(stripeStatus);
             subscription.setActive("active".equals(stripeStatus));
             
-            // Update last payment date if subscription is now active
-            if ("active".equals(stripeStatus) && !subscription.isActive()) {
+            // Update last payment date if subscription is now active and wasn't active before
+            if ("active".equals(stripeStatus) && !wasActive) {
                 subscription.setLastPaymentDate(java.time.LocalDateTime.now());
             }
             
