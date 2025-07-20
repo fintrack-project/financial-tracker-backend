@@ -141,17 +141,16 @@ public class ProrationController {
         logger.info("║ - Unused Time Ratio: {}", unusedTimeRatio);
         logger.info("║ - Credit for Unused Time: ${}", creditForUnusedTime);
         
-        // For upgrade: credit unused time from current plan
-        // For downgrade: charge for unused time on new plan
+        // Simple logic: user receives credit if current payment > new payment
         BigDecimal prorationAmount;
-        if (newAmount.compareTo(currentAmount) > 0) {
+        if (currentAmount.compareTo(newAmount) > 0) {
+            // DOWNGRADE: Credit unused time from current plan (since it's more expensive)
+            prorationAmount = creditForUnusedTime.negate();
+            logger.info("║ DOWNGRADE: Crediting unused time from current plan (current payment > new payment)");
+        } else {
             // UPGRADE: Credit unused time from current plan
             prorationAmount = creditForUnusedTime.negate();
-            logger.info("║ UPGRADE: Crediting unused time from current plan");
-        } else {
-            // DOWNGRADE: Charge for unused time on new plan
-            prorationAmount = creditForUnusedTime;
-            logger.info("║ DOWNGRADE: Charging for unused time on new plan");
+            logger.info("║ UPGRADE: Crediting unused time from current plan (current payment <= new payment)");
         }
         
         logger.info("║ Final Proration Amount: ${}", prorationAmount);
@@ -174,4 +173,6 @@ public class ProrationController {
             default -> 30; // Default to monthly
         };
     }
+
+
 } 
