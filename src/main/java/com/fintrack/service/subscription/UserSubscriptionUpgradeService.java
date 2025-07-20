@@ -33,8 +33,6 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
     
     private static final Logger logger = LoggerFactory.getLogger(UserSubscriptionUpgradeService.class);
     
-    private final SubscriptionPolicyService subscriptionPolicyService;
-    
     @Value("${stripe.secret.key}")
     private String stripeSecretKey;
 
@@ -42,10 +40,8 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
             UserSubscriptionRepository userSubscriptionRepository,
             PaymentService paymentService,
             SubscriptionPlanService subscriptionPlanService,
-            PaymentIntentRepository paymentIntentRepository,
-            SubscriptionPolicyService subscriptionPolicyService) {
+            PaymentIntentRepository paymentIntentRepository) {
         super(userSubscriptionRepository, paymentService, subscriptionPlanService, paymentIntentRepository);
-        this.subscriptionPolicyService = subscriptionPolicyService;
     }
 
     /**
