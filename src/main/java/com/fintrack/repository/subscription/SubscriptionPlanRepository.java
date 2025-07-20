@@ -12,6 +12,6 @@ import java.util.Optional;
 public interface SubscriptionPlanRepository extends JpaRepository<SubscriptionPlan, String> {
     Optional<SubscriptionPlan> findByName(String name);
     
-    @Query("SELECT s FROM SubscriptionPlan s WHERE LOWER(s.name) = LOWER(:name)")
+    @Query(value = "SELECT * FROM subscription_plans WHERE LOWER(name) = LOWER(:name)", nativeQuery = true)
     Optional<SubscriptionPlan> findByNameIgnoreCase(@Param("name") String name);
 } 
