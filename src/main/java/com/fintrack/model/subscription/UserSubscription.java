@@ -32,7 +32,7 @@ public class UserSubscription {
     @Column(name = "stripe_subscription_id")
     private String stripeSubscriptionId;
 
-    @Column(name = "stripe_customer_id")
+    @Column(name = "stripe_customer_id", nullable = false)
     private String stripeCustomerId;
 
     @Column(name = "is_active", nullable = false)

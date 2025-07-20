@@ -33,6 +33,8 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
     
     private static final Logger logger = LoggerFactory.getLogger(UserSubscriptionUpgradeService.class);
     
+    private final SubscriptionPolicyService subscriptionPolicyService;
+    
     @Value("${stripe.secret.key}")
     private String stripeSecretKey;
 
@@ -40,8 +42,10 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
             UserSubscriptionRepository userSubscriptionRepository,
             PaymentService paymentService,
             SubscriptionPlanService subscriptionPlanService,
-            PaymentIntentRepository paymentIntentRepository) {
+            PaymentIntentRepository paymentIntentRepository,
+            SubscriptionPolicyService subscriptionPolicyService) {
         super(userSubscriptionRepository, paymentService, subscriptionPlanService, paymentIntentRepository);
+        this.subscriptionPolicyService = subscriptionPolicyService;
     }
 
     /**
@@ -138,7 +142,7 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         // STEP 2.1: Create payment intent first (NEW APPROACH)
         logger.info("║ STEP 2.1: Creating Payment Intent");
         PaymentIntent paymentIntent = createPaymentIntentForSubscription(
-            customerId, newPlan, paymentMethodId, returnUrl);
+            customerId, newPlan, paymentMethodId, returnUrl, newPlan.getAmount());
         logger.info("✓ Payment Intent created: {}", paymentIntent.getId());
         logger.info("║ - Status: {}", paymentIntent.getStatus());
         logger.info("║ - Requires Action: {}", paymentIntent.getStatus().equals("requires_action"));
@@ -224,15 +228,23 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         logger.info("╚══════════════════════════════════════════════════════════════");
 
         try {
-            // STEP 2.1: Create payment intent for the upgrade
+            // STEP 2.1: Let Stripe handle proration calculation
+            logger.info("║ STEP 2.1: Using Stripe's Proration Calculation");
+            logger.info("║ - Current Plan: {}", currentSubscription.getPlanId());
+            logger.info("║ - New Plan: {}", newPlan.getId());
+            logger.info("║ - Letting Stripe calculate exact proration amount");
+            
+            // STEP 2.2: Create payment intent for the full new plan amount
+            // Stripe will handle the proration automatically when we update the subscription
             String customerId = currentSubscription.getStripeCustomerId();
-            logger.info("║ STEP 2.1: Creating Payment Intent for Upgrade");
+            logger.info("║ STEP 2.2: Creating Payment Intent for Full Plan Amount");
             PaymentIntent paymentIntent = createPaymentIntentForSubscription(
-                customerId, newPlan, paymentMethodId, returnUrl);
+                customerId, newPlan, paymentMethodId, returnUrl, newPlan.getAmount());
             logger.info("✓ Payment Intent created: {}", paymentIntent.getId());
 
-            // STEP 2.2: Update subscription in Stripe
-            logger.info("║ STEP 2.2: Updating Stripe Subscription");
+            // STEP 2.3: Update subscription in Stripe with ALWAYS_INVOICE
+            // This tells Stripe to create an invoice with the exact proration amount
+            logger.info("║ STEP 2.3: Updating Stripe Subscription with ALWAYS_INVOICE");
             Subscription stripeSubscription = Subscription.retrieve(currentSubscription.getStripeSubscriptionId());
             String subscriptionItemId = stripeSubscription.getItems().getData().get(0).getId();
 
@@ -253,8 +265,9 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
             stripeSubscription = stripeSubscription.update(params);
             logger.info("✓ Stripe subscription updated");
             logger.info("║ - New Status: {}", stripeSubscription.getStatus());
+            logger.info("║ - Stripe will create invoice with exact proration amount");
 
-            // STEP 2.3: Save payment intent and update subscription
+            // STEP 2.4: Save payment intent and update subscription
             return saveSubscriptionAndPaymentIntent(currentSubscription, newPlan, paymentIntent, 
                 stripeSubscription, customerId, 
                 SubscriptionPlanType.fromPlanId(currentSubscription.getPlanId()).name().toLowerCase());
@@ -273,18 +286,21 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
      * 2. Supports 3D Secure authentication with return URL
      * 3. Sets up future usage for recurring payments
      * 4. Better error handling
+     * 5. Uses full plan amount - Stripe handles proration via ALWAYS_INVOICE
      */
     private PaymentIntent createPaymentIntentForSubscription(String customerId, SubscriptionPlan plan, 
-            String paymentMethodId, String returnUrl) throws StripeException {
+            String paymentMethodId, String returnUrl, BigDecimal amount) throws StripeException {
         
         logger.info("║ Creating Payment Intent:");
         logger.info("║ - Customer: {}", customerId);
-        logger.info("║ - Amount: {} {}", plan.getAmount(), plan.getCurrency());
+        logger.info("║ - Plan Amount: {} {}", plan.getAmount(), plan.getCurrency());
+        logger.info("║ - Payment Intent Amount: {} {}", amount, plan.getCurrency());
         logger.info("║ - Payment Method: {}", paymentMethodId);
         logger.info("║ - Return URL: {}", returnUrl != null ? returnUrl : "None");
+        logger.info("║ - Note: Stripe will handle proration via ALWAYS_INVOICE");
 
         Map<String, Object> params = new HashMap<>();
-        int amountInCents = plan.getAmount().multiply(BigDecimal.valueOf(100)).intValue();
+        int amountInCents = amount.multiply(BigDecimal.valueOf(100)).intValue();
         params.put("amount", amountInCents);
         params.put("currency", plan.getCurrency().toLowerCase());
         params.put("customer", customerId);
@@ -307,7 +323,8 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         params.put("metadata", Map.of(
             "subscription_type", SubscriptionPlanType.fromPlanId(plan.getId()).name().toLowerCase(),
             "plan_id", plan.getId(),
-            "payment_purpose", "subscription_upgrade"
+            "payment_purpose", "subscription_upgrade",
+            "stripe_handles_proration", "true"
         ));
 
         PaymentIntent paymentIntent = PaymentIntent.create(params);
@@ -368,23 +385,25 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         // STEP 3.2: Update subscription in database
         logger.info("║ STEP 3.2: Updating Subscription in Database");
         currentSubscription.setStripeSubscriptionId(stripeSubscription.getId());
+        currentSubscription.setStripeCustomerId(customerId); // Ensure customer ID is set
         currentSubscription.setPlanId(newPlan.getId());
         currentSubscription.setStatus("incomplete");
         currentSubscription.setActive(false);
         currentSubscription.setLastPaymentDate(LocalDateTime.now());
         
         // Calculate next billing date for paid subscriptions
-        if (!upgradeFrom.equals("free")) {
-            if (stripeSubscription.getItems() != null && !stripeSubscription.getItems().getData().isEmpty()) {
-                Long periodEnd = stripeSubscription.getItems().getData().get(0).getCurrentPeriodEnd();
-                if (periodEnd != null) {
-                    currentSubscription.setNextBillingDate(LocalDateTime.ofEpochSecond(periodEnd, 0, ZoneOffset.UTC));
-                } else {
-                    currentSubscription.setNextBillingDate(LocalDateTime.now().plusDays(30));
-                }
+        // Always set next billing date for paid subscriptions (free or paid upgrades)
+        if (stripeSubscription.getItems() != null && !stripeSubscription.getItems().getData().isEmpty()) {
+            Long periodEnd = stripeSubscription.getItems().getData().get(0).getCurrentPeriodEnd();
+            if (periodEnd != null) {
+                currentSubscription.setNextBillingDate(LocalDateTime.ofEpochSecond(periodEnd, 0, ZoneOffset.UTC));
             } else {
-                currentSubscription.setNextBillingDate(LocalDateTime.now().plusDays(30));
+                // Fallback: Calculate based on plan interval and current date
+                currentSubscription.setNextBillingDate(calculateNextBillingDateForPlan(newPlan));
             }
+        } else {
+            // Fallback: Calculate based on plan interval and current date
+            currentSubscription.setNextBillingDate(calculateNextBillingDateForPlan(newPlan));
         }
         
         currentSubscription = userSubscriptionRepository.save(currentSubscription);
@@ -408,5 +427,73 @@ public class UserSubscriptionUpgradeService extends BaseUserSubscriptionService 
         logger.info("║ - Requires 3D Secure: {}", stripePaymentIntent.getStatus().equals("requires_action"));
         
         return response;
+    }
+    
+    /**
+     * Calculate days remaining in current billing cycle
+     */
+    private int calculateDaysRemaining(UserSubscription subscription) {
+        return calculateDaysRemaining(subscription, LocalDateTime.now());
+    }
+    
+    /**
+     * Calculate days remaining using a custom current date (for testing)
+     */
+    private int calculateDaysRemaining(UserSubscription subscription, LocalDateTime currentDate) {
+        logger.info("╔══════════════════════════════════════════════════════════════");
+        logger.info("║ DAYS REMAINING CALCULATION");
+        logger.info("║ Current Time: {}", currentDate);
+        logger.info("║ Next Billing Date: {}", subscription.getNextBillingDate());
+        logger.info("║ Subscription Start Date: {}", subscription.getSubscriptionStartDate());
+        
+        if (subscription.getNextBillingDate() == null) {
+            logger.error("║ CRITICAL ERROR: Next billing date is not set for subscription!");
+            logger.error("║ This should never happen - next_billing_date must be set when user subscribes");
+            logger.error("║ Subscription ID: {}", subscription.getId());
+            logger.error("║ Account ID: {}", subscription.getAccountId());
+            logger.error("║ Plan ID: {}", subscription.getPlanId());
+            logger.info("╚══════════════════════════════════════════════════════════════");
+            throw new RuntimeException("Next billing date is not set for subscription. This indicates a data integrity issue.");
+        }
+        
+        LocalDateTime nextBilling = subscription.getNextBillingDate();
+        
+        long daysRemaining = java.time.Duration.between(currentDate, nextBilling).toDays();
+        int result = Math.max(1, (int) daysRemaining); // Minimum 1 day
+        
+        logger.info("║ Calculation: {} - {} = {} days", nextBilling, currentDate, daysRemaining);
+        logger.info("║ Final Days Remaining: {}", result);
+        logger.info("╚══════════════════════════════════════════════════════════════");
+        
+        return result;
+    }
+
+    /**
+     * Calculates the next billing date for a given plan.
+     * This is a fallback mechanism if the current period end is not available.
+     * It assumes a default interval of 30 days if the interval is not recognized.
+     */
+    private LocalDateTime calculateNextBillingDateForPlan(SubscriptionPlan plan) {
+        logger.info("║ Calculating next billing date for plan: {}", plan.getId());
+        logger.info("║ - Plan Interval: {}", plan.getInterval());
+        logger.info("║ - Plan Amount: {}", plan.getAmount());
+        logger.info("║ - Plan Currency: {}", plan.getCurrency());
+
+        int billingCycleDays = 30; // Default to 30 days
+        if (plan.getInterval() != null && !plan.getInterval().isEmpty()) {
+            billingCycleDays = switch (plan.getInterval().toLowerCase()) {
+                case "day" -> 1;
+                case "week" -> 7;
+                case "month" -> 30;
+                case "year" -> 365;
+                default -> 30;
+            };
+        }
+        logger.info("║ - Billing Cycle Days: {}", billingCycleDays);
+
+        LocalDateTime nextBillingDate = LocalDateTime.now().plusDays(billingCycleDays);
+        logger.info("║ - Next Billing Date (Fallback): {}", nextBillingDate);
+        logger.info("╚══════════════════════════════════════════════════════════════");
+        return nextBillingDate;
     }
 } 

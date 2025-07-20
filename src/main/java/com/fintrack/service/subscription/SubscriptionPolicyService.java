@@ -21,17 +21,14 @@ public class SubscriptionPolicyService {
     
     private final SubscriptionPolicyRepository subscriptionPolicyRepository;
     private final PolicyAcceptanceRepository policyAcceptanceRepository;
-    private final ProrationCalculationRepository prorationCalculationRepository;
     private final SubscriptionChangeAuditRepository subscriptionChangeAuditRepository;
     
     public SubscriptionPolicyService(
             SubscriptionPolicyRepository subscriptionPolicyRepository,
             PolicyAcceptanceRepository policyAcceptanceRepository,
-            ProrationCalculationRepository prorationCalculationRepository,
             SubscriptionChangeAuditRepository subscriptionChangeAuditRepository) {
         this.subscriptionPolicyRepository = subscriptionPolicyRepository;
         this.policyAcceptanceRepository = policyAcceptanceRepository;
-        this.prorationCalculationRepository = prorationCalculationRepository;
         this.subscriptionChangeAuditRepository = subscriptionChangeAuditRepository;
     }
     
@@ -206,65 +203,6 @@ public class SubscriptionPolicyService {
         return policyAcceptanceRepository.findByAccountIdOrderByAcceptedAtDesc(accountId);
     }
     
-    // ==================== PRORATION CALCULATION METHODS ====================
-    
-    /**
-     * Calculate and cache proration
-     */
-    public ProrationCalculation calculateProration(String fromPlanId, String toPlanId, 
-                                                  Integer daysRemaining, BigDecimal prorationAmount, 
-                                                  BigDecimal nextBillingAmount) {
-        logger.info("Calculating proration from plan: {} to plan: {}", fromPlanId, toPlanId);
-        
-        // Generate hash for caching
-        String calculationHash = generateCalculationHash(fromPlanId, toPlanId, daysRemaining);
-        
-        // Check if calculation already exists and is valid
-        Optional<ProrationCalculation> existing = prorationCalculationRepository.findByCalculationHash(calculationHash);
-        if (existing.isPresent() && prorationCalculationRepository.existsValidCalculation(calculationHash, LocalDateTime.now())) {
-            logger.debug("Using cached proration calculation");
-            return existing.get();
-        }
-        
-        // Create new calculation
-        ProrationCalculation calculation = new ProrationCalculation();
-        calculation.setCalculationHash(calculationHash);
-        calculation.setFromPlanId(fromPlanId);
-        calculation.setToPlanId(toPlanId);
-        calculation.setDaysRemaining(daysRemaining);
-        calculation.setProrationAmount(prorationAmount);
-        calculation.setNextBillingAmount(nextBillingAmount);
-        calculation.setCalculationDate(LocalDateTime.now());
-        calculation.setExpiresAt(LocalDateTime.now().plusHours(24)); // Cache for 24 hours
-        
-        return prorationCalculationRepository.save(calculation);
-    }
-    
-    /**
-     * Get cached proration calculation
-     */
-    public Optional<ProrationCalculation> getCachedProration(String calculationHash) {
-        return prorationCalculationRepository.findByCalculationHash(calculationHash);
-    }
-    
-    /**
-     * Clean up expired proration calculations
-     */
-    public int cleanupExpiredProrations() {
-        logger.info("Cleaning up expired proration calculations");
-        List<ProrationCalculation> expired = prorationCalculationRepository.findExpiredCalculations(LocalDateTime.now());
-        prorationCalculationRepository.deleteExpiredCalculations(LocalDateTime.now());
-        return expired.size();
-    }
-    
-    /**
-     * Generate hash for proration calculation caching
-     */
-    private String generateCalculationHash(String fromPlanId, String toPlanId, Integer daysRemaining) {
-        String input = fromPlanId + ":" + toPlanId + ":" + daysRemaining;
-        return String.valueOf(input.hashCode());
-    }
-    
     // ==================== AUDIT METHODS ====================
     
     /**
@@ -318,10 +256,6 @@ public class SubscriptionPolicyService {
         // Count policy acceptances
         long totalAcceptances = policyAcceptanceRepository.count();
         stats.put("totalPolicyAcceptances", totalAcceptances);
-        
-        // Count cached proration calculations
-        List<ProrationCalculation> validCalculations = prorationCalculationRepository.findValidCalculations(LocalDateTime.now());
-        stats.put("cachedProrationCalculations", validCalculations.size());
         
         // Count audit entries
         long totalAuditEntries = subscriptionChangeAuditRepository.count();
