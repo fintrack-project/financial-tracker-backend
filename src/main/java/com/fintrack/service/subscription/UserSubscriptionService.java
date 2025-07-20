@@ -7,6 +7,7 @@ import com.fintrack.repository.subscription.UserSubscriptionRepository;
 import com.fintrack.service.payment.PaymentService;
 import com.fintrack.repository.payment.PaymentIntentRepository;
 import com.stripe.exception.StripeException;
+import com.stripe.model.Customer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -292,19 +293,32 @@ public class UserSubscriptionService {
         }
         SubscriptionPlan plan = planOpt.get();
 
+        // Ensure Stripe customer exists (even for free subscriptions)
+        String customerId;
+        try {
+            customerId = ensureStripeCustomerExists(accountId);
+        } catch (Exception e) {
+            logger.warn("Failed to create Stripe customer for free subscription, using account ID as customer ID: {}", e.getMessage());
+            customerId = accountId.toString();
+        }
+
         // Create a new UserSubscription
         UserSubscription subscription = new UserSubscription();
         subscription.setAccountId(accountId);
         subscription.setPlanId(plan.getId());
         subscription.setStripeSubscriptionId("free_" + accountId.toString());
+        subscription.setStripeCustomerId(customerId); // Set customer ID for free subscriptions too
         subscription.setStatus("active");
         subscription.setActive(true);
         subscription.setSubscriptionStartDate(java.time.LocalDateTime.now());
-        subscription.setNextBillingDate(null);
+        
+        // Set next billing date for free subscriptions (100 years from now since they don't expire)
+        subscription.setNextBillingDate(java.time.LocalDateTime.now().plusYears(100));
+        
         subscription.setCreatedAt(java.time.LocalDateTime.now());
         subscription.setCancelAtPeriodEnd(false);
         userSubscriptionRepository.save(subscription);
-        logger.info("Created free subscription for account: {}", accountId);
+        logger.info("Created free subscription for account: {} with customer ID: {}", accountId, customerId);
     }
 
     // Stubbed webhook handler methods for StripeWebhookController
@@ -410,5 +424,34 @@ public class UserSubscriptionService {
             logger.error("❌ Failed to sync subscription status: {}", e.getMessage());
             throw new RuntimeException("Failed to sync subscription status", e);
         }
+    }
+
+    /**
+     * Ensures a Stripe customer exists for the given account ID
+     * Creates a new customer if one doesn't exist
+     */
+    private String ensureStripeCustomerExists(UUID accountId) throws StripeException {
+        String customerId = accountId.toString();
+        
+        try {
+            Customer.retrieve(customerId);
+            logger.info("Found existing Stripe customer with ID: {}", customerId);
+        } catch (StripeException e) {
+            if (e.getCode().equals("resource_missing") && e.getMessage().contains("No such customer")) {
+                logger.info("Customer not found in Stripe, creating new customer with ID: {}", customerId);
+                Map<String, Object> params = new HashMap<>();
+                params.put("id", customerId);
+                params.put("description", "Customer for account ID: " + accountId);
+                
+                Customer customer = Customer.create(params);
+                customerId = customer.getId();
+                logger.info("Created new Stripe customer with ID: {}", customerId);
+            } else {
+                logger.error("Error retrieving Stripe customer: {}", e.getMessage());
+                throw e;
+            }
+        }
+        
+        return customerId;
     }
 }
