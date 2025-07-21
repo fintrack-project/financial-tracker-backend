@@ -93,6 +93,27 @@ public interface HoldingsCategoriesRepository extends JpaRepository<HoldingsCate
         """, nativeQuery = true)
     List<Map<String, Object>> findHoldingsByAccountId(@Param("accountId") UUID accountId);
 
+    @Modifying
+    @Query(value = """
+        DELETE FROM holdings_categories
+        WHERE account_id = :accountId
+        AND asset_name NOT IN (
+            SELECT asset_name FROM asset WHERE account_id = :accountId
+        )
+        """, nativeQuery = true)
+    int deleteOrphanedHoldingsCategories(@Param("accountId") UUID accountId);
+
+    @Modifying
+    @Query(value = """
+        DELETE FROM holdings_categories
+        WHERE account_id = :accountId
+        AND asset_name = ANY(:assetNames)
+        AND asset_name NOT IN (
+            SELECT asset_name FROM asset WHERE account_id = :accountId
+        )
+        """, nativeQuery = true)
+    int deleteOrphanedHoldingsCategoriesForAssets(@Param("accountId") UUID accountId, @Param("assetNames") List<String> assetNames);
+
     @Query(value = """
         SELECT h.asset_name, h.subcategory
         FROM holdings_categories h

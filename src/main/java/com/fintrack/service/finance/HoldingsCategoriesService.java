@@ -170,5 +170,46 @@ public class HoldingsCategoriesService {
         }
 
         return response;
-    } 
+    }
+
+    /**
+     * Clean up orphaned holdings categories for assets that no longer exist
+     * This method removes holdings_categories entries for assets that have been deleted
+     */
+    @Transactional
+    public void cleanupOrphanedHoldingsCategories(UUID accountId) {
+        logger.info("Cleaning up orphaned holdings categories for account: {}", accountId);
+        
+        // Remove holdings_categories entries for assets that no longer exist in the asset table
+        int deletedCount = holdingsCategoriesRepository.deleteOrphanedHoldingsCategories(accountId);
+        
+        if (deletedCount > 0) {
+            logger.info("Cleaned up {} orphaned holdings categories for account: {}", deletedCount, accountId);
+        } else {
+            logger.info("No orphaned holdings categories found for account: {}", accountId);
+        }
+    }
+
+    /**
+     * Clean up orphaned holdings categories for specific assets
+     * This method removes holdings_categories entries for specific assets that have been deleted
+     */
+    @Transactional
+    public void cleanupOrphanedHoldingsCategoriesForAssets(UUID accountId, List<String> assetNames) {
+        if (assetNames == null || assetNames.isEmpty()) {
+            logger.info("No asset names provided for cleanup for account: {}", accountId);
+            return;
+        }
+        
+        logger.info("Cleaning up orphaned holdings categories for account: {} and assets: {}", accountId, assetNames);
+        
+        // Remove holdings_categories entries for specific assets that no longer exist
+        int deletedCount = holdingsCategoriesRepository.deleteOrphanedHoldingsCategoriesForAssets(accountId, assetNames);
+        
+        if (deletedCount > 0) {
+            logger.info("Cleaned up {} orphaned holdings categories for account: {} and assets: {}", deletedCount, accountId, assetNames);
+        } else {
+            logger.info("No orphaned holdings categories found for account: {} and assets: {}", accountId, assetNames);
+        }
+    }
 }

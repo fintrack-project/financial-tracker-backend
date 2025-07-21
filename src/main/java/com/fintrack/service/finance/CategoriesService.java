@@ -29,18 +29,28 @@ public class CategoriesService {
         this.holdingsCategoriesRepository = holdingsCategoriesRepository;
     }
 
-    @Transactional
+        @Transactional
     public void addCategory(UUID accountId, String categoryName) {
+        addCategory(accountId, categoryName, null);
+    }
+
+    @Transactional
+    public void addCategory(UUID accountId, String categoryName, String hexCode) {
         // Validate input
         if (categoryName == null || categoryName.trim().isEmpty()) {
             throw new IllegalArgumentException("Category name cannot be null or empty.");
         }
-    
+
         // Check if the category already exists
         Integer existingCategoryId = categoriesRepository.findCategoryIdByAccountIdAndCategoryName(accountId, categoryName);
 
         if (existingCategoryId != null) {
             throw new IllegalArgumentException("Category with name '" + categoryName + "' already exists.");
+        }
+
+        // Validate hex code if provided
+        if (hexCode != null && !Color.exists(hexCode)) {
+            throw new IllegalArgumentException("Invalid color. Available colors: " + Color.getFormattedColorList());
         }
 
         // Dynamically calculate the priority if not provided
@@ -49,7 +59,12 @@ public class CategoriesService {
     
         // Insert the new category
         try {
-            categoriesRepository.insertCategory(accountId, categoryName, null, 1, priority);
+            Integer categoryId = categoriesRepository.insertCategory(accountId, categoryName, null, 1, priority);
+            
+            // If a color was provided, update it
+            if (hexCode != null) {
+                categoriesRepository.updateCategoryColor(accountId, categoryId, hexCode.toUpperCase());
+            }
         } catch (DataIntegrityViolationException e) {
             throw new IllegalArgumentException("Failed to insert category. Possible data integrity violation.", e);
         }
