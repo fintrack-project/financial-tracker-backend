@@ -6,6 +6,7 @@ import org.springframework.http.MediaType;
 import com.fintrack.common.ApiResponse;
 import com.fintrack.common.ResponseWrapper;
 import com.fintrack.service.finance.CategoriesService;
+import com.fintrack.service.finance.HoldingsCategoriesService;
 import com.fintrack.constants.Color;
 
 import java.util.*;
@@ -15,9 +16,11 @@ import java.util.*;
 public class CategoriesController {
 
     private final CategoriesService categoriesService;
+    private final HoldingsCategoriesService holdingsCategoriesService;
 
-    public CategoriesController(CategoriesService categoriesService) {
+    public CategoriesController(CategoriesService categoriesService, HoldingsCategoriesService holdingsCategoriesService) {
         this.categoriesService = categoriesService;
+        this.holdingsCategoriesService = holdingsCategoriesService;
     }
 
     @PostMapping("/add")
@@ -26,8 +29,9 @@ public class CategoriesController {
         try {
             UUID accountId = UUID.fromString((String) categoryData.get("accountId"));
             String categoryName = (String) categoryData.get("category_name");
+            String hexCode = (String) categoryData.get("color");
         
-            categoriesService.addCategory(accountId, categoryName);
+            categoriesService.addCategory(accountId, categoryName, hexCode);
             return ResponseWrapper.ok(null, "Category added successfully.");
         } catch (Exception e) {
             return ResponseWrapper.badRequest(e.getMessage());
@@ -106,6 +110,32 @@ public class CategoriesController {
             return ResponseWrapper.ok(null, "Category color updated successfully.");
         } catch (IllegalArgumentException e) {
             return ResponseWrapper.badRequest(e.getMessage());
+        } catch (Exception e) {
+            return ResponseWrapper.badRequest(e.getMessage());
+        }
+    }
+
+    @PostMapping("/cleanup/orphaned")
+    public ResponseEntity<ApiResponse<Void>> cleanupOrphanedHoldingsCategories(@RequestBody Map<String, Object> request) {
+        try {
+            UUID accountId = UUID.fromString((String) request.get("accountId"));
+            
+            holdingsCategoriesService.cleanupOrphanedHoldingsCategories(accountId);
+            return ResponseWrapper.ok(null, "Orphaned holdings categories cleaned up successfully.");
+        } catch (Exception e) {
+            return ResponseWrapper.badRequest(e.getMessage());
+        }
+    }
+
+    @PostMapping("/cleanup/orphaned/assets")
+    public ResponseEntity<ApiResponse<Void>> cleanupOrphanedHoldingsCategoriesForAssets(@RequestBody Map<String, Object> request) {
+        try {
+            UUID accountId = UUID.fromString((String) request.get("accountId"));
+            @SuppressWarnings("unchecked")
+            List<String> assetNames = (List<String>) request.get("assetNames");
+            
+            holdingsCategoriesService.cleanupOrphanedHoldingsCategoriesForAssets(accountId, assetNames);
+            return ResponseWrapper.ok(null, "Orphaned holdings categories for specified assets cleaned up successfully.");
         } catch (Exception e) {
             return ResponseWrapper.badRequest(e.getMessage());
         }

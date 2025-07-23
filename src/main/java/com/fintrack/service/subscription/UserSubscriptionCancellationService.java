@@ -61,13 +61,19 @@ public class UserSubscriptionCancellationService extends BaseUserSubscriptionSer
         // For paid subscriptions, cancel in Stripe
         try {
             logger.trace("╔══════════════════════════════════════════════════════════════");
-            logger.trace("║ STEP 3: Retrieving Stripe Subscription");
+            logger.trace("║ STEP 3: Configuring Stripe API");
+            logger.trace("╚══════════════════════════════════════════════════════════════");
+            
+            configureStripe();
+            
+            logger.trace("╔══════════════════════════════════════════════════════════════");
+            logger.trace("║ STEP 4: Retrieving Stripe Subscription");
             logger.trace("╚══════════════════════════════════════════════════════════════");
             
             Subscription stripeSubscription = Subscription.retrieve(subscriptionId);
             
             logger.trace("╔══════════════════════════════════════════════════════════════");
-            logger.trace("║ STEP 4: Preparing Stripe Cancellation");
+            logger.trace("║ STEP 5: Preparing Stripe Cancellation");
             logger.trace("║ - Current Status: {}", stripeSubscription.getStatus());
             logger.trace("║ - Cancel at Period End: {}", stripeSubscription.getCancelAtPeriodEnd());
             logger.trace("╚══════════════════════════════════════════════════════════════");
@@ -78,14 +84,14 @@ public class UserSubscriptionCancellationService extends BaseUserSubscriptionSer
                     .build();
             
             logger.trace("╔══════════════════════════════════════════════════════════════");
-            logger.trace("║ STEP 5: Updating Stripe Subscription");
+            logger.trace("║ STEP 6: Updating Stripe Subscription");
             logger.trace("║ - Setting cancel_at_period_end to true");
             logger.trace("╚══════════════════════════════════════════════════════════════");
             
             stripeSubscription = stripeSubscription.update(params);
             
             logger.trace("╔══════════════════════════════════════════════════════════════");
-            logger.trace("║ STEP 6: Stripe Update Complete");
+            logger.trace("║ STEP 7: Stripe Update Complete");
             logger.trace("║ - New Status: {}", stripeSubscription.getStatus());
             logger.trace("║ - Cancel at Period End: {}", stripeSubscription.getCancelAtPeriodEnd());
             logger.trace("╚══════════════════════════════════════════════════════════════");
@@ -104,7 +110,7 @@ public class UserSubscriptionCancellationService extends BaseUserSubscriptionSer
             }
             
             logger.trace("╔══════════════════════════════════════════════════════════════");
-            logger.trace("║ STEP 7: Updating Local Database");
+            logger.trace("║ STEP 8: Updating Local Database");
             logger.trace("║ - Setting cancel_at_period_end to true");
             logger.trace("║ - Updating subscription end date");
             logger.trace("╚══════════════════════════════════════════════════════════════");
@@ -112,7 +118,7 @@ public class UserSubscriptionCancellationService extends BaseUserSubscriptionSer
             UserSubscription savedSubscription = userSubscriptionRepository.save(subscription);
             
             logger.trace("╔══════════════════════════════════════════════════════════════");
-            logger.trace("║ STEP 8: Database Update Complete");
+            logger.trace("║ STEP 9: Database Update Complete");
             logger.trace("║ - Status: {}", savedSubscription.getStatus());
             logger.trace("║ - Active: {}", savedSubscription.isActive());
             logger.trace("║ - End Date: {}", savedSubscription.getSubscriptionEndDate());
@@ -124,7 +130,7 @@ public class UserSubscriptionCancellationService extends BaseUserSubscriptionSer
                     .orElseThrow(() -> new RuntimeException("Plan not found: " + savedSubscription.getPlanId()));
             
             logger.trace("╔══════════════════════════════════════════════════════════════");
-            logger.trace("║ STEP 9: Preparing Response");
+            logger.trace("║ STEP 10: Preparing Response");
             logger.trace("║ - Plan ID: {}", plan.getId());
             logger.trace("║ - Amount: {}", plan.getAmount());
             logger.trace("║ - Currency: {}", plan.getCurrency());
