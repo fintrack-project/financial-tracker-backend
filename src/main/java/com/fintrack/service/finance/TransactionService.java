@@ -12,6 +12,8 @@ import com.fintrack.component.transaction.PreviewTransaction;
 import com.fintrack.component.transaction.TransactionTable;
 import com.fintrack.constants.KafkaTopics;
 import com.fintrack.constants.finance.AssetType;
+import com.fintrack.service.finance.HoldingsService;
+import com.fintrack.service.finance.HoldingsMonthlyService;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,15 +36,21 @@ public class TransactionService {
     private final AssetRepository assetRepository;
     private final HoldingsMonthlyRepository holdingsMonthlyRepository;
     private final KafkaProducerService kafkaProducerService;
+    private final HoldingsService holdingsService;
+    private final HoldingsMonthlyService holdingsMonthlyService;
 
     public TransactionService(TransactionRepository transactionRepository, 
         AssetRepository assetRepository,
         HoldingsMonthlyRepository holdingsMonthlyRepository,
-        KafkaProducerService kafkaProducerService) {
+        KafkaProducerService kafkaProducerService,
+        HoldingsService holdingsService,
+        HoldingsMonthlyService holdingsMonthlyService) {
         this.transactionRepository = transactionRepository;
         this.assetRepository = assetRepository;
         this.holdingsMonthlyRepository = holdingsMonthlyRepository;
         this.kafkaProducerService = kafkaProducerService;
+        this.holdingsService = holdingsService;
+        this.holdingsMonthlyService = holdingsMonthlyService;
     }
 
     @Transactional(readOnly = true)
@@ -167,11 +175,22 @@ public class TransactionService {
             transaction.setAccountId(accountId); // Associate the account ID
             transactionRepository.save(transaction);
         }
+        // Update holdings and monthly holdings after saving
+        holdingsService.updateHoldingsForAccount(accountId);
+        holdingsMonthlyService.updateMonthlyHoldingsForAccount(accountId);
     }
 
     @Transactional
     public void softDeleteByTransactionIds(List<Long> transactionIds) {
+        // Find affected account IDs before deletion
+        List<Transaction> transactions = transactionRepository.findAllById(transactionIds);
+        Set<UUID> affectedAccountIds = transactions.stream().map(Transaction::getAccountId).collect(Collectors.toSet());
         transactionRepository.softDeleteByTransactionIds(transactionIds);
+        // Update holdings and monthly holdings for affected accounts
+        for (UUID accountId : affectedAccountIds) {
+            holdingsService.updateHoldingsForAccount(accountId);
+            holdingsMonthlyService.updateMonthlyHoldingsForAccount(accountId);
+        }
     }
 
     @Transactional
