@@ -26,4 +26,6 @@ public interface HoldingsMonthlyRepository extends JpaRepository<HoldingsMonthly
 
     @Query(value = "SELECT MAX(date) FROM holdings_monthly WHERE account_id = :accountId", nativeQuery = true)
     LocalDate findLatestDateByAccountId(@Param("accountId") UUID accountId);
+
+    void deleteByAccountId(UUID accountId);
 }

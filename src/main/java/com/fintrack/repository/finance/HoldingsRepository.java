@@ -19,4 +19,6 @@ public interface HoldingsRepository extends JpaRepository<Holdings, Long> {
         AND total_balance > 0
         """, nativeQuery = true)
     List<Holdings> findHoldingsByAccount(@Param("accountId") UUID accountId);
+
+    void deleteByAccountId(UUID accountId);
 }
