@@ -30,6 +30,11 @@ public class SubcategoriesService {
 
     @Transactional
     public void addSubcategory(UUID accountId, String categoryName, String subcategoryName) {
+        addSubcategory(accountId, categoryName, subcategoryName, null);
+    }
+
+    @Transactional
+    public void addSubcategory(UUID accountId, String categoryName, String subcategoryName, String hexCode) {
         // Validate input
         if (subcategoryName == null || subcategoryName.trim().isEmpty()) {
             throw new IllegalArgumentException("Subcategory name cannot be null or empty.");
@@ -46,12 +51,27 @@ public class SubcategoriesService {
             throw new IllegalArgumentException("Subcategory with name '" + trimmedSubcategoryName + "' already exists in category '" + categoryName + "'.");
         }
     
+        // Validate hex code if provided
+        if (hexCode != null && !Color.exists(hexCode)) {
+            throw new IllegalArgumentException("Invalid color. Available colors: " + Color.getFormattedColorList());
+        }
+    
         // Dynamically calculate the priority for the subcategory
         Integer maxPriority = subcategoriesRepository.findMaxSubcategoryPriorityByAccountIdAndCategoryName(accountId, categoryName);
         Integer priority = (maxPriority != null ? maxPriority : 0) + 1;
     
         // Insert the new subcategory
         subcategoriesRepository.insertSubcategory(accountId, categoryName, trimmedSubcategoryName, priority);
+        
+        // If a color was provided, find the subcategory ID and update its color
+        if (hexCode != null) {
+            Integer subcategoryId = subcategoriesRepository.findSubcategoryIdByAccountIdAndCategoryNameAndSubcategoryName(
+                accountId, categoryName, trimmedSubcategoryName
+            );
+            if (subcategoryId != null) {
+                categoriesRepository.updateCategoryColor(accountId, subcategoryId, hexCode.toUpperCase());
+            }
+        }
     }
 
     @Transactional

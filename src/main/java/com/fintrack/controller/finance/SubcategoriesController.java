@@ -26,8 +26,9 @@ public class SubcategoriesController {
             UUID accountId = UUID.fromString((String) subcategoryData.get("accountId"));
             String categoryName = (String) subcategoryData.get("category_name");
             String subcategoryName = (String) subcategoryData.get("subcategory_name");
+            String hexCode = (String) subcategoryData.get("color");
         
-            subcategoriesService.addSubcategory(accountId, categoryName, subcategoryName);
+            subcategoriesService.addSubcategory(accountId, categoryName, subcategoryName, hexCode);
             return ResponseWrapper.ok(null, "Subcategory added successfully.");
         } catch (Exception e) {
             return ResponseWrapper.badRequest(e.getMessage());
