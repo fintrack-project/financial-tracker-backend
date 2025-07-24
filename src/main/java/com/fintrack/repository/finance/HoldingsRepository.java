@@ -1,6 +1,7 @@
 package com.fintrack.repository.finance;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -20,5 +21,7 @@ public interface HoldingsRepository extends JpaRepository<Holdings, Long> {
         """, nativeQuery = true)
     List<Holdings> findHoldingsByAccount(@Param("accountId") UUID accountId);
 
-    void deleteByAccountId(UUID accountId);
+    @Modifying
+    @Query(value = "DELETE FROM holdings WHERE account_id = :accountId", nativeQuery = true)
+    int deleteByAccountId(@Param("accountId") UUID accountId);
 }

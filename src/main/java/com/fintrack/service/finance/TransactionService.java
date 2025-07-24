@@ -171,13 +171,15 @@ public class TransactionService {
 
     @Transactional
     public void saveAllTransactions(UUID accountId, List<Transaction> transactions) {
+        logger.info("Saving {} transactions for account: {}", transactions.size(), accountId);
+        
         for (Transaction transaction : transactions) {
             transaction.setAccountId(accountId); // Associate the account ID
             transactionRepository.save(transaction);
         }
-        // Update holdings and monthly holdings after saving
-        holdingsService.updateHoldingsForAccount(accountId);
-        holdingsMonthlyService.updateMonthlyHoldingsForAccount(accountId);
+        
+        // Note: Holdings will be updated by the calling method (confirmTransactions)
+        // to ensure proper order: delete -> add -> recalculate holdings
     }
 
     @Transactional
@@ -185,12 +187,13 @@ public class TransactionService {
         // Find affected account IDs before deletion
         List<Transaction> transactions = transactionRepository.findAllById(transactionIds);
         Set<UUID> affectedAccountIds = transactions.stream().map(Transaction::getAccountId).collect(Collectors.toSet());
+        
+        // Execute the soft delete
         transactionRepository.softDeleteByTransactionIds(transactionIds);
-        // Update holdings and monthly holdings for affected accounts
-        for (UUID accountId : affectedAccountIds) {
-            holdingsService.updateHoldingsForAccount(accountId);
-            holdingsMonthlyService.updateMonthlyHoldingsForAccount(accountId);
-        }
+        logger.info("Soft deleted {} transactions with IDs: {}", transactionIds.size(), transactionIds);
+        
+        // Note: Holdings will be updated by the calling method (confirmTransactions)
+        // to ensure proper order: delete -> add -> recalculate holdings
     }
 
     @Transactional
@@ -231,23 +234,37 @@ public class TransactionService {
                 .filter(Objects::nonNull) // Exclude unsaved transactions (those without a transactionId)
                 .toList();
 
-        // Save new transactions
-        saveAllTransactions(accountId, transactionsToSave);
+        // Step 1: Delete transactions first
+        if (!transactionIdsToDelete.isEmpty()) {
+            logger.info("Deleting {} transactions for account: {}", transactionIdsToDelete.size(), accountId);
+            softDeleteByTransactionIds(transactionIdsToDelete);
+        }
 
-        // Fetch saved transactions to get their IDs
-        List<Long> transactionIdsToSave = transactionRepository.findByAccountIdOrderByDateDesc(accountId).stream()
-                .filter(savedTransaction -> transactionsToSave.stream()
-                        .anyMatch(toSave -> toSave.getAssetName().equals(savedTransaction.getAssetName())
-                                && toSave.getDate().equals(savedTransaction.getDate())
-                                && toSave.getCredit().equals(savedTransaction.getCredit())
-                                && toSave.getDebit().equals(savedTransaction.getDebit())
-                                && toSave.getUnit().equals(savedTransaction.getUnit())
-                                && Objects.equals(toSave.getSymbol(), savedTransaction.getSymbol())))
-                .map(Transaction::getTransactionId)
-                .toList();
+        // Step 2: Add new transactions
+        if (!transactionsToSave.isEmpty()) {
+            logger.info("Adding {} new transactions for account: {}", transactionsToSave.size(), accountId);
+            saveAllTransactions(accountId, transactionsToSave);
+        }
 
-        // Soft delete old transactions
-        softDeleteByTransactionIds(transactionIdsToDelete);
+        // Step 3: Recalculate holdings once at the end (after all transactions are processed)
+        logger.info("Recalculating holdings for account: {}", accountId);
+        holdingsService.updateHoldingsForAccount(accountId);
+        holdingsMonthlyService.updateMonthlyHoldingsForAccount(accountId);
+
+        // Fetch saved transactions to get their IDs for the Kafka message
+        List<Long> transactionIdsToSave = new ArrayList<>();
+        if (!transactionsToSave.isEmpty()) {
+            transactionIdsToSave = transactionRepository.findByAccountIdOrderByDateDesc(accountId).stream()
+                    .filter(savedTransaction -> transactionsToSave.stream()
+                            .anyMatch(toSave -> toSave.getAssetName().equals(savedTransaction.getAssetName())
+                                    && toSave.getDate().equals(savedTransaction.getDate())
+                                    && toSave.getCredit().equals(savedTransaction.getCredit())
+                                    && toSave.getDebit().equals(savedTransaction.getDebit())
+                                    && toSave.getUnit().equals(savedTransaction.getUnit())
+                                    && Objects.equals(toSave.getSymbol(), savedTransaction.getSymbol())))
+                    .map(Transaction::getTransactionId)
+                    .toList();
+        }
         
         // Publish TRANSACTIONS_CONFIRMED message with only transaction IDs
         String transactionsConfirmedPayload = String.format(

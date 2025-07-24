@@ -3,6 +3,7 @@ package com.fintrack.service.finance;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.transaction.annotation.Transactional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,8 +41,19 @@ public class HoldingsService {
      * Recalculate and update holdings for the given account based on all transactions.
      */
     public void updateHoldingsForAccount(UUID accountId) {
+        logger.info("Starting holdings recalculation for account: {}", accountId);
+        
         // Fetch all transactions for the account
         List<Transaction> transactions = transactionRepository.findByAccountIdOrderByDateDesc(accountId);
+        logger.info("Found {} transactions for account: {}", transactions.size(), accountId);
+        
+        // If no transactions, just delete all holdings and return
+        if (transactions.isEmpty()) {
+            logger.info("No transactions found, deleting all holdings for account: {}", accountId);
+            holdingsRepository.deleteByAccountId(accountId);
+            return;
+        }
+        
         // Aggregate by assetName (unique per account)
         Map<String, Holdings> assetNameToHoldings = new HashMap<>();
         for (Transaction tx : transactions) {
@@ -63,12 +75,25 @@ public class HoldingsService {
             Holdings holding = assetNameToHoldings.get(assetName);
             holding.setTotalBalance(holding.getTotalBalance() + netQty);
         }
-        // Remove existing holdings for the account
-        holdingsRepository.deleteByAccountId(accountId);
-        // Write new holdings
-        for (Holdings holding : assetNameToHoldings.values()) {
-            holdingsRepository.save(holding);
+        
+        logger.info("Calculated holdings for {} assets: {}", assetNameToHoldings.size(), 
+                   assetNameToHoldings.keySet());
+        
+        // Since we delete transactions first, holdings table should be empty
+        // But we'll still delete to be safe
+        logger.info("Deleting existing holdings for account: {}", accountId);
+        int deletedCount = holdingsRepository.deleteByAccountId(accountId);
+        logger.info("Deleted {} existing holdings for account: {}", deletedCount, accountId);
+        
+        // Save all holdings (since we delete first, table is empty)
+        List<Holdings> holdingsToSave = new ArrayList<>(assetNameToHoldings.values());
+        logger.info("Saving {} holdings for account: {}", holdingsToSave.size(), accountId);
+        
+        if (!holdingsToSave.isEmpty()) {
+            holdingsRepository.saveAll(holdingsToSave);
         }
+        
+        logger.info("Completed holdings recalculation for account: {}", accountId);
     }
 
     @KafkaListener(topics = "#{T(com.fintrack.constants.KafkaTopics).PROCESS_TRANSACTIONS_TO_HOLDINGS_COMPLETE.getTopicName()}", groupId = "holdings-group")
@@ -84,3 +109,4 @@ public class HoldingsService {
         }
     }
 }
+
