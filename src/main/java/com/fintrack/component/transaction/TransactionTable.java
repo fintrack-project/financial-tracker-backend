@@ -106,24 +106,33 @@ public class TransactionTable<T extends OverviewTransaction> {
         // Deep copy initialTotalBalanceBeforeMap to totalBalanceBeforeMap
         Map<String, BigDecimal> totalBalanceBeforeMap = new HashMap<>(initialTotalBalanceBeforeMap);
         logger.debug("Initial total balance before map: " + totalBalanceBeforeMap);
+        logger.debug("Number of transactions to process: " + transactions.size());
+        logger.debug("Transactions in chronological order for balance calculation:");
+        for (T tx : transactions) {
+            logger.debug("  {} - {}: Credit={}, Debit={}", tx.getDate(), tx.getAssetName(), tx.getCredit(), tx.getDebit());
+        }
 
-        // Temporarily sort transactions in reversed order of date for calculation
-        transactions.sort(Comparator
+        // Sort transactions in chronological order (oldest first) for balance calculation
+        List<T> transactionsForCalculation = new ArrayList<>(transactions);
+        transactionsForCalculation.sort(Comparator
                 .comparing(OverviewTransaction::getDate) // Ascending order of date
-                .thenComparing(OverviewTransaction::getAssetName, Comparator.reverseOrder()) // Descending order of asset name
-                .thenComparing(OverviewTransaction::getCredit, Comparator.reverseOrder()) // Descending order of credit
-                .thenComparing(OverviewTransaction::getDebit, Comparator.reverseOrder())); // Descending order of debit
-        transactions.forEach(transaction -> {
+                .thenComparing(OverviewTransaction::getAssetName) // Ascending order of asset name
+                .thenComparing(OverviewTransaction::getCredit) // Ascending order of credit
+                .thenComparing(OverviewTransaction::getDebit)); // Ascending order of debit
+        transactionsForCalculation.forEach(transaction -> {
             logger.trace(("Transaction: " + transaction.getDate() + ", Asset: " + transaction.getAssetName() +
                     ", Credit: " + transaction.getCredit() + ", Debit: " + transaction.getDebit()
                     + ", Total Balance Before: " + totalBalanceBeforeMap.getOrDefault(transaction.getAssetName(), BigDecimal.ZERO))
             );
         });
 
-        for (T transaction : transactions) {
+        for (T transaction : transactionsForCalculation) {
             String assetName = transaction.getAssetName();
             BigDecimal balanceBefore = totalBalanceBeforeMap.getOrDefault(assetName, BigDecimal.ZERO);
             BigDecimal balanceAfter = balanceBefore.add(transaction.getCredit()).subtract(transaction.getDebit());
+
+            logger.debug("Processing transaction: Asset={}, Date={}, Credit={}, Debit={}, BalanceBefore={}, BalanceAfter={}", 
+                        assetName, transaction.getDate(), transaction.getCredit(), transaction.getDebit(), balanceBefore, balanceAfter);
 
             transaction.setTotalBalanceBefore(balanceBefore);
             transaction.setTotalBalanceAfter(balanceAfter);
@@ -131,7 +140,6 @@ public class TransactionTable<T extends OverviewTransaction> {
             // Update the maps
             totalBalanceBeforeMap.put(assetName, balanceAfter);
             totalBalanceAfterMap.put(assetName, balanceAfter);
-
         }
         isTotalBalancesFilled = true;
 

@@ -26,7 +26,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByAccountIdAndDateBetweenOrderByDateDesc(@Param("accountId") UUID accountId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     // Soft delete transactions by setting the deleted_at column
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query(value = "UPDATE transactions SET deleted_at = CURRENT_TIMESTAMP WHERE transaction_id IN (:transactionIds)", nativeQuery = true)
-    void softDeleteByTransactionIds(@Param("transactionIds") List<Long> transactionIds);
+    int softDeleteByTransactionIds(@Param("transactionIds") List<Long> transactionIds);
 }

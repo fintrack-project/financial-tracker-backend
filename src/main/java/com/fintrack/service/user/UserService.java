@@ -85,9 +85,13 @@ public class UserService {
         if (passwordEncoder.matches(password, user.getPassword())) {
             logger.trace("Password matched for userId: {}", userId);
 
-            // Generate JWT token
-            String token = jwtService.generateVerificationToken(user.getUserId().toString());
-            logger.trace("JWT token generated for userId: {}", userId);
+            // Generate JWT access token
+            String accessToken = jwtService.generateVerificationToken(user.getUserId().toString());
+            logger.trace("JWT access token generated for userId: {}", userId);
+
+            // Generate refresh token
+            String refreshToken = jwtService.generateRefreshToken(user.getUserId().toString());
+            logger.trace("JWT refresh token generated for userId: {}", userId);
 
             // Successful login
             user.setFailedLoginAttempts(0); // Reset failed login attempts
@@ -96,7 +100,8 @@ public class UserService {
             userRepository.save(user);
 
             Map<String, Object> response = new HashMap<>();
-            response.put("token", token);
+            response.put("token", accessToken);
+            response.put("refreshToken", refreshToken);
             response.put("userId", user.getUserId());
             response.put("accountId", user.getAccountId());
             return response;
