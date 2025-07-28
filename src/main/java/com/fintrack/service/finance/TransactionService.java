@@ -3,7 +3,6 @@ package com.fintrack.service.finance;
 import com.fintrack.repository.finance.AssetRepository;
 import com.fintrack.repository.finance.HoldingsMonthlyRepository;
 import com.fintrack.repository.finance.TransactionRepository;
-import com.fintrack.util.KafkaProducerService;
 import com.fintrack.model.finance.Asset;
 import com.fintrack.model.finance.HoldingsMonthly;
 import com.fintrack.model.finance.Transaction;
@@ -11,7 +10,6 @@ import com.fintrack.model.finance.Holdings;
 import com.fintrack.component.transaction.OverviewTransaction;
 import com.fintrack.component.transaction.PreviewTransaction;
 import com.fintrack.component.transaction.TransactionTable;
-import com.fintrack.constants.KafkaTopics;
 import com.fintrack.constants.finance.AssetType;
 import com.fintrack.service.finance.HoldingsService;
 import com.fintrack.service.finance.HoldingsMonthlyService;
@@ -22,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
 
 import org.slf4j.Logger;
@@ -36,20 +33,17 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final AssetRepository assetRepository;
     private final HoldingsMonthlyRepository holdingsMonthlyRepository;
-    private final KafkaProducerService kafkaProducerService;
     private final HoldingsService holdingsService;
     private final HoldingsMonthlyService holdingsMonthlyService;
 
     public TransactionService(TransactionRepository transactionRepository, 
         AssetRepository assetRepository,
         HoldingsMonthlyRepository holdingsMonthlyRepository,
-        KafkaProducerService kafkaProducerService,
         HoldingsService holdingsService,
         HoldingsMonthlyService holdingsMonthlyService) {
         this.transactionRepository = transactionRepository;
         this.assetRepository = assetRepository;
         this.holdingsMonthlyRepository = holdingsMonthlyRepository;
-        this.kafkaProducerService = kafkaProducerService;
         this.holdingsService = holdingsService;
         this.holdingsMonthlyService = holdingsMonthlyService;
     }
@@ -298,34 +292,5 @@ public class TransactionService {
         logger.info("Recalculating holdings for account: {}", accountId);
         holdingsService.updateHoldingsForAccount(accountId);
         holdingsMonthlyService.updateMonthlyHoldingsForAccount(accountId);
-
-        // Fetch saved transactions to get their IDs for the Kafka message
-        List<Long> transactionIdsToSave = new ArrayList<>();
-        if (!transactionsToSave.isEmpty()) {
-            transactionIdsToSave = transactionRepository.findByAccountIdOrderByDateDesc(accountId).stream()
-                    .filter(savedTransaction -> transactionsToSave.stream()
-                            .anyMatch(toSave -> toSave.getAssetName().equals(savedTransaction.getAssetName())
-                                    && toSave.getDate().equals(savedTransaction.getDate())
-                                    && toSave.getCredit().equals(savedTransaction.getCredit())
-                                    && toSave.getDebit().equals(savedTransaction.getDebit())
-                                    && toSave.getUnit().equals(savedTransaction.getUnit())
-                                    && Objects.equals(toSave.getSymbol(), savedTransaction.getSymbol())))
-                    .map(Transaction::getTransactionId)
-                    .toList();
-        }
-        
-        // Publish TRANSACTIONS_CONFIRMED message with only transaction IDs
-        String transactionsConfirmedPayload = String.format(
-                "{\"account_id\": \"%s\", \"transactions_added\": %s, \"transactions_deleted\": %s, \"timestamp\": \"%s\"}",
-                accountId,
-                transactionIdsToSave,
-                transactionIdsToDelete,
-                Instant.now().toString()
-        );
-        kafkaProducerService.publishEventWithRetry(
-            KafkaTopics.TRANSACTIONS_CONFIRMED.getTopicName(), 
-            transactionsConfirmedPayload, 
-            3, 
-            2000);
     }
 }

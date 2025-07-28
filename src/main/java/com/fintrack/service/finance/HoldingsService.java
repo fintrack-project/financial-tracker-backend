@@ -1,20 +1,21 @@
 package com.fintrack.service.finance;
 
-import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fintrack.model.finance.Holdings;
 import com.fintrack.repository.finance.HoldingsRepository;
 import com.fintrack.model.finance.Transaction;
 import com.fintrack.repository.finance.TransactionRepository;
+import com.fintrack.constants.finance.AssetType;
 
 import java.util.*;
+import java.time.LocalDateTime;
+import java.util.stream.Collectors;
+import java.math.BigDecimal;
 
 // TODO: Implement TransactionsRepository with findByAccountId(UUID)
 // TODO: Ensure Transaction model has getAssetSymbol() and getQuantity() methods
@@ -63,43 +64,41 @@ public class HoldingsService {
         
         // Aggregate by assetName (unique per account)
         Map<String, Holdings> assetNameToHoldings = new HashMap<>();
-        for (Transaction tx : transactions) {
-            String assetName = tx.getAssetName();
-            String symbol = tx.getSymbol();
-            String unit = tx.getUnit();
-            double netQty = tx.getCredit().subtract(tx.getDebit()).doubleValue();
-            if (!assetNameToHoldings.containsKey(assetName)) {
-                Holdings holding = new Holdings();
-                holding.setAccountId(accountId);
-                holding.setAssetName(assetName);
-                holding.setSymbol(symbol);
-                holding.setUnit(unit);
-                holding.setTotalBalance(0.0);
-                holding.setUpdatedAt(java.time.LocalDateTime.now());
-                holding.setAssetType(tx.getAssetType());
-                assetNameToHoldings.put(assetName, holding);
-            }
-            Holdings holding = assetNameToHoldings.get(assetName);
-            holding.setTotalBalance(holding.getTotalBalance() + netQty);
+        
+        for (Transaction transaction : transactions) {
+            String assetName = transaction.getAssetName();
+            String symbol = transaction.getSymbol();
+            String unit = transaction.getUnit();
+            AssetType assetType = transaction.getAssetType();
+            
+            // Calculate net quantity (credit - debit)
+            BigDecimal netQty = transaction.getCredit().subtract(transaction.getDebit());
+            
+            // Get or create holdings for this asset
+            Holdings holdings = assetNameToHoldings.computeIfAbsent(assetName, k -> {
+                Holdings newHoldings = new Holdings();
+                newHoldings.setAccountId(accountId);
+                newHoldings.setAssetName(assetName);
+                newHoldings.setSymbol(symbol);
+                newHoldings.setUnit(unit);
+                newHoldings.setAssetType(assetType);
+                newHoldings.setTotalBalance(0.0);
+                newHoldings.setUpdatedAt(LocalDateTime.now());
+                return newHoldings;
+            });
+            
+            // Add net quantity to total balance
+            holdings.setTotalBalance(holdings.getTotalBalance() + netQty.doubleValue());
         }
         
-        logger.info("Calculated holdings for {} assets: {}", assetNameToHoldings.size(), 
-                   assetNameToHoldings.keySet());
+        // Remove holdings with zero or negative balance
+        List<Holdings> holdingsToSave = assetNameToHoldings.values().stream()
+            .filter(holdings -> holdings.getTotalBalance() > 0)
+            .collect(Collectors.toList());
         
-        // Debug: Log calculated balances
-        for (Holdings holding : assetNameToHoldings.values()) {
-            logger.info("Calculated holding: Asset={}, Balance={}", 
-                       holding.getAssetName(), holding.getTotalBalance());
-        }
+        // Delete existing holdings for this account
+        holdingsRepository.deleteByAccountId(accountId);
         
-        // Since we delete transactions first, holdings table should be empty
-        // But we'll still delete to be safe
-        logger.info("Deleting existing holdings for account: {}", accountId);
-        int deletedCount = holdingsRepository.deleteByAccountId(accountId);
-        logger.info("Deleted {} existing holdings for account: {}", deletedCount, accountId);
-        
-        // Save all holdings (since we delete first, table is empty)
-        List<Holdings> holdingsToSave = new ArrayList<>(assetNameToHoldings.values());
         logger.info("Saving {} holdings for account: {}", holdingsToSave.size(), accountId);
         
         if (!holdingsToSave.isEmpty()) {
@@ -107,19 +106,6 @@ public class HoldingsService {
         }
         
         logger.info("Completed holdings recalculation for account: {}", accountId);
-    }
-
-    @KafkaListener(topics = "#{T(com.fintrack.constants.KafkaTopics).PROCESS_TRANSACTIONS_TO_HOLDINGS_COMPLETE.getTopicName()}", groupId = "holdings-group")
-    @CacheEvict(value = "holdings", allEntries = true)
-    public void processTransactionsToHoldings(String message) {
-        // Parse the message
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            Map<String, Object> payload = objectMapper.readValue(message, Map.class);
-            // Fetch the latest holdings
-        } catch (Exception e) {
-            logger.error("Error processing message: " + e.getMessage(), e);
-        }
     }
 }
 
