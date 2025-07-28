@@ -19,8 +19,11 @@ public class JwtService {
     @Value("${JWT_SECRET}")
     private String secretKey;
 
-    @Value("${JWT_EXPIRATION}")
+    @Value("${JWT_EXPIRATION:86400000}") // Default to 24 hours (24 * 60 * 60 * 1000 ms)
     private long jwtExpiration;
+
+    @Value("${JWT_REFRESH_EXPIRATION:604800000}") // Default to 7 days (7 * 24 * 60 * 60 * 1000 ms)
+    private long jwtRefreshExpiration;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -55,6 +58,46 @@ public class JwtService {
                 .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
                 .signWith(getSigningKey())
                 .compact();
+    }
+
+    public String generateRefreshToken(String userId) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("type", "refresh");
+        return Jwts.builder()
+                .claims(claims)
+                .subject(userId)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + jwtRefreshExpiration))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public String refreshAccessToken(String refreshToken) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(refreshToken)
+                    .getPayload();
+            
+            // Verify it's a refresh token
+            String tokenType = claims.get("type", String.class);
+            if (!"refresh".equals(tokenType)) {
+                throw new IllegalArgumentException("Invalid token type");
+            }
+            
+            String userId = claims.getSubject();
+            
+            // Generate new access token
+            return Jwts.builder()
+                    .subject(userId)
+                    .issuedAt(new Date(System.currentTimeMillis()))
+                    .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
+                    .signWith(getSigningKey())
+                    .compact();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid refresh token");
+        }
     }
 
     public String decodeToken(String token) {

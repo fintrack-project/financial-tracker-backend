@@ -1,6 +1,7 @@
 package com.fintrack.repository.finance;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
 
 import com.fintrack.model.finance.HoldingsMonthly;
@@ -26,4 +27,8 @@ public interface HoldingsMonthlyRepository extends JpaRepository<HoldingsMonthly
 
     @Query(value = "SELECT MAX(date) FROM holdings_monthly WHERE account_id = :accountId", nativeQuery = true)
     LocalDate findLatestDateByAccountId(@Param("accountId") UUID accountId);
+
+    @Modifying
+    @Query(value = "DELETE FROM holdings_monthly WHERE account_id = :accountId", nativeQuery = true)
+    int deleteByAccountId(@Param("accountId") UUID accountId);
 }
