@@ -17,10 +17,10 @@
     <logger name="com.fintrack.service" level="debug" />
     <logger name="com.fintrack.controller" level="debug" />
     <logger name="com.fintrack.component" level="debug" />
-    <logger name="org.hibernate.SQL" level="debug" />
-    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="debug" />
+    <logger name="org.hibernate.SQL" level="info" />
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="info" />
 
     <!-- Hibernate Session and Transaction Logs -->
-    <logger name="org.hibernate.engine.transaction" level="debug" />
-    <logger name="org.hibernate.event.internal" level="debug" />
+    <logger name="org.hibernate.engine.transaction" level="info" />
+    <logger name="org.hibernate.event.internal" level="info" />
 </configuration>

@@ -47,6 +47,13 @@ public class HoldingsService {
         List<Transaction> transactions = transactionRepository.findByAccountIdOrderByDateDesc(accountId);
         logger.info("Found {} transactions for account: {}", transactions.size(), accountId);
         
+        // Debug: Log each transaction
+        for (Transaction tx : transactions) {
+            logger.info("Transaction: ID={}, Asset={}, Credit={}, Debit={}, Date={}, DeletedAt={}", 
+                       tx.getTransactionId(), tx.getAssetName(), tx.getCredit(), tx.getDebit(), 
+                       tx.getDate(), tx.getDeletedAt());
+        }
+        
         // If no transactions, just delete all holdings and return
         if (transactions.isEmpty()) {
             logger.info("No transactions found, deleting all holdings for account: {}", accountId);
@@ -78,6 +85,12 @@ public class HoldingsService {
         
         logger.info("Calculated holdings for {} assets: {}", assetNameToHoldings.size(), 
                    assetNameToHoldings.keySet());
+        
+        // Debug: Log calculated balances
+        for (Holdings holding : assetNameToHoldings.values()) {
+            logger.info("Calculated holding: Asset={}, Balance={}", 
+                       holding.getAssetName(), holding.getTotalBalance());
+        }
         
         // Since we delete transactions first, holdings table should be empty
         // But we'll still delete to be safe

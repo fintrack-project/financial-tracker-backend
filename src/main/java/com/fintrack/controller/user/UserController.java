@@ -4,6 +4,7 @@ import com.fintrack.common.ApiResponse;
 import com.fintrack.common.ResponseWrapper;
 import com.fintrack.model.user.User;
 import com.fintrack.service.user.UserService;
+import com.fintrack.security.JwtService;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,9 +21,11 @@ public class UserController {
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     private final UserService userService;
+    private final JwtService jwtService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, JwtService jwtService) {
         this.userService = userService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping(
@@ -58,6 +61,33 @@ public class UserController {
         } catch (Exception e) {
             logger.error("Registration error: ", e);
             return ResponseWrapper.internalServerError("An unexpected error occurred during registration");
+        }
+    }
+
+    @PostMapping(
+        value = "/refresh",
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<ApiResponse<Map<String, Object>>> refreshToken(@RequestBody Map<String, String> request) {
+        try {
+            String refreshToken = request.get("refreshToken");
+            if (refreshToken == null) {
+                return ResponseWrapper.badRequest("Refresh token is required");
+            }
+
+            String newAccessToken = jwtService.refreshAccessToken(refreshToken);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", newAccessToken);
+            response.put("refreshToken", refreshToken); // Return the same refresh token
+            
+            return ResponseWrapper.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseWrapper.badRequest(e.getMessage());
+        } catch (Exception e) {
+            logger.error("Token refresh error: ", e);
+            return ResponseWrapper.internalServerError("Failed to refresh token");
         }
     }
 
