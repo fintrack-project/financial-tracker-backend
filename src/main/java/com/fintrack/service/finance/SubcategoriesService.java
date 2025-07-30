@@ -8,12 +8,16 @@ import com.fintrack.constants.Color;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class SubcategoriesService {
+
+    private static final Logger logger = LoggerFactory.getLogger(SubcategoriesService.class);
 
     private final CategoriesRepository categoriesRepository;
     private final SubcategoriesRepository subcategoriesRepository;
@@ -158,7 +162,10 @@ public class SubcategoriesService {
         }
 
         // Update the subcategory color
+        logger.info("Updating subcategory color - AccountId: {}, CategoryName: {}, SubcategoryName: {}, SubcategoryId: {}, Color: {}", 
+                   accountId, categoryName, subcategoryName, subcategoryId, hexCode.toUpperCase());
         categoriesRepository.updateCategoryColor(accountId, subcategoryId, hexCode.toUpperCase());
+        logger.info("Subcategory color updated successfully");
     }
 
     @Transactional(readOnly = true)
