@@ -9,12 +9,16 @@ import com.fintrack.constants.Color;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class CategoriesService {
+
+    private static final Logger logger = LoggerFactory.getLogger(CategoriesService.class);
 
     private final CategoriesRepository categoriesRepository;
     private final SubcategoriesRepository subcategoriesRepository;
@@ -168,7 +172,10 @@ public class CategoriesService {
         }
 
         // Update the category color
+        logger.info("Updating category color - AccountId: {}, CategoryName: {}, CategoryId: {}, Color: {}", 
+                   accountId, categoryName, categoryId, hexCode.toUpperCase());
         categoriesRepository.updateCategoryColor(accountId, categoryId, hexCode.toUpperCase());
+        logger.info("Category color updated successfully");
     }
 
     @Transactional(readOnly = true)

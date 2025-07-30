@@ -17,11 +17,6 @@ import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 import java.math.BigDecimal;
 
-// TODO: Implement TransactionsRepository with findByAccountId(UUID)
-// TODO: Ensure Transaction model has getAssetSymbol() and getQuantity() methods
-// TODO: Ensure HoldingsRepository has deleteByAccountId(UUID)
-// TODO: Ensure Holdings model has setAssetSymbol(String) and setQuantity(Double)
-
 @Service
 public class HoldingsService {
 
