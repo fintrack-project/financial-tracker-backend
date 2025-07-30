@@ -4,6 +4,7 @@ import com.fintrack.model.finance.Category;
 import com.fintrack.repository.finance.CategoriesRepository;
 import com.fintrack.repository.finance.HoldingsCategoriesRepository;
 import com.fintrack.repository.finance.SubcategoriesRepository;
+import com.fintrack.repository.finance.AssetRepository;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,14 +22,17 @@ public class HoldingsCategoriesService {
     private final HoldingsCategoriesRepository holdingsCategoriesRepository;
     private final CategoriesRepository categoriesRepository;
     private final SubcategoriesRepository subcategoriesRepository;
+    private final AssetRepository assetRepository;
 
     public HoldingsCategoriesService(
         HoldingsCategoriesRepository holdingsCategoriesRepository, 
         CategoriesRepository categoriesRepository,
-        SubcategoriesRepository subcategoriesRepository) {
+        SubcategoriesRepository subcategoriesRepository,
+        AssetRepository assetRepository) {
         this.holdingsCategoriesRepository = holdingsCategoriesRepository;
         this.categoriesRepository = categoriesRepository;
         this.subcategoriesRepository = subcategoriesRepository;
+        this.assetRepository = assetRepository;
     }
 
     @Transactional
@@ -210,6 +214,24 @@ public class HoldingsCategoriesService {
             logger.info("Cleaned up {} orphaned holdings categories for account: {} and assets: {}", deletedCount, accountId, assetNames);
         } else {
             logger.info("No orphaned holdings categories found for account: {} and assets: {}", accountId, assetNames);
+        }
+    }
+
+    /**
+     * Clean up orphaned assets that no longer have any transactions
+     * This method removes asset entries for assets that have no active transactions
+     */
+    @Transactional
+    public void cleanupOrphanedAssets(UUID accountId) {
+        logger.info("Cleaning up orphaned assets for account: {}", accountId);
+        
+        // Remove asset entries for assets that no longer have any active transactions
+        int deletedCount = assetRepository.deleteOrphanedAssets(accountId);
+        
+        if (deletedCount > 0) {
+            logger.info("Cleaned up {} orphaned assets for account: {}", deletedCount, accountId);
+        } else {
+            logger.info("No orphaned assets found for account: {}", accountId);
         }
     }
 }

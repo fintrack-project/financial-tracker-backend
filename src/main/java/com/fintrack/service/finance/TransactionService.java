@@ -35,17 +35,20 @@ public class TransactionService {
     private final HoldingsMonthlyRepository holdingsMonthlyRepository;
     private final HoldingsService holdingsService;
     private final HoldingsMonthlyService holdingsMonthlyService;
+    private final HoldingsCategoriesService holdingsCategoriesService;
 
     public TransactionService(TransactionRepository transactionRepository, 
         AssetRepository assetRepository,
         HoldingsMonthlyRepository holdingsMonthlyRepository,
         HoldingsService holdingsService,
-        HoldingsMonthlyService holdingsMonthlyService) {
+        HoldingsMonthlyService holdingsMonthlyService,
+        HoldingsCategoriesService holdingsCategoriesService) {
         this.transactionRepository = transactionRepository;
         this.assetRepository = assetRepository;
         this.holdingsMonthlyRepository = holdingsMonthlyRepository;
         this.holdingsService = holdingsService;
         this.holdingsMonthlyService = holdingsMonthlyService;
+        this.holdingsCategoriesService = holdingsCategoriesService;
     }
 
     @Transactional(readOnly = true)
@@ -292,5 +295,12 @@ public class TransactionService {
         logger.info("Recalculating holdings for account: {}", accountId);
         holdingsService.updateHoldingsForAccount(accountId);
         holdingsMonthlyService.updateMonthlyHoldingsForAccount(accountId);
+        
+        // Step 4: Clean up orphaned assets first, then orphaned holdings categories
+        logger.info("Cleaning up orphaned assets for account: {}", accountId);
+        holdingsCategoriesService.cleanupOrphanedAssets(accountId);
+        
+        logger.info("Cleaning up orphaned holdings categories for account: {}", accountId);
+        holdingsCategoriesService.cleanupOrphanedHoldingsCategories(accountId);
     }
 }
