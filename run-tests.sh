@@ -221,22 +221,14 @@ print_test_summary() {
     echo "=========================================="
     echo ""
     
-    # Extract test results from Maven output
-    local total_tests=$(grep "Tests run:" target/surefire-reports/*.txt 2>/dev/null | tail -1 | grep -o "Tests run: [0-9]*" | grep -o "[0-9]*" || echo "0")
-    local failures=$(grep "Failures:" target/surefire-reports/*.txt 2>/dev/null | tail -1 | grep -o "Failures: [0-9]*" | grep -o "[0-9]*" || echo "0")
-    local errors=$(grep "Errors:" target/surefire-reports/*.txt 2>/dev/null | tail -1 | grep -o "Errors: [0-9]*" | grep -o "[0-9]*" || echo "0")
-    local skipped=$(grep "Skipped:" target/surefire-reports/*.txt 2>/dev/null | tail -1 | grep -o "Skipped: [0-9]*" | grep -o "[0-9]*" || echo "0")
+    # Calculate total results by summing all test class results
+    local total_tests=0
+    local total_failures=0
+    local total_errors=0
+    local total_skipped=0
     
     # Get individual test class results
     local test_classes=$(find target/surefire-reports -name "*.txt" -exec basename {} .txt \; 2>/dev/null)
-    
-    echo "📈 Overall Results:"
-    echo "  Total Tests: $total_tests"
-    echo "  Passed: $((total_tests - failures - errors - skipped))"
-    echo "  Failed: $failures"
-    echo "  Errors: $errors"
-    echo "  Skipped: $skipped"
-    echo ""
     
     echo "🧪 Test Classes:"
     for test_class in $test_classes; do
@@ -245,6 +237,13 @@ print_test_summary() {
             local class_tests=$(grep "Tests run:" "$class_file" | grep -o "Tests run: [0-9]*" | grep -o "[0-9]*" || echo "0")
             local class_failures=$(grep "Failures:" "$class_file" | grep -o "Failures: [0-9]*" | grep -o "[0-9]*" || echo "0")
             local class_errors=$(grep "Errors:" "$class_file" | grep -o "Errors: [0-9]*" | grep -o "[0-9]*" || echo "0")
+            local class_skipped=$(grep "Skipped:" "$class_file" | grep -o "Skipped: [0-9]*" | grep -o "[0-9]*" || echo "0")
+            
+            # Add to totals
+            total_tests=$((total_tests + class_tests))
+            total_failures=$((total_failures + class_failures))
+            total_errors=$((total_errors + class_errors))
+            total_skipped=$((total_skipped + class_skipped))
             
             if [ "$class_failures" -eq 0 ] && [ "$class_errors" -eq 0 ]; then
                 echo "  ✅ $test_class ($class_tests tests)"
@@ -255,7 +254,15 @@ print_test_summary() {
     done
     
     echo ""
-    if [ "$failures" -eq 0 ] && [ "$errors" -eq 0 ]; then
+    echo "📈 Overall Results:"
+    echo "  Total Tests: $total_tests"
+    echo "  Passed: $((total_tests - total_failures - total_errors - total_skipped))"
+    echo "  Failed: $total_failures"
+    echo "  Errors: $total_errors"
+    echo "  Skipped: $total_skipped"
+    echo ""
+    
+    if [ "$total_failures" -eq 0 ] && [ "$total_errors" -eq 0 ]; then
         echo "🎉 All tests passed successfully!"
     else
         echo "⚠️  Some tests failed. Check the output above for details."
