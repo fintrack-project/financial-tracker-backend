@@ -1,6 +1,7 @@
 package com.fintrack.service.market;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fintrack.constants.finance.AssetType;
 import com.fintrack.model.market.MarketData;
 import com.fintrack.repository.market.MarketDataRepository;
@@ -38,6 +39,7 @@ class CachedMarketDataServiceTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule()); // Fix for LocalDateTime serialization
         cachedMarketDataService = new CachedMarketDataService(
             cacheService, kafkaProducerService, marketDataRepository, objectMapper
         );
