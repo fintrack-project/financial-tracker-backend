@@ -1,0 +1,30 @@
+name: Backend Tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+          
+      - name: Run Tests
+        run: ./mvnw test
+        
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v3
+        with:
+          directory: ./target/site/jacoco
+          fail_ci_if_error: false 
