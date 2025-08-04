@@ -243,10 +243,14 @@ public class CachedMarketDataService {
      */
     private void logBatchProcessingMetrics(int processedCount, Map<String, Object> payload) {
         try {
-            // Extract batch processing metadata if available
-            Integer totalBatches = (Integer) payload.get("totalBatches");
-            Integer totalTransactions = (Integer) payload.get("totalTransactions");
-            Long processingTimeMs = (Long) payload.get("processingTimeMs");
+            // Extract batch processing metadata if available - handle both Integer and Long types
+            Number totalBatchesNum = (Number) payload.get("totalBatches");
+            Number totalTransactionsNum = (Number) payload.get("totalTransactions");
+            Number processingTimeMsNum = (Number) payload.get("processingTimeMs");
+            
+            Integer totalBatches = totalBatchesNum != null ? totalBatchesNum.intValue() : null;
+            Integer totalTransactions = totalTransactionsNum != null ? totalTransactionsNum.intValue() : null;
+            Long processingTimeMs = processingTimeMsNum != null ? processingTimeMsNum.longValue() : null;
             
             logger.info("Batch processing metrics - Entries: {}, Batches: {}, Transactions: {}, Time: {}ms", 
                        processedCount, totalBatches, totalTransactions, processingTimeMs);

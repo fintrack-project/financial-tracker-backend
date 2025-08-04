@@ -9,38 +9,55 @@
     <packaging>jar</packaging>
 
     <properties>
-        <java.version>21</java.version>
-        <spring.boot.version>3.5.0</spring.boot.version>
-        <logback.version>1.5.18</logback.version>
-        <!-- Database -->
-        <postgresql.version>42.7.6</postgresql.version>
-        <hibernate.version>7.0.0.Final</hibernate.version>
-        <spring-data.version>4.0.0-M3</spring-data.version>
-        <flyway.version>11.8.2</flyway.version>
-        <!-- Security -->
-        <jwt.version>0.12.6</jwt.version>
-        <firebase.version>9.4.3</firebase.version>
-        <googleauth.version>1.5.0</googleauth.version>
-        <!-- Messaging -->
-        <kafka.version>4.0.0-M2</kafka.version>
-        <!-- Utilities -->
-        <lombok.version>1.18.38</lombok.version>
-        <jackson.version>2.19.0</jackson.version>
-        <slf4j.version>2.0.17</slf4j.version>
-        <stripe.version>29.2.0</stripe.version>
-        <!-- Testing -->
-        <junit.version>5.12.2</junit.version>
+        <!-- Project Configuration -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <!-- Spring Data Dependencies -->
-        <spring.version>6.2.0</spring.version>
-        <spring-aspects.version>6.2.0</spring-aspects.version>
-        <!-- HTTP Client -->
+        <java.version>21</java.version>
+        
+        <!-- Spring Framework Versions -->
+        <spring.boot.version>4.0.0-M1</spring.boot.version>
+        <spring.version>7.0.0-M7</spring.version>
+        <spring-data.version>4.0.0-M4</spring-data.version>
+        
+        <!-- Database Versions -->
+        <postgresql.version>42.7.7</postgresql.version>
+        <hibernate.version>7.0.8.Final</hibernate.version>
+        <flyway.version>11.10.4</flyway.version>
+        
+        <!-- Security Versions -->
+        <jwt.version>0.12.6</jwt.version>
+        <firebase.version>9.5.0</firebase.version>
+        <googleauth.version>1.37.1</googleauth.version>
+        <googleauthenticator.version>1.5.0</googleauthenticator.version>
+        
+        <!-- Messaging Versions -->
+        <kafka.version>4.0.0</kafka.version>
+        <spring-kafka.version>4.0.0-M3</spring-kafka.version>
+        
+        <!-- Testing Versions -->
+        <junit.version>6.0.0-M2</junit.version>
+        <testcontainers.version>1.21.3</testcontainers.version>
+        <maven-surefire.version>3.5.3</maven-surefire.version>
+        
+        <!-- Utility Versions -->
+        <lombok.version>1.18.38</lombok.version>
+        <jackson.version>2.19.2</jackson.version>
+        <slf4j.version>2.0.17</slf4j.version>
+        <logback.version>1.5.18</logback.version>
+        <stripe.version>29.3.0</stripe.version>
+        <jspecify.version>1.0.0</jspecify.version>
+        
+        <!-- HTTP Client Versions -->
         <httpclient.version>5.5</httpclient.version>
+        
+        <!-- Build Plugin Versions -->
+        <maven-compiler.version>3.14.0</maven-compiler.version>
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Core -->
+        <!-- ========================================
+             SPRING BOOT STARTERS
+             ======================================== -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -71,8 +88,6 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
             <version>${spring.boot.version}</version>
         </dependency>
-
-        <!-- Valkey/Redis Caching -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
@@ -84,42 +99,12 @@
             <version>${spring.boot.version}</version>
         </dependency>
 
-        <!-- Monitoring and Metrics -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-registry-prometheus</artifactId>
-        </dependency>
-
-        <!-- Database and Persistence -->
+        <!-- ========================================
+             DATABASE & PERSISTENCE
+             ======================================== -->
         <dependency>
             <groupId>jakarta.persistence</groupId>
             <artifactId>jakarta.persistence-api</artifactId>
-            <version>3.2.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.hibernate.orm</groupId>
-            <artifactId>hibernate-core</artifactId>
-            <version>${hibernate.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.hibernate.orm</groupId>
-            <artifactId>hibernate-community-dialects</artifactId>
-            <version>${hibernate.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.hibernate.orm</groupId>
-            <artifactId>hibernate-envers</artifactId>
-            <version>${hibernate.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.hibernate.orm</groupId>
-            <artifactId>hibernate-jpamodelgen</artifactId>
-            <version>${hibernate.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
@@ -127,17 +112,53 @@
             <version>${postgresql.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>${hibernate.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
             <version>${flyway.version}</version>
         </dependency>
+
+        <!-- ========================================
+             SPRING FRAMEWORK
+             ======================================== -->
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-database-postgresql</artifactId>
-            <version>${flyway.version}</version>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-aspects</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-orm</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-jpa</artifactId>
+            <version>${spring-data.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-commons</artifactId>
+            <version>${spring-data.version}</version>
         </dependency>
 
-        <!-- Security and Authentication -->
+        <!-- ========================================
+             SECURITY & AUTHENTICATION
+             ======================================== -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -147,11 +168,13 @@
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
             <version>${jwt.version}</version>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
             <version>${jwt.version}</version>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>com.google.firebase</groupId>
@@ -159,35 +182,45 @@
             <version>${firebase.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.google.auth</groupId>
+            <artifactId>google-auth-library-oauth2-http</artifactId>
+            <version>${googleauth.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.warrenstrange</groupId>
             <artifactId>googleauth</artifactId>
-            <version>${googleauth.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.httpcomponents</groupId>
-                    <artifactId>httpclient</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents.client5</groupId>
-            <artifactId>httpclient5</artifactId>
-            <version>${httpclient.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents.client5</groupId>
-            <artifactId>httpclient5-fluent</artifactId>
-            <version>${httpclient.version}</version>
+            <version>${googleauthenticator.version}</version>
         </dependency>
 
-        <!-- Messaging and Communication -->
+        <!-- ========================================
+             MESSAGING & COMMUNICATION
+             ======================================== -->
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>${kafka.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
-            <version>${kafka.version}</version>
+            <version>${spring-kafka.version}</version>
         </dependency>
 
-        <!-- Utilities and Tools -->
+        <!-- ========================================
+             MONITORING & METRICS
+             ======================================== -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <!-- ========================================
+             UTILITIES & TOOLS
+             ======================================== -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -197,6 +230,11 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
             <version>${jackson.version}</version>
         </dependency>
         <dependency>
@@ -214,8 +252,29 @@
             <artifactId>stripe-java</artifactId>
             <version>${stripe.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+            <version>${jspecify.version}</version>
+        </dependency>
 
-        <!-- Testing -->
+        <!-- ========================================
+             HTTP CLIENT
+             ======================================== -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <version>${httpclient.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5-fluent</artifactId>
+            <version>${httpclient.version}</version>
+        </dependency>
+
+        <!-- ========================================
+             TESTING DEPENDENCIES
+             ======================================== -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -228,46 +287,22 @@
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
-
-        <!-- Spring Data -->
         <dependency>
-            <groupId>org.springframework.data</groupId>
-            <artifactId>spring-data-jpa</artifactId>
-            <version>${spring-data.version}</version>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.springframework.data</groupId>
-            <artifactId>spring-data-commons</artifactId>
-            <version>${spring-data.version}</version>
-        </dependency>
-
-        <!-- JSpecify Annotations -->
-        <dependency>
-            <groupId>org.jspecify</groupId>
-            <artifactId>jspecify</artifactId>
-            <version>0.3.0</version>
-        </dependency>
-
-        <!-- Spring Framework -->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
-            <version>${spring.version}</version>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-aspects</artifactId>
-            <version>${spring-aspects.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-tx</artifactId>
-            <version>${spring.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-orm</artifactId>
-            <version>${spring.version}</version>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -280,26 +315,18 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- Force all httpclient dependencies to use version 5.5 -->
-            <dependency>
-                <groupId>org.apache.httpcomponents.client5</groupId>
-                <artifactId>httpclient5</artifactId>
-                <version>${httpclient.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.httpcomponents.client5</groupId>
-                <artifactId>httpclient5-fluent</artifactId>
-                <version>${httpclient.version}</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
     <build>
         <plugins>
+            <!-- ========================================
+                 COMPILER PLUGIN
+                 ======================================== -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.10.1</version>
+                <version>${maven-compiler.version}</version>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
@@ -313,6 +340,10 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+
+            <!-- ========================================
+                 SPRING BOOT PLUGIN
+                 ======================================== -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -324,6 +355,24 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <!-- ========================================
+                 TESTING PLUGIN
+                 ======================================== -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire.version}</version>
+                <configuration>
+                    <includes>
+                        <include>**/*Test.java</include>
+                        <include>**/*Tests.java</include>
+                    </includes>
+                    <excludes>
+                        <exclude>**/BaseTest.java</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>
