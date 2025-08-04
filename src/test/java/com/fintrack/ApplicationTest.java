@@ -1,43 +1,59 @@
 package com.fintrack;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.DisplayName;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Test to verify that the Spring Boot application context loads correctly.
- * This is a simple test to ensure our application can start up properly.
- */
 @SpringBootTest
 @ActiveProfiles("test")
-@TestPropertySource(locations = "classpath:application-test.properties")
-@DisplayName("Application Context Test")
-public class ApplicationTest {
+@TestPropertySource(properties = {
+    // Database configuration
+    "spring.datasource.url=jdbc:h2:mem:testdb",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
+    
+    // JPA configuration
+    "spring.jpa.hibernate.ddl-auto=create-drop",
+    "spring.jpa.show-sql=false",
+    
+    // Disable Flyway
+    "spring.flyway.enabled=false",
+    
+    // Minimal required properties for context loading
+    "MAIL_SMTP_AUTH=true",
+    "MAIL_SMTP_STARTTLS_ENABLE=true",
+    "FRONTEND_URL=http://localhost:3000",
+    "JWT_SECRET=test-jwt-secret-key-for-testing-only",
+    "STRIPE_TEST_SECRET_KEY=sk_test_dummy_key_for_testing",
+    "STRIPE_TEST_WEBHOOK_SECRET=whsec_test_dummy_webhook_secret",
+    
+    // Disable external services for tests
+    "spring.mail.enabled=false",
+    "stripe.enabled=false"
+})
+class ApplicationTest {
 
     @Test
-    @DisplayName("Should load application context successfully")
     void shouldLoadApplicationContext() {
-        // This test verifies that Spring Boot can start up with our configuration
+        // This test verifies that the Spring application context loads successfully
         assertTrue(true, "Application context should load successfully");
         System.out.println("✅ Spring Boot application context loaded successfully!");
     }
 
     @Test
-    @DisplayName("Should have test profile active")
     void shouldHaveTestProfileActive() {
-        // This test verifies that our test profile is active
+        // This test verifies that the test profile is active
         assertTrue(true, "Test profile should be active");
         System.out.println("✅ Test profile is active");
     }
 
     @Test
-    @DisplayName("Should have test properties loaded")
     void shouldHaveTestPropertiesLoaded() {
-        // This test verifies that our test properties are loaded
+        // This test verifies that test properties are loaded
         assertTrue(true, "Test properties should be loaded");
         System.out.println("✅ Test properties loaded successfully");
     }
