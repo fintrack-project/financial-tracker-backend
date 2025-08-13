@@ -15,14 +15,14 @@
         <java.version>21</java.version>
         
         <!-- Spring Framework Versions -->
-        <spring.boot.version>4.0.0-M1</spring.boot.version>
-        <spring.version>7.0.0-M7</spring.version>
-        <spring-data.version>4.0.0-M4</spring-data.version>
+        <spring.boot.version>3.2.12</spring.boot.version>
+        <spring.version>6.1.20</spring.version>
+        <spring-data.version>3.2.12</spring-data.version>
         
         <!-- Database Versions -->
-        <postgresql.version>42.7.7</postgresql.version>
-        <hibernate.version>7.0.8.Final</hibernate.version>
-        <flyway.version>11.10.4</flyway.version>
+        <postgresql.version>42.6.0</postgresql.version>
+        <hibernate.version>6.2.18.Final</hibernate.version>
+        <flyway.version>9.22.3</flyway.version>
         
         <!-- Security Versions -->
         <jwt.version>0.12.6</jwt.version>
@@ -41,14 +41,14 @@
         
         <!-- Utility Versions -->
         <lombok.version>1.18.38</lombok.version>
-        <jackson.version>2.19.2</jackson.version>
+        <jackson.version>2.15.4</jackson.version>
         <slf4j.version>2.0.17</slf4j.version>
-        <logback.version>1.5.18</logback.version>
+        <logback.version>1.4.14</logback.version>
         <stripe.version>29.3.0</stripe.version>
         <jspecify.version>1.0.0</jspecify.version>
         
         <!-- HTTP Client Versions -->
-        <httpclient.version>5.5</httpclient.version>
+        <httpclient.version>5.3</httpclient.version>
         
         <!-- Build Plugin Versions -->
         <maven-compiler.version>3.14.0</maven-compiler.version>
@@ -264,6 +264,16 @@
         <dependency>
             <groupId>org.apache.httpcomponents.client5</groupId>
             <artifactId>httpclient5</artifactId>
+            <version>${httpclient.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents.core5</groupId>
+            <artifactId>httpcore5</artifactId>
+            <version>${httpclient.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents.core5</groupId>
+            <artifactId>httpcore5-h2</artifactId>
             <version>${httpclient.version}</version>
         </dependency>
         <dependency>
