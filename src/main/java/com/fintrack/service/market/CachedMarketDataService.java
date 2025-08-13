@@ -115,7 +115,7 @@ public class CachedMarketDataService {
                     // Log performance metrics
                     logBatchProcessingMetrics(marketDataList.size(), payload);
                     
-                    // Optionally notify connected clients via WebSocket
+                    // TODO: Implement real-time notification logic
                     notifyClientsOfUpdate(marketDataList);
                 } else {
                     logger.warn("No market data entries found in completion message");
@@ -230,7 +230,7 @@ public class CachedMarketDataService {
     }
 
     private void notifyClientsOfUpdate(List<MarketData> marketDataList) {
-        // TODO: Implement WebSocket notification logic
+        // TODO: Implement real-time notification logic
         // This would notify connected frontend clients of data updates
         logger.debug("Would notify {} clients of market data updates", marketDataList.size());
     }
