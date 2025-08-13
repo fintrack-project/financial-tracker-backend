@@ -26,8 +26,8 @@ The **FinTrack Backend** is a **high-performance Java microservice** built with 
 ┌─────────────────────────────────────────────────────────────┐
 │                    Presentation Layer                       │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
-│  │   REST API      │  │   WebSocket     │  │   Security  │ │
-│  │   Controllers   │  │   Handlers      │  │   Filters   │ │
+│  │   REST API      │  │   Kafka         │  │   Security  │ │
+│  │   Controllers   │  │   Integration   │  │   Filters   │ │
 │  └─────────────────┘  └─────────────────┘  └─────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────────┐
@@ -151,8 +151,7 @@ src/main/java/com/fintrack/
 |----------------|-------------|-------------|
 | **Apache Kafka** | 4.0.0 | Message queuing and streaming |
 | **Spring Kafka** | 4.0.0-M3 | Kafka integration |
-| **WebSocket** | Planned | Real-time communication (in development) |
-| **STOMP** | Planned | WebSocket messaging protocol (in development) |
+
 
 ### **Testing & Quality**
 | **Technology** | **Version** | **Purpose** |
@@ -564,7 +563,7 @@ export FIREBASE_PROJECT_ID="your-firebase-project-id"
 
 ### **Planned Features**
 - **GraphQL API**: Advanced querying and data fetching
-- **Real-time Updates**: Kafka integration for live data (WebSocket planned)
+- **Real-time Updates**: Kafka integration for live data
 - **Advanced Analytics**: Machine learning-powered insights
 - **Microservices**: Service decomposition for scalability
 - **Event Sourcing**: Event-driven architecture for audit trails
